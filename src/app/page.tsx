@@ -1,103 +1,114 @@
+"use client";
+
+import { TypewriterText } from "@/components/Typewriter";
+import { motion } from "framer-motion";
+import ThreeBackground from "@/components/ThreeBackground";
 import Image from "next/image";
+import Footer from "@/components/Footer";
+import ScrollCue from "@/components/ScrollCue";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center bg-transparent text-offwhite">
+      <motion.div
+        initial={{ opacity: 1 }}
+        animate={{ opacity: 1 }}
+        whileInView={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        <ThreeBackground />
+      </motion.div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="space-y-6 mb-28"
+      >
+        <h1 className="text-yellow text-4xl md:text-6xl font-bold mt-64">
+          <TypewriterText />
+        </h1>
+        <p className="max-w-xl text-yellow mx-auto text-lg md:text-xl text-yellow">
+          I build full-stack websites, dashboards, and internal tools that help
+          small businesses run smoother.
+        </p>
+        <div className="flex justify-center gap-4 pt-6">
           <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/pricing"
+            className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+            View Pricing
           </a>
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/contact"
+            className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
           >
-            Read our docs
+            Contact Me
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-yellow to-white rounded-full animate-pulse mb-8" />
+
+      </motion.div>
+
+      {/* Avatar + Welcome Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 60 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.6 }}
+        className="relative mt-64 w-full max-w-4xl px-6 z-10"
+      >
+
+        <div className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl">
+          {/* Avatar Floating In */}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-28 h-28 rounded-full overflow-hidden border-4 border-yellow shadow-md bg-offwhite"
+          >
+            <Image
+              src="/reece-avatar.png"
+              alt="Reece Nunez"
+              width={112}
+              height={112}
+              className="object-cover w-full h-full"
+              priority
+            />
+          </motion.div>
+
+
+          <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-6 tracking-tight mt-16">
+            Welcome to NunezDev
+          </h2>
+
+          <p className="text-offwhite text-base md:text-lg leading-loose">
+            I’m{" "}
+            <span className="relative inline-block font-semibold text-yellow hover:animate-pulse">
+              Reece Nunez
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-yellow animate-glow" />
+            </span>
+            — a self-taught full-stack developer, small business owner, and
+            solutions-focused builder. I founded NunezDev to help businesses like
+            yours go beyond templates and launch with purpose-built tools. Whether
+            it’s a blazing-fast website, a dashboard to manage operations, or
+            automation to save time — I craft systems that make your work life
+            easier.
+          </p>
+
+          <div className="mt-8">
+            <a
+              href="/about"
+              className="inline-block bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+            >
+              Learn More About Me →
+            </a>
+          </div>
+        </div>
+      </motion.div>
+      <Footer />
+      <ScrollCue />
+    </main>
+    
   );
 }
