@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Roboto } from "next/font/google";
 import { Montserrat } from "next/font/google";
 import StructuredData from "@/components/StructuredData";
+import Script from "next/script";
 
 const montserrat = Montserrat({
   weight: ["400", "500", "600", "700"],
@@ -116,6 +117,18 @@ export default function RootLayout({
     <html lang="en-US" dir="ltr">
       <head>
         <StructuredData />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-M090T4S8LM"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-M090T4S8LM');
+    `}
+        </Script>
       </head>
       <body
         className={`${roboto.variable} ${montserrat.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
