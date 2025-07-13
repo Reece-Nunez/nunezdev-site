@@ -4,7 +4,7 @@ import { FaFacebookF, FaInstagram, FaGithub, FaLinkedin } from "react-icons/fa";
 
 export default function Footer() {
 
-    const scrollToTop = () => {
+  const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -17,9 +17,9 @@ export default function Footer() {
       <div className="w-full grid md:grid-cols-3 gap-12 text-center md:text-left">
         {/* Logo */}
         <div className="space-y-4">
-            <button 
+          <button
             onClick={scrollToTop}
-            >
+          >
             <Image
               src="/n-logo.svg"
               alt="NunezDev Logo"
@@ -28,7 +28,7 @@ export default function Footer() {
               className="w-20 h-20 mb-2"
               priority
             />
-            </button>
+          </button>
           <p className="text-sm text-gray-400 max-w-xs">
             Purpose-built websites, apps, and tools that help businesses run better — built from scratch by Reece Nunez.
           </p>
@@ -62,7 +62,8 @@ export default function Footer() {
         </div>
 
         {/* Contact & Social */}
-        <div className="space-y-4 text-right">
+        {/* Contact & Social */}
+        <div className="space-y-4 text-center md:text-right">
           <h4 className="text-yellow text-lg font-semibold mb-4">Get In Touch</h4>
           <p className="text-sm text-gray-400">Ponca City, Oklahoma</p>
           <p className="text-sm text-gray-400">reece@nunezdev.com</p>
