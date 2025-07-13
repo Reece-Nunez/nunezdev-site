@@ -2,6 +2,51 @@
 
 import { motion } from 'framer-motion';
 import { Variants } from 'framer-motion';
+import ServicesStructuredData from '@/components/ServicesStructuredData';
+
+export const metadata = {
+    title: "Custom Web & Software Development Services | NunezDev",
+    description:
+        "Full-stack web development services tailored for business growth. From starter websites to advanced CRM dashboards and client portals — NunezDev builds it all, from scratch.",
+    keywords: [
+        "web development services Oklahoma",
+        "custom website development",
+        "small business website design",
+        "web app developer Ponca City",
+        "CRM development",
+        "client portal software",
+        "Next.js developer services",
+        "NunezDev service packages"
+    ],
+    alternates: {
+        canonical: "https://www.nunezdev.com/services",
+    },
+    openGraph: {
+        title: "Custom Web & Software Development Services | NunezDev",
+        description:
+            "Explore our full-stack development services—from mobile-ready websites to client dashboards, automation tools, and custom CRM platforms.",
+        url: "https://www.nunezdev.com/services",
+        siteName: "NunezDev",
+        type: "website",
+        images: [
+            {
+                url: "https://www.nunezdev.com/logo.png",
+                width: 1200,
+                height: 630,
+                alt: "NunezDev Services Banner",
+            },
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Web & Software Development Services | NunezDev",
+        description:
+            "Need a website, client portal, or business automation? NunezDev offers custom-built tools tailored for your business.",
+        images: ["https://www.nunezdev.com/logo.png"],
+    },
+};
+
+
 
 const fadeInUp: Variants = {
     hidden: { opacity: 0, y: 30 },
@@ -53,62 +98,65 @@ const services = [
 
 export default function ServicesPage() {
     return (
-        <main className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-blue-900 py-36 px-6 text-white">
-            <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.4 }}
-                variants={fadeInUp}
-                className="text-center mb-20"
-            >
-                <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                    Custom Solutions That Grow With You
-                </h1>
-                <p className="text-lg text-zinc-300 max-w-2xl mx-auto">
-                    Whether you&#39;re just getting started or scaling fast, NunezDev builds websites and apps that move with your business.
-                </p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-3 gap-10">
-                {services.map((service, i) => (
-                    <motion.div
-                        key={service.title}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true, amount: 0.4 }}
-                        variants={fadeInUp}
-                        transition={{ delay: i * 0.2 }}
-                        className="bg-zinc-900 rounded-xl p-8 border border-zinc-700 hover:border-yellow-400 hover:shadow-yellow-400/20 hover:shadow-lg transition-all duration-300"
-                    >
-                        <h2 className="text-2xl font-bold text-yellow-400 mb-3">
-                            {service.title}
-                        </h2>
-                        <p className="text-sm text-zinc-300 mb-5">{service.description}</p>
-                        <ul className="space-y-2 text-sm text-zinc-400">
-                            {service.features.map((feature, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                    <span>{feature}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </motion.div>
-                ))}
-            </div>
-
-            <motion.div
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.4 }}
-                variants={fadeInUp}
-                className="flex justify-center mt-20"
-            >
-                <a
-                    href="/pricing"
-                    className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
+        <>
+            <ServicesStructuredData />
+            <main className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-blue-900 py-36 px-6 text-white">
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.4 }}
+                    variants={fadeInUp}
+                    className="text-center mb-20"
                 >
-                    View Pricing
-                </a>
-            </motion.div>
-        </main>
+                    <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                        Custom Solutions That Grow With You
+                    </h1>
+                    <p className="text-lg text-zinc-300 max-w-2xl mx-auto">
+                        Whether you&#39;re just getting started or scaling fast, NunezDev builds websites and apps that move with your business.
+                    </p>
+                </motion.div>
+
+                <div className="grid md:grid-cols-3 gap-10">
+                    {services.map((service, i) => (
+                        <motion.div
+                            key={service.title}
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true, amount: 0.4 }}
+                            variants={fadeInUp}
+                            transition={{ delay: i * 0.2 }}
+                            className="bg-zinc-900 rounded-xl p-8 border border-zinc-700 hover:border-yellow-400 hover:shadow-yellow-400/20 hover:shadow-lg transition-all duration-300"
+                        >
+                            <h2 className="text-2xl font-bold text-yellow-400 mb-3">
+                                {service.title}
+                            </h2>
+                            <p className="text-sm text-zinc-300 mb-5">{service.description}</p>
+                            <ul className="space-y-2 text-sm text-zinc-400">
+                                {service.features.map((feature, idx) => (
+                                    <li key={idx} className="flex items-start gap-2">
+                                        <span>{feature}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </motion.div>
+                    ))}
+                </div>
+
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.4 }}
+                    variants={fadeInUp}
+                    className="flex justify-center mt-20"
+                >
+                    <a
+                        href="/pricing"
+                        className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
+                    >
+                        View Pricing
+                    </a>
+                </motion.div>
+            </main>
+        </>
     );
 }

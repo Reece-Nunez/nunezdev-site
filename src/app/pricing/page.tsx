@@ -4,6 +4,51 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
 import { Variants } from "framer-motion";
+import PricingStructuredData from '@/components/PricingStructuredData';
+
+export const metadata = {
+  title: "Transparent Web & Software Pricing | NunezDev",
+  description:
+    "Explore clear pricing for custom websites, CRM dashboards, client portals, and web applications. Find the right package for your business—from $300 starter sites to $20k+ enterprise builds.",
+  keywords: [
+    "web development pricing",
+    "custom website cost",
+    "CRM pricing for small business",
+    "client portal development",
+    "web app pricing",
+    "freelance developer rates",
+    "Oklahoma web developer pricing",
+    "NunezDev pricing plans"
+  ],
+  alternates: {
+    canonical: "https://www.nunezdev.com/pricing",
+  },
+  openGraph: {
+    title: "Transparent Web & Software Pricing | NunezDev",
+    description:
+      "From small business websites to custom enterprise platforms—see our full pricing tiers and what each plan includes.",
+    url: "https://www.nunezdev.com/pricing",
+    siteName: "NunezDev",
+    type: "website",
+    images: [
+      {
+        url: "https://www.nunezdev.com/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "NunezDev pricing banner",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Website & Software Pricing | NunezDev",
+    description:
+      "Starter sites from $300. CRMs, portals, and custom platforms up to $20k+. View our transparent pricing breakdown.",
+    images: ["https://www.nunezdev.com/logo.png"],
+  },
+};
+
+
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -140,6 +185,8 @@ const pricingData = [
 
 export default function PricingPage() {
   return (
+    <>
+      <PricingStructuredData />
     <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-blue-900 py-36 px-4 text-white">
       <motion.h1
         initial={{ opacity: 0, y: -20 }}
@@ -211,5 +258,6 @@ export default function PricingPage() {
         </a>
       </motion.div>
     </main>
+    </>
   );
 }

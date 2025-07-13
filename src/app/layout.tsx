@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import { Roboto } from 'next/font/google';
+import { Roboto } from "next/font/google";
 import { Montserrat } from "next/font/google";
+import StructuredData from "@/components/StructuredData";
 
 const montserrat = Montserrat({
   weight: ["400", "500", "600", "700"],
@@ -16,7 +17,6 @@ const roboto = Roboto({
   subsets: ["latin"],
   variable: "--font-roboto",
 });
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,44 +34,78 @@ export const metadata: Metadata = {
     template: "%s | NunezDev",
   },
   description:
-    "NunezDev builds clean, scalable websites and custom software tools for small businesses and creators. Based in Ponca City, serving nationwide.",
+    "NunezDev builds clean, scalable websites and full-stack software for small businesses and creators. Based in Ponca City, serving clients nationwide.",
+  metadataBase: new URL("https://www.nunezdev.com"),
   keywords: [
     "web developer Ponca City",
     "custom website developer Oklahoma",
-    "freelance software engineer",
-    "small business web design",
+    "Next.js software engineer",
+    "freelance full-stack developer",
     "NunezDev",
-    "Next.js developer",
-    "full-stack developer Oklahoma",
+    "business automation tools",
+    "custom CRM software",
   ],
-  metadataBase: new URL("https://www.nunezdev.com"),
+  alternates: {
+    canonical: "https://www.nunezdev.com",
+    languages: {
+      "en-US": "https://www.nunezdev.com",
+    },
+  },
   openGraph: {
-    title: "NunezDev | Custom Web & Software Development",
-    description:
-      "Need a custom website, client portal, or automation tool? NunezDev brings your vision to life with full-stack development built from scratch.",
+    type: "website",
+    locale: "en_US",
     url: "https://www.nunezdev.com",
     siteName: "NunezDev",
+    title: "NunezDev | Custom Web & Software Development",
+    description:
+      "Custom websites, client portals, and automation tools built from scratch for businesses in Oklahoma and beyond.",
     images: [
       {
-        url: "/logo.png",
+        url: "https://www.nunezdev.com/logo.png",
         width: 1200,
         height: 630,
-        alt: "NunezDev – Web Development Banner",
+        alt: "NunezDev – Full Stack Web Development Banner",
       },
     ],
-    locale: "en_US",
-    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@NunezDev",
+    title: "NunezDev | Custom Web & Software Development",
+    description:
+      "From websites to CRMs, NunezDev builds powerful tools for business growth. Based in Ponca City, serving clients nationwide.",
+    images: ["https://www.nunezdev.com/logo.png"],
   },
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
+    other: [
+      {
+        rel: "manifest",
+        url: "/site.webmanifest",
+      },
+    ],
   },
-  alternates: {
-    canonical: "https://www.nunezdev.com",
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
+  verification: {
+    google: "YOUR-GOOGLE-SITE-VERIFICATION-CODE",
+    other: {
+      bing: "YOUR-BING-VERIFICATION-CODE",
+    },
   },
 };
-
 
 export default function RootLayout({
   children,
@@ -79,9 +113,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en-US" dir="ltr">
+      <head>
+        <StructuredData />
+      </head>
       <body
-        className={`${roboto.variable} ${montserrat.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${roboto.variable} ${montserrat.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
         <Navbar />
         {children}
