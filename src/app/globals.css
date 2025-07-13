@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 body {
-  font-family: var(--font-montseratt), sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
 }
 
 h1, h2 {
-  font-family: var(--font-bodoni), serif;
+  font-family: var(--font-roboto), serif;
 }
