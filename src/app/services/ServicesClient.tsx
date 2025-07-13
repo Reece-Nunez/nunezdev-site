@@ -61,7 +61,7 @@ export default function ServicesPage() {
                 variants={fadeInUp}
                 className="text-center mb-20"
             >
-                <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                <h1 className="text-yellow text-4xl md:text-6xl font-bold mb-6">
                     Custom Solutions That Grow With You
                 </h1>
                 <p className="text-lg text-zinc-300 max-w-2xl mx-auto">
@@ -80,7 +80,7 @@ export default function ServicesPage() {
                         transition={{ delay: i * 0.2 }}
                         className="bg-zinc-900 rounded-xl p-8 border border-zinc-700 hover:border-yellow-400 hover:shadow-yellow-400/20 hover:shadow-lg transition-all duration-300"
                     >
-                        <h2 className="text-2xl font-bold text-yellow-400 mb-3">
+                        <h2 className="text-yellow text-2xl font-bold text-yellow-400 mb-3">
                             {service.title}
                         </h2>
                         <p className="text-sm text-zinc-300 mb-5">{service.description}</p>

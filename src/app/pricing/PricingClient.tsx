@@ -146,7 +146,7 @@ export default function PricingClient() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
-                className="text-4xl md:text-6xl font-extrabold text-center mb-12"
+                className="text-4xl text-yellow md:text-6xl font-extrabold text-center mb-12"
             >
                 NunezDev Pricing
             </motion.h1>
@@ -177,7 +177,7 @@ export default function PricingClient() {
                                 >
                                     <Card className="bg-zinc-900 border border-zinc-700 hover:border-yellow-400 hover:shadow-yellow-400/20 hover:shadow-lg transition-all duration-300">
                                         <CardHeader>
-                                            <CardTitle className="text-xl font-bold text-yellow-400 drop-shadow">
+                                            <CardTitle className="text-yellow text-xl font-bold text-yellow-400 drop-shadow">
                                                 {plan.tier}
                                                 <span className="block text-sm font-medium text-white mt-1">{plan.price}</span>
                                             </CardTitle>
