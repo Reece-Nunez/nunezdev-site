@@ -78,7 +78,7 @@ export default function ServicesPage() {
                         viewport={{ once: true, amount: 0.4 }}
                         variants={fadeInUp}
                         transition={{ delay: i * 0.2 }}
-                        className="bg-zinc-900 rounded-xl p-8 border border-zinc-700 hover:border-yellow-400 hover:shadow-yellow-400/20 hover:shadow-lg transition-all duration-300"
+                        className="bg-zinc-900 rounded-xl p-8 border-2 border-zinc-700 hover:border-yellow hover:shadow-yellow hover:shadow-md transition-all duration-300"
                     >
                         <h2 className="text-yellow text-2xl font-bold text-yellow-400 mb-3">
                             {service.title}
