@@ -1,7 +1,18 @@
 'use client';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { motion } from 'framer-motion';
+import { Variants } from "framer-motion";
+
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
+  },
+};
 
 const pricingData = [
   {
@@ -129,39 +140,76 @@ const pricingData = [
 
 export default function PricingPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-700 to-blue py-52 px-6 mx-auto text-white">
-      <h1 className="text-4xl md:text-6xl font-bold text-center mb-10">NunezDev Pricing</h1>
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-800 to-blue-900 py-36 px-4 text-white">
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
+        className="text-4xl md:text-6xl font-extrabold text-center mb-12"
+      >
+        NunezDev Pricing
+      </motion.h1>
+
       <Tabs defaultValue="Starter Website" className="w-full">
         <TabsList className="flex flex-wrap justify-center gap-4 mb-10">
           {pricingData.map((pkg) => (
-            <TabsTrigger key={pkg.category} value={pkg.category}>
+            <TabsTrigger
+              key={pkg.category}
+              value={pkg.category}
+              className="hover:scale-105 transition-transform duration-200"
+            >
               {pkg.category}
             </TabsTrigger>
           ))}
         </TabsList>
+
         {pricingData.map((pkg) => (
           <TabsContent key={pkg.category} value={pkg.category}>
-            <div className="grid md:grid-cols-3 gap-6">
-              {pkg.plans.map((plan) => (
-                <Card key={plan.tier} className="bg-zinc-900 border border-zinc-700">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-semibold">
-                      {plan.tier} <span className="block text-sm font-normal text-yellow">{plan.price}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-300">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx}>{feature}</li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+            <div className="grid md:grid-cols-3 gap-8">
+              {pkg.plans.map((plan, index) => (
+                <motion.div
+                  key={plan.tier}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                  viewport={{ once: true }}
+                >
+                  <Card className="bg-zinc-900 border border-zinc-700 hover:border-yellow-400 hover:shadow-yellow-400/20 hover:shadow-lg transition-all duration-300">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-bold text-yellow-400 drop-shadow">
+                        {plan.tier}
+                        <span className="block text-sm font-medium text-white mt-1">{plan.price}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-300">
+                        {plan.features.map((feature, idx) => (
+                          <li key={idx}>{feature}</li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
             </div>
           </TabsContent>
         ))}
       </Tabs>
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.4 }}
+        variants={fadeInUp}
+        className="flex justify-center gap-4 pt-6"
+      >
+        <a
+          href="/services"
+          className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
+        >
+          View Services
+        </a>
+      </motion.div>
     </main>
   );
 }

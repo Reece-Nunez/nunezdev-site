@@ -40,11 +40,15 @@ export default function AboutPage() {
         initial="hidden"
         animate="show"
         variants={containerVariants}
-        className="grid md:grid-cols-2 gap-16 items-start"
+        className="grid md:grid-cols-2 gap-12 items-start mx-auto max-w-7xl"
       >
-        {/* Profile Image */}
-        <motion.div variants={fadeInUp} className="flex justify-center">
-          <div className="relative w-96 h-96 rounded-full overflow-hidden border-4 border-yellow shadow-xl">
+        {/* Profile + Family Images (Stacked Column) */}
+        <motion.div
+          variants={fadeInUp}
+          className="flex flex-col items-center space-y-10"
+        >
+          {/* Avatar Image */}
+          <div className="relative w-80 h-80 rounded-full overflow-hidden border-4 border-yellow shadow-xl">
             <Image
               src="/reece-avatar.png"
               alt="Reece Nunez"
@@ -53,37 +57,82 @@ export default function AboutPage() {
               priority
             />
           </div>
+
+          {/* Family Image */}
+          <div className="relative w-96 h-64  overflow-hidden">
+            <Image
+              src="/family.jpg"
+              alt="Reece and Family"
+              fill
+              className="object-cover"
+              style={{ filter: "brightness(0.98) drop-shadow(0 0 10px rgba(255, 255, 0, 0.3))" }}
+              priority
+            />
+          </div>
         </motion.div>
 
+
+
         {/* Text Content */}
-        <motion.div variants={fadeInUp} className="space-y-6 text-lg leading-relaxed">
-          <p>
-            I&#39;m <span className="text-yellow font-semibold">Reece Nunez</span>,
-            a full-stack software engineer and founder of{" "}
-            <span className="text-yellow font-semibold">NunezDev</span>. I earned my bachelor&#39;s degree in Software
-            Engineering in March 2024 and have since been helping small
-            businesses modernize and streamline their operations through
-            custom-built digital tools.
-          </p>
+        <motion.div variants={fadeInUp} className="space-y-10 text-lg leading-relaxed max-w-7xl w-full">
+          {/* Intro */}
+          <section className="space-y-4">
+            <p>
+              Hey! I’m Reece — a husband, dad of four, and full-time software problem solver.
+              I started <span className="text-yellow font-semibold">NunezDev</span> to help small businesses like yours build custom software that fits your unique needs.
+            </p>
+          </section>
 
-          <p>
-            From construction firms to homesteaders, I’ve built platforms that
-            simplify complex workflows — client dashboards, quote builders,
-            CRM tools, and more — always tailored to real needs.
-          </p>
+          {/* Family & Lifestyle */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold text-yellow">A Bit About Me</h2>
+            <p>
+              Since marrying my incredible wife in 2011, life has taken us from the mountains of Utah
+              to the wide skies of Texas and Alaska. We’ve now planted roots in Oklahoma on a 10-acre
+              homestead with our extended family — raising animals, chasing sunsets, and doing our best
+              to keep up with four amazing kids.
+            </p>
+            <p>
+              When I’m not coaching soccer or baseball, you’ll probably find me outdoors,
+              on a bike, or rewatching Star Wars, Harry Potter, or LOTR (yes, I’m that kind of nerd).
+            </p>
+          </section>
 
-          <p>
-            I’m also a husband, father, and country-living builder. Whether I&#39;m
-            coding, coaching soccer, hiking Oklahoma trails, or working on our
-            land, I bring the same focus and grit to every project I take on.
-          </p>
+          {/* Work Passion */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold text-yellow">What I Love to Build</h2>
+            <p>
+              I absolutely love building full-stack software solutions from scratch — turning an idea into
+              something real and functional is deeply fulfilling. Whether it’s a quote builder, CRM tool,
+              or client dashboard, I’m here to help you create something practical and powerful.
+            </p>
+            <p>
+              Good software is built with empathy, creativity, and purpose. I’d love to help bring your vision to life.
+            </p>
+          </section>
 
-          <p>
-            I started NunezDev not just to build software — but to build{" "}
-            <span className="text-yellow font-semibold">solutions</span> that
-            respect your time, budget, and vision.
-          </p>
+          {/* Experience */}
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold text-yellow">Who I Work With</h2>
+            <p>
+              From construction firms to homesteaders, I’ve built platforms that simplify complex workflows —
+              everything from custom dashboards to portals and CMS integrations — always tailored to real business needs.
+            </p>
+          </section>
 
+          {/* Personal Touch */}
+          <section className="space-y-4">
+            <p>
+              I’m also a country-living builder at heart. Whether I&#39;m writing code, hiking Oklahoma trails,
+              or coaching my kids&#39; teams, I bring the same focus and grit to every project I take on.
+            </p>
+            <p>
+              I started NunezDev not just to build websites — but to build
+              <span className="text-yellow font-semibold"> real solutions</span> that respect your time, budget, and goals.
+            </p>
+          </section>
+
+          {/* CTA */}
           <motion.a
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
@@ -93,6 +142,7 @@ export default function AboutPage() {
             Let’s Work Together →
           </motion.a>
         </motion.div>
+
       </motion.section>
     </main>
   );

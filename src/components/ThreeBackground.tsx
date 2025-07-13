@@ -106,7 +106,7 @@ export default function ThreeBackground() {
     >
       <Canvas
         camera={{ position: [0, 0, 4], fov: 75 }}
-        dpr={window.devicePixelRatio}
+        dpr={typeof window !== "undefined" ? window.devicePixelRatio : 1}
         gl={{ alpha: true }}
       >
         <color attach="background" args={["#000000"]} />
