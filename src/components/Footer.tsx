@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
 import { FaFacebookF, FaInstagram, FaGithub, FaLinkedin } from "react-icons/fa";
@@ -9,7 +11,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full px-6 pt-12 pb-4 mt-32 bg-gradient-to-b from-transparent to-black/30 text-offwhite">
+    <footer className="w-full px-6 pt-12 pb-4 bg-black/40 text-offwhite">
       {/* Divider */}
       <div className="w-24 h-1 mx-auto bg-gradient-to-r from-yellow via-white to-yellow rounded-full mb-8 animate-pulse" />
 

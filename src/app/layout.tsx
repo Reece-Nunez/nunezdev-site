@@ -6,6 +6,7 @@ import { Roboto } from "next/font/google";
 import { Montserrat } from "next/font/google";
 import StructuredData from "@/components/StructuredData";
 import Script from "next/script";
+import Footer from "@/components/Footer";
 
 const montserrat = Montserrat({
   weight: ["400", "500", "600", "700"],
@@ -135,6 +136,7 @@ export default function RootLayout({
       >
         <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );
