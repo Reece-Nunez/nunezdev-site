@@ -4,7 +4,6 @@ import { TypewriterText } from "@/components/Typewriter";
 import { motion } from "framer-motion";
 import ThreeBackground from "@/components/ThreeBackground";
 import Image from "next/image";
-import Footer from "@/components/Footer";
 import ScrollCue from "@/components/ScrollCue";
 import { Variants } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -80,7 +79,7 @@ export default function Home() {
         variants={fadeInUp}
         className="relative mt-64 w-full max-w-4xl px-6 z-10"
       >
-        <div className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl">
+        <div className="mb-16 relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl">
           {/* Avatar Floating In */}
           <motion.div
             variants={fadeInUp}

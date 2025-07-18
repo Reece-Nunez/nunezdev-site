@@ -16,6 +16,7 @@ export default function Head() {
       <meta property="og:url" content="https://www.nunezdev.com" />
       <meta property="og:type" content="website" />
       <link rel="icon" href="/favicon.ico" />
+      
     </>
   );
 }
