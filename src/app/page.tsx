@@ -7,6 +7,15 @@ import Image from "next/image";
 import Footer from "@/components/Footer";
 import ScrollCue from "@/components/ScrollCue";
 import { Variants } from "framer-motion";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faLaptopCode,
+  faCubes,
+  faChartBar,
+  faCogs,
+  faArrowTrendUp,
+  faShieldAlt,
+} from "@fortawesome/free-solid-svg-icons";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -20,7 +29,7 @@ const fadeInUp: Variants = {
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center text-offwhite  overflow-x-hidden overflow-y-auto">
-        <ThreeBackground />
+      <ThreeBackground />
 
       {/* Hero Section */}
       <motion.div
@@ -77,7 +86,6 @@ export default function Home() {
             variants={fadeInUp}
             className="mx-auto -mt-24 mb-4 w-40 h-40 rounded-full overflow-hidden border-4 border-yellow shadow-md bg-offwhite relative z-10"
           >
-
             <Image
               src="/reece-avatar.png"
               alt="Reece Nunez"
@@ -116,8 +124,93 @@ export default function Home() {
           </div>
         </div>
       </motion.div>
+      {/* Services Section - Scrollable w/ Icons & Motion */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.4 }}
+        variants={fadeInUp}
+        className="relative mt-64 w-full px-6 z-10"
+      >
+        <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-10 text-center">
+          What I Can Build For You
+        </h2>
 
-      <Footer />
+        <motion.div
+          variants={fadeInUp}
+          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl overflow-x-auto"
+        >
+          <div className="flex md:grid md:grid-cols-3 gap-6 min-w-[720px] md:min-w-full pb-4">
+            {[
+              {
+                icon: faLaptopCode,
+                title: "Custom Websites",
+                description:
+                  "Modern, fast websites built with Next.js & Tailwind. Perfect for marketing or service-based businesses.",
+              },
+              {
+                icon: faCubes,
+                title: "DIY Website Setup",
+                description:
+                  "I’ll build your site in WordPress or Framer and hand it off with full training so you stay in control.",
+              },
+              {
+                icon: faChartBar,
+                title: "Dashboards & Portals",
+                description:
+                  "Custom tools like lead trackers, quote builders, or client portals — tailored to your workflow.",
+              },
+              {
+                icon: faCogs,
+                title: "Automation & Integration",
+                description:
+                  "Stripe, AWS, Zapier, Supabase — I hook up the tech that powers your operations behind the scenes.",
+              },
+              {
+                icon: faArrowTrendUp,
+                title: "SEO & Growth Support",
+                description:
+                  "From local SEO to meta tags and review integration — get found online with smart optimization.",
+              },
+              {
+                icon: faShieldAlt,
+                title: "Ongoing Support",
+                description:
+                  "Monthly care plans to keep your site secure, updated, and evolving with your business.",
+              },
+            ].map((service, i) => (
+              <motion.div
+                key={service.title}
+                variants={fadeInUp}
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="flex-shrink-0 w-72 md:w-full bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
+              >
+                <FontAwesomeIcon
+                  icon={service.icon}
+                  className="text-yellow text-3xl mb-4"
+                />
+                <h3 className="text-yellow font-semibold text-xl mb-2">
+                  {service.title}
+                </h3>
+                <p className="text-base leading-relaxed">
+                  {service.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <a
+              href="/services"
+              className="inline-block bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+            >
+              See Full Service Breakdown →
+            </a>
+          </div>
+        </motion.div>
+      </motion.section>
+
       <ScrollCue />
     </main>
   );

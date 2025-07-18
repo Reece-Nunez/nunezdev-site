@@ -1,3 +1,5 @@
+'use client'
+
 import Link from "next/link";
 import Image from "next/image";
 import { FaFacebookF, FaInstagram, FaGithub, FaLinkedin } from "react-icons/fa";
@@ -92,7 +94,7 @@ export default function Footer() {
               <FaGithub className="w-5 h-5" />
             </a>
             <a
-              href="https://linkedin.com/in/reece-nunez"
+              href="https://linkedin.com/in/reecenunez"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-yellow transition"
@@ -104,7 +106,7 @@ export default function Footer() {
       </div>
 
       {/* Copyright */}
-      <div className="mt-12 text-center text-xs text-gray-500">
+      <div className="mt-2 text-center text-xs text-gray-500">
         © {new Date().getFullYear()} NunezDev. All rights reserved.
       </div>
     </footer>

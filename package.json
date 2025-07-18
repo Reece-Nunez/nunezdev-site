@@ -10,6 +10,8 @@
     "build:css": "tailwindcss -i ./src/app/globals.css -o ./src/app/output.css --watch"
   },
   "dependencies": {
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@react-three/drei": "^10.3.0",
     "@react-three/fiber": "^9.1.2",
     "drei": "^2.2.21",
