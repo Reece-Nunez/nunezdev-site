@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Montserrat, Roboto } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import StructuredData from "@/components/StructuredData";
+import Script from "next/script";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -10,6 +13,16 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const roboto = Roboto ({
+  variable: "--font-roboto",
+  subsets: ["latin"],
+});
+
+const montserrat = Montserrat ({
+  variable: "--font-montserrat",
   subsets: ["latin"],
 });
 

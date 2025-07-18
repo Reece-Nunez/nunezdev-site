@@ -1,181 +1,168 @@
-'use client';
+"use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { motion } from 'framer-motion';
-import { Variants } from 'framer-motion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { motion } from "framer-motion";
+import { Variants } from "framer-motion";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: 'easeOut' },
+    transition: { duration: 0.8, ease: "easeOut" },
   },
 };
 
 const pricingData = [
   {
-    category: 'Starter Website',
-    range: '$500 – $1,500',
+    category: "Website Packages",
+    range: "$750 – $2,500+",
     plans: [
       {
-        tier: 'Basic',
-        price: '$300–$750',
+        tier: "Starter Website",
+        price: "$750",
         features: [
-          'Up to 3 pages (Home, About, Contact)',
-          'Mobile-friendly layout',
-          'Contact form setup',
-          'Custom colors and fonts',
-          'Basic on-page SEO',
-          'Hosted via AWS or static host',
+          "Up to 3 custom-designed pages",
+          "Mobile responsive layout",
+          "Clean, modern design",
+          "Contact form integration",
+          "Google indexing + sitemap",
+          "Secure HTTPS setup",
+          "Deployed via AWS, Vercel, or preferred hosting",
         ],
       },
       {
-        tier: 'Standard',
-        price: '$1,000–$1,200',
+        tier: "Business Website",
+        price: "$1,500",
         features: [
-          '4–6 pages (adds Blog, Services, FAQ, etc.)',
-          'Light custom animation',
-          'Integrated calendar or third-party form',
-          'Google Maps or location',
-          'Analytics (Google Tag Manager)',
-          'Simple CMS (Framer CMS or Notion API)',
+          "Everything in Starter",
+          "Up to 8 custom pages",
+          "Headless CMS (Sanity, Payload, WordPress)",
+          "Blog or portfolio section",
+          "Google Analytics setup",
+          "SEO meta tags + social share previews",
+          "Facebook Pixel or Google Tag Manager",
+          "Free domain guidance",
         ],
       },
       {
-        tier: 'Enhanced',
-        price: '$1,300–$1,500',
+        tier: "E-Commerce Website",
+        price: "$2,000",
         features: [
-          'All Standard features',
-          'Full brand style guide application',
-          'Multi-language support',
-          'Accessibility optimization (A11y)',
-          'Basic GDPR/privacy policy setup',
-          'Blog or portfolio gallery with lightbox',
+          "Everything in Business",
+          "Product catalog with CMS or Shopify integration",
+          "Secure checkout (Stripe, PayPal, or Shopify)",
+          "Inventory and order tracking setup",
+          "Sales tax & shipping setup",
+          "Abandoned cart recovery (if supported)",
+        ],
+      },
+      {
+        tier: "Pro Website",
+        price: "$2,500+",
+        features: [
+          "Everything in Business or E-Commerce",
+          "Meta Shop and Instagram Shopping integration",
+          "Custom animations (Framer Motion, Lottie)",
+          "Advanced SEO setup + Schema.org markup",
+          "Accessibility and performance tuning",
+          "Walkthrough training video for your CMS",
         ],
       },
     ],
   },
   {
-    category: 'Growth Site Package',
-    range: '$2,000 – $5,000',
+    category: "Upsells & Add-ons",
+    range: "Starting at $75",
     plans: [
       {
-        tier: 'Lite',
-        price: '$2,000–$2,500',
+        tier: "Available Add-ons",
+        price: "Custom Pricing",
         features: [
-          '6–8 pages',
-          'Newsletter/email capture',
-          'Custom lead form',
-          'Light CMS (projects, blog, etc.)',
-          'SEO markup + social share metadata',
-        ],
-      },
-      {
-        tier: 'Pro',
-        price: '$3,000–$3,800',
-        features: [
-          'All Lite features',
-          'Booking/calendar integration',
-          'Page transition animations',
-          'Testimonials slider or case study',
-          'Light client portal (not login-gated)',
-        ],
-      },
-      {
-        tier: 'Max',
-        price: '$4,000–$5,000',
-        features: [
-          'All Pro features',
-          'Fully gated client portal (login)',
-          'CMS dashboard for content',
-          'Interactive elements (calculators/maps)',
-          'CRM or Airtable integration',
+          "Logo Design – from $300",
+          "Copywriting (Home + About + Services) – $250",
+          "Email Setup (Google Workspace or WorkMail) – $100",
+          "Custom Forms + Automations – $150+",
+          "Product Photography/Graphics – Custom Quote",
+          "Instagram Feed Embed – $75",
+          "Chatbot or Live Chat Setup – $150",
         ],
       },
     ],
   },
   {
-    category: 'Web App Package',
-    range: '$6,000 – $20,000+',
+    category: "Hosting & Maintenance Plans",
+    range: "$50 – $1,200/mo",
     plans: [
       {
-        tier: 'Core',
-        price: '$6,000–$8,000',
+        tier: "Basic Hosting",
+        price: "$50/mo",
         features: [
-          'User auth (email/password)',
-          'Dashboard UI (sidebar, cards, forms)',
-          'PostgreSQL, Prisma or Firebase',
-          'CRUD system',
-          'Deployment (Vercel or AWS Amplify)',
+          "Fast CDN-backed hosting (AWS, Vercel, or Render)",
+          "SSL certificate and HTTPS",
+          "Uptime monitoring and security patches",
+          "1 monthly update request (15 min max)",
         ],
       },
       {
-        tier: 'Standard',
-        price: '$9,000–$12,000',
+        tier: "Bronze Plan",
+        price: "$300/mo",
         features: [
-          'All Core features',
-          'Multi-role access',
-          'Email alerts (SendGrid/AWS SES)',
-          'Stripe payments/subscriptions',
-          'Analytics dashboard',
+          "Uptime monitoring",
+          "Weekly backups",
+          "CMS core updates",
+          "2 hours/month content edits",
         ],
       },
       {
-        tier: 'Enterprise',
-        price: '$15,000–$20,000+',
+        tier: "Silver Plan",
+        price: "$600/mo",
         features: [
-          'All Standard features',
-          'Real-time data updates',
-          'AI integrations',
-          'Offline storage (IndexedDB/PWA)',
-          'Dynamic API connections',
-          'Permissions system + audit logs',
+          "Everything in Bronze",
+          "5 hours/month dev or content work",
+          "Monthly performance/SEO report",
+          "Plugin and security upgrades",
+        ],
+      },
+      {
+        tier: "Gold Plan",
+        price: "$1,200/mo",
+        features: [
+          "Everything in Silver",
+          "Full A/B testing and SEO optimization",
+          "Conversion tracking & tuning",
+          "Dedicated dev support",
         ],
       },
     ],
   },
   {
-  category: 'Hosting & Maintenance',
-  range: '$50 – $200/mo',
-  plans: [
-    {
-      tier: 'Basic Hosting',
-      price: '$50/mo',
-      features: [
-        'High-speed hosting (AWS, Vercel, or Render)',
-        'SSL & domain management',
-        'Automatic backups',
-        'Uptime monitoring',
-        'Basic email support',
-      ],
-    },
-    {
-      tier: 'Pro Maintenance',
-      price: '$100/mo',
-      features: [
-        'Everything in Basic Hosting',
-        'Monthly content/image updates',
-        'Security updates & dependency patching',
-        'Analytics review + basic SEO checks',
-        'Priority support (24hr response)',
-      ],
-    },
-    {
-      tier: 'Growth Plan',
-      price: '$175/mo',
-      features: [
-        'Everything in Pro Maintenance',
-        'Quarterly design or copy refresh',
-        '1 hour of dev time/month (custom tweaks)',
-        'Speed & performance optimization',
-        'Consulting on scaling/automation tools',
-      ],
-    },
-  ],
-}
-
+    category: "Custom Web Applications",
+    range: "$10,000+",
+    plans: [
+      {
+        tier: "MVP Web App",
+        price: "From $10,000",
+        features: [
+          "Custom front-end (React/Next.js)",
+          "Secure backend (Node, Supabase, Firebase, etc.)",
+          "User auth, roles, admin dashboards",
+          "Cloud hosting setup (AWS, GCP, Vercel)",
+        ],
+      },
+      {
+        tier: "Growth Plan",
+        price: "$5,000/mo",
+        features: [
+          "Feature rollouts",
+          "Weekly sprints",
+          "Monitoring, backups, CI/CD pipeline",
+          "Dev support and UX enhancements",
+        ],
+      },
+    ],
+  },
 ];
 
 export default function PricingClient() {
@@ -197,10 +184,11 @@ export default function PricingClient() {
         viewport={{ once: true }}
         className="text-sm text-center max-w-3xl mx-auto mb-16"
       >
-        *Note: All packages include a free consulation and a hosting monthly fee to keep the site live. Custom features can be added to any package for an additional fee.
+        *Note: All packages include a free consultation. Hosting & maintenance
+        available monthly. Custom features can be quoted and added to any plan.
       </motion.p>
 
-      <Tabs defaultValue="Starter Website" className="w-full">
+      <Tabs defaultValue="Website Packages" className="w-full">
         <TabsList className="flex flex-wrap justify-center gap-4 mb-10">
           {pricingData.map((pkg) => (
             <TabsTrigger
@@ -228,7 +216,9 @@ export default function PricingClient() {
                     <CardHeader>
                       <CardTitle className="text-yellow text-xl font-bold drop-shadow">
                         {plan.tier}
-                        <span className="block text-sm font-medium text-white mt-1">{plan.price}</span>
+                        <span className="block text-sm font-medium text-white mt-1">
+                          {plan.price}
+                        </span>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>

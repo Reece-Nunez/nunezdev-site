@@ -14,6 +14,12 @@ import {
   faCogs,
   faArrowTrendUp,
   faShieldAlt,
+  faBolt,
+  faHandshake,
+  faWrench,
+  faRocket,
+  faLightbulb,
+  faThumbsUp,
 } from "@fortawesome/free-solid-svg-icons";
 
 const fadeInUp: Variants = {
@@ -27,7 +33,7 @@ const fadeInUp: Variants = {
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center text-offwhite  overflow-x-hidden overflow-y-auto">
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center text-offwhite  overflow-hidden">
       <ThreeBackground />
 
       {/* Hero Section */}
@@ -209,6 +215,121 @@ export default function Home() {
           </div>
         </motion.div>
       </motion.section>
+      {/* Why Choose Reece Section */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.4 }}
+        variants={fadeInUp}
+        className="relative mt-64 w-full px-6 z-10"
+      >
+        <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-10 text-center">
+          Why Choose Reece?
+        </h2>
+
+        <motion.div
+          variants={fadeInUp}
+          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl overflow-x-auto"
+        >
+          <div className="flex md:grid md:grid-cols-3 gap-6 min-w-[720px] md:min-w-full pb-4">
+            {[
+              {
+                icon: faBolt,
+                title: "Fast & Efficient",
+                description:
+                  "Quick turnarounds, optimized performance, and clean code that scales with your business.",
+              },
+              {
+                icon: faHandshake,
+                title: "Client-First Approach",
+                description:
+                  "I listen first, build second. Every project is custom-fit to your goals, not a template.",
+              },
+              {
+                icon: faWrench,
+                title: "Custom Built Tools",
+                description:
+                  "I specialize in dashboards, CRMs, portals, and backend automations that solve real problems.",
+              },
+              {
+                icon: faRocket,
+                title: "Growth-Oriented",
+                description:
+                  "Your site isn’t just pretty — it’s built to convert, retain clients, and grow with your brand.",
+              },
+              {
+                icon: faLightbulb,
+                title: "Creative & Technical",
+                description:
+                  "I blend great design with strong dev skills. No cookie-cutter solutions — just smart, creative builds.",
+              },
+              {
+                icon: faThumbsUp,
+                title: "Reliable & Honest",
+                description:
+                  "No upselling. No fluff. Just clear communication, transparent pricing, and results that work.",
+              },
+            ].map((point) => (
+              <motion.div
+                key={point.title}
+                variants={fadeInUp}
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="flex-shrink-0 w-72 md:w-full bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
+              >
+                <FontAwesomeIcon
+                  icon={point.icon}
+                  className="text-yellow text-3xl mb-4"
+                />
+                <h3 className="text-yellow font-semibold text-xl mb-2">
+                  {point.title}
+                </h3>
+                <p className="text-base leading-relaxed">{point.description}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <a
+              href="/about"
+              className="inline-block bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+            >
+              Learn More About Me →
+            </a>
+          </div>
+        </motion.div>
+      </motion.section>
+
+      {/* CTA After Why Choose Section */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.4 }}
+        variants={fadeInUp}
+        className="mt-24 text-center mb-12"
+      >
+        <h3 className="text-2xl md:text-3xl font-bold text-yellow mb-4">
+          Ready to bring your vision to life?
+        </h3>
+        <p className="text-offwhite text-lg mb-6">
+          Whether it's a website, dashboard, or full custom build — I'm here to
+          help you launch with confidence.
+        </p>
+        <div className="flex justify-center gap-4">
+          <a
+            href="/contact"
+            className="bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+          >
+            Contact Me
+          </a>
+          <a
+            href="/pricing"
+            className="border border-offwhite text-offwhite font-semibold px-6 py-3 rounded-lg hover:bg-offwhite hover:text-blue transition"
+          >
+            View Pricing
+          </a>
+        </div>
+      </motion.div>
 
       <ScrollCue />
     </main>
