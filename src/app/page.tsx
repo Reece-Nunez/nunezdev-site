@@ -129,11 +129,12 @@ export default function Home() {
           </div>
         </div>
       </motion.div>
-      {/* Services Section - Scrollable w/ Icons & Motion */}
+
+      {/* Services Section - Mobile Friendly */}
       <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.4 }}
+        viewport={{ once: true, amount: 0.2 }}
         variants={fadeInUp}
         className="relative mt-64 w-full px-6 z-10"
       >
@@ -143,9 +144,9 @@ export default function Home() {
 
         <motion.div
           variants={fadeInUp}
-          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl overflow-x-auto"
+          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl"
         >
-          <div className="flex md:grid md:grid-cols-3 gap-6 min-w-[720px] md:min-w-full pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {[
               {
                 icon: faLaptopCode,
@@ -189,7 +190,7 @@ export default function Home() {
                 variants={fadeInUp}
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="flex-shrink-0 w-72 md:w-full bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
+                className="bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
               >
                 <FontAwesomeIcon
                   icon={service.icon}
@@ -198,9 +199,7 @@ export default function Home() {
                 <h3 className="text-yellow font-semibold text-xl mb-2">
                   {service.title}
                 </h3>
-                <p className="text-base leading-relaxed">
-                  {service.description}
-                </p>
+                <p className="text-base leading-relaxed">{service.description}</p>
               </motion.div>
             ))}
           </div>
@@ -215,11 +214,12 @@ export default function Home() {
           </div>
         </motion.div>
       </motion.section>
-      {/* Why Choose Reece Section */}
+
+      {/* Why Choose Reece Section - Mobile Friendly */}
       <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.4 }}
+        viewport={{ once: true, amount: 0.2 }}
         variants={fadeInUp}
         className="relative mt-64 w-full px-6 z-10"
       >
@@ -229,9 +229,9 @@ export default function Home() {
 
         <motion.div
           variants={fadeInUp}
-          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl overflow-x-auto"
+          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl"
         >
-          <div className="flex md:grid md:grid-cols-3 gap-6 min-w-[720px] md:min-w-full pb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {[
               {
                 icon: faBolt,
@@ -275,7 +275,7 @@ export default function Home() {
                 variants={fadeInUp}
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="flex-shrink-0 w-72 md:w-full bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
+                className="bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
               >
                 <FontAwesomeIcon
                   icon={point.icon}
@@ -299,6 +299,7 @@ export default function Home() {
           </div>
         </motion.div>
       </motion.section>
+
 
       {/* CTA After Why Choose Section */}
       <motion.div
