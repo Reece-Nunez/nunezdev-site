@@ -183,7 +183,7 @@ export default function Home() {
                 description:
                   "Monthly care plans to keep your site secure, updated, and evolving with your business.",
               },
-            ].map((service, i) => (
+            ].map((service) => (
               <motion.div
                 key={service.title}
                 variants={fadeInUp}
@@ -312,7 +312,7 @@ export default function Home() {
           Ready to bring your vision to life?
         </h3>
         <p className="text-offwhite text-lg mb-6">
-          Whether it's a website, dashboard, or full custom build — I'm here to
+          Whether it&#39;s a website, dashboard, or full custom build — I&#39;m here to
           help you launch with confidence.
         </p>
         <div className="flex justify-center gap-4">

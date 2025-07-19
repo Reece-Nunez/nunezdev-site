@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 export function TypewriterText() {
-  const phrases = [
-    "I build websites.",
-    "I build custom dashboards.",
-    "I build internal tools.",
-    "I build scheduling systems.",
-    "I build what you need.",
-  ];
+  const phrases = useMemo(
+    () => [
+      "I build websites.",
+      "I build custom dashboards.",
+      "I build internal tools.",
+      "I build scheduling systems.",
+      "I build what you need.",
+    ],
+    []
+  );
 
   const [index, setIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
@@ -30,7 +33,7 @@ export function TypewriterText() {
       }, 2000);
       return () => clearTimeout(pause);
     }
-  }, [charIndex, index]);
+  }, [charIndex, index, phrases]);
 
   return (
     <span>
