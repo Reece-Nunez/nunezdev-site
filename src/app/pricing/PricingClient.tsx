@@ -21,7 +21,7 @@ const pricingData = [
     plans: [
       {
         tier: "Starter Website",
-        price: "$750",
+        price: "$750 - $1,500",
         features: [
           "Up to 3 custom-designed pages",
           "Mobile responsive layout",
@@ -34,7 +34,7 @@ const pricingData = [
       },
       {
         tier: "Business Website",
-        price: "$1,500",
+        price: "$1,500 - $2,500",
         features: [
           "Everything in Starter",
           "Up to 8 custom pages",
@@ -48,9 +48,11 @@ const pricingData = [
       },
       {
         tier: "E-Commerce Website",
-        price: "$2,000",
+        price: "$2,500 - $3,500",
         features: [
-          "Everything in Business",
+          "This is a custom e-commerce solution",
+          "Up to 10 product pages",
+          "Custom checkout experience",
           "Product catalog with CMS or Shopify integration",
           "Secure checkout (Stripe, PayPal, or Shopify)",
           "Inventory and order tracking setup",
@@ -62,7 +64,9 @@ const pricingData = [
         tier: "Pro Website",
         price: "$2,500+",
         features: [
-          "Everything in Business or E-Commerce",
+          "Everything in Business",
+          "Up to 15 custom pages",
+          "Advanced CMS features (custom types, relations)",
           "Meta Shop and Instagram Shopping integration",
           "Custom animations (Framer Motion, Lottie)",
           "Advanced SEO setup + Schema.org markup",
@@ -87,6 +91,7 @@ const pricingData = [
           "Product Photography/Graphics – Custom Quote",
           "Instagram Feed Embed – $75",
           "Chatbot or Live Chat Setup – $150",
+          "Google Business Profile Setup – $150",
         ],
       },
     ],
@@ -107,7 +112,7 @@ const pricingData = [
       },
       {
         tier: "Bronze Plan",
-        price: "$300/mo",
+        price: "$100/mo",
         features: [
           "Uptime monitoring",
           "Weekly backups",
@@ -117,7 +122,7 @@ const pricingData = [
       },
       {
         tier: "Silver Plan",
-        price: "$600/mo",
+        price: "$250/mo",
         features: [
           "Everything in Bronze",
           "5 hours/month dev or content work",
@@ -127,7 +132,7 @@ const pricingData = [
       },
       {
         tier: "Gold Plan",
-        price: "$1,200/mo",
+        price: "$500/mo",
         features: [
           "Everything in Silver",
           "Full A/B testing and SEO optimization",
