@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     // First, get the invoice to verify it exists
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('id, amount_cents, status, client_id, clients(name, email)')
+      .select('id, amount_cents, status, client_id, clients!inner(name, email)')
       .eq('id', invoice_id)
       .single();
 
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       metadata: {
         test_payment: true,
         payment_intent_id: `pi_test_${Date.now()}`,
-        customer_email: invoice.clients?.email || 'test@example.com'
+        customer_email: (invoice.clients as any)?.email || 'test@example.com'
       }
     };
 

@@ -35,8 +35,8 @@ export async function POST(req: Request) {
 
     // Simulate a client signing the invoice
     const testSignatureData = {
-      signer_name: invoice.clients?.name || 'Test Client',
-      signer_email: invoice.clients?.email || 'test@example.com',
+      signer_name: (invoice.clients as any)?.name || 'Test Client',
+      signer_email: (invoice.clients as any)?.email || 'test@example.com',
       signer_ip: '127.0.0.1', // Test IP
       signature_svg: '<svg>Test signature</svg>', // Mock signature
       signed_at: new Date().toISOString()
