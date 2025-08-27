@@ -33,38 +33,58 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Session callback that reads from Supabase
     async session({ session, token }) {
-      console.log("[NextAuth] Session callback called");
-      
       try {
+        console.log("[NextAuth] Session callback called");
+        
         // Check if we have Supabase env vars
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-          console.log("[NextAuth] Missing Supabase env vars");
-          return session;
+          console.log("[NextAuth] Missing Supabase env vars - returning basic session");
+          return session || { user: undefined, expires: "" };
         }
 
-        const supabase = await supabaseServer();
+        console.log("[NextAuth] Creating Supabase client...");
+        let supabase;
+        try {
+          supabase = await supabaseServer();
+          console.log("[NextAuth] Supabase client created successfully");
+        } catch (supabaseError) {
+          console.error("[NextAuth] Failed to create Supabase client:", supabaseError);
+          return session || { user: undefined, expires: "" };
+        }
+
+        console.log("[NextAuth] Getting Supabase user...");
         const { data: { user }, error } = await supabase.auth.getUser();
         
-        if (error || !user) {
-          console.log("[NextAuth] No Supabase user found:", error?.message);
+        if (error) {
+          console.error("[NextAuth] Supabase auth error:", error.message);
+          return { ...session, user: undefined };
+        }
+        
+        if (!user) {
+          console.log("[NextAuth] No Supabase user found");
           return { ...session, user: undefined };
         }
 
         console.log("[NextAuth] Found Supabase user:", user.email);
         
         // Update session with Supabase user data
-        return {
+        const updatedSession = {
           ...session,
           user: {
             id: user.id,
-            email: user.email,
-            name: user.user_metadata?.name || user.email,
+            email: user.email || "",
+            name: user.user_metadata?.name || user.email || "Unknown",
           }
         };
         
+        console.log("[NextAuth] Returning updated session");
+        return updatedSession;
+        
       } catch (error) {
-        console.error("[NextAuth] Session callback error:", error);
-        return session;
+        console.error("[NextAuth] Session callback caught error:", error instanceof Error ? error.message : String(error));
+        console.error("[NextAuth] Error stack:", error instanceof Error ? error.stack : "No stack");
+        // Always return a valid session object to prevent 500 errors
+        return session || { user: undefined, expires: "" };
       }
     },
 
