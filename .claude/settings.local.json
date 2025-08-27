@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run lint)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "WebSearch",
+      "WebFetch(domain:developers.hubspot.com)",
+      "Bash(npm uninstall:*)",
+      "Bash(rm:*)",
+      "Bash(npm run dev:*)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl:*)",
+      "Read(/C:\\c\\Users\\reece\\OneDrive\\Documents\\NunezDev/**)",
+      "Bash(psql:*)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Bash(npx eslint:*)",
+      "Bash(cat:*)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Bash(npm install:*)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\c\\Users\\reece\\OneDrive\\Documents\\NunezDev"
+    ]
+  }
+}

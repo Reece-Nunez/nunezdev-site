@@ -62,13 +62,13 @@ export default function Home() {
         >
           <a
             href="/pricing"
-            className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
+            className="text-lg text-white border border-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-blue hover:text-gray-800 transition"
           >
             View Pricing
           </a>
           <a
             href="/contact"
-            className="text-lg border border-offwhite px-6 py-3 rounded-md font-semibold hover:bg-offwhite hover:text-blue transition"
+            className="text-lg text-white border border-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-gray-800 hover:text-blue transition"
           >
             Contact Me
           </a>
@@ -105,7 +105,7 @@ export default function Home() {
             Welcome to NunezDev
           </h2>
 
-          <p className="text-offwhite text-base md:text-lg leading-loose">
+          <p className="text-white text-base md:text-lg leading-loose">
             I’m{" "}
             <span className="relative inline-block font-semibold text-yellow hover:animate-pulse">
               Reece Nunez
@@ -146,7 +146,7 @@ export default function Home() {
           variants={fadeInUp}
           className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-white">
             {[
               {
                 icon: faLaptopCode,
@@ -231,7 +231,7 @@ export default function Home() {
           variants={fadeInUp}
           className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid text-white grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {[
               {
                 icon: faBolt,
@@ -312,7 +312,7 @@ export default function Home() {
         <h3 className="text-2xl md:text-3xl font-bold text-yellow mb-4">
           Ready to bring your vision to life?
         </h3>
-        <p className="text-offwhite text-lg mb-6">
+        <p className="text-white text-lg mb-6">
           Whether it&#39;s a website, dashboard, or full custom build — I&#39;m here to
           help you launch with confidence.
         </p>
@@ -325,7 +325,7 @@ export default function Home() {
           </a>
           <a
             href="/pricing"
-            className="border border-offwhite text-offwhite font-semibold px-6 py-3 rounded-lg hover:bg-offwhite hover:text-blue transition"
+            className="border border-offwhite text-white font-semibold px-6 py-3 rounded-lg hover:bg-white hover:text-gray-800 transition"
           >
             View Pricing
           </a>

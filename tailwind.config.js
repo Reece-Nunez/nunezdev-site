@@ -8,24 +8,20 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx}", // Optional if using app directory
   ],
   theme: {
-    extend: {
-      animation: {
-        'bounce-slow': 'bounce 2s infinite',
-      },
-      colors: {
+  extend: {
+    colors: {
+      // Your custom colors here - this keeps all default Tailwind colors
+      yellow: "#ffc312", // Note: this will override Tailwind's yellow
+      customBlue: "#5b7c99", // Rename to avoid overriding default blue
+      brand: {
         yellow: "#ffc312",
         black: "#111111",
         blue: "#5b7c99",
         offwhite: "#fff8f1",
-        brand: {
-          yellow: "#ffc312",
-          black: "#111111",
-          blue: "#5b7c99",
-          offwhite: "#fff8f1",
-        },
       },
     },
   },
+},
   plugins: [
     plugin(function ({ addUtilities }) {
       addUtilities({

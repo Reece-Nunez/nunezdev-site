@@ -11,7 +11,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="w-full px-6 pt-12 pb-4 bg-black/40 text-offwhite">
+    <footer className="w-full px-6 pt-12 pb-4 bg-black text-white">
       {/* Divider */}
       <div className="w-24 h-1 mx-auto bg-gradient-to-r from-yellow via-white to-yellow rounded-full mb-8 animate-pulse" />
 

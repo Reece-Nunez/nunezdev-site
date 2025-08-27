@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import StructuredData from "@/components/StructuredData";
 import Script from "next/script";
 import Footer from "@/components/Footer";
+import Providers from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -131,7 +132,7 @@ export default function RootLayout({
         className={`${roboto.variable} ${montserrat.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
         <Navbar />
-        {children}
+        <Providers>{children}</Providers>
         <Footer />
       </body>
     </html>
