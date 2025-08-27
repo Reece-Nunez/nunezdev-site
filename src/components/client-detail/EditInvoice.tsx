@@ -17,6 +17,14 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
     status: invoice.status || 'draft',
     issued_at: invoice.issued_at ? new Date(invoice.issued_at).toISOString().slice(0, 16) : '', // datetime-local format
     due_at: invoice.due_at ? new Date(invoice.due_at).toISOString().slice(0, 16) : '',
+    project_overview: (invoice as any).project_overview || '',
+    project_start_date: (invoice as any).project_start_date || '',
+    delivery_date: (invoice as any).delivery_date || '',
+    discount_type: (invoice as any).discount_type || 'percentage',
+    discount_value: ((invoice as any).discount_value || 0).toString(),
+    technology_stack: (invoice as any).technology_stack || [],
+    terms_conditions: (invoice as any).terms_conditions || '',
+    require_signature: (invoice as any).require_signature || false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,6 +42,14 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
         status: formData.status,
         issued_at: formData.issued_at ? new Date(formData.issued_at).toISOString() : null,
         due_at: formData.due_at ? new Date(formData.due_at).toISOString() : null,
+        project_overview: formData.project_overview,
+        project_start_date: formData.project_start_date || null,
+        delivery_date: formData.delivery_date || null,
+        discount_type: formData.discount_type,
+        discount_value: parseFloat(formData.discount_value) || 0,
+        technology_stack: formData.technology_stack,
+        terms_conditions: formData.terms_conditions,
+        require_signature: formData.require_signature,
       };
 
       const res = await fetch(`/api/invoices/${invoice.id}`, {
@@ -58,9 +74,10 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-lg bg-white p-6">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6">
         <h3 className="mb-4 text-lg font-semibold">Edit Invoice</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="mb-1 block text-sm font-medium">
               Amount ($)
@@ -129,6 +146,144 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
               onChange={(e) => setFormData(prev => ({ ...prev, due_at: e.target.value }))}
               className="w-full rounded border px-3 py-2"
             />
+          </div>
+          </div>
+
+          {/* Enhanced Invoice Fields */}
+          <div className="space-y-6">
+            <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Project Details</h4>
+            
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Project Overview
+              </label>
+              <textarea
+                value={formData.project_overview}
+                onChange={(e) => setFormData(prev => ({ ...prev, project_overview: e.target.value }))}
+                placeholder="Brief description of the project scope and objectives..."
+                className="w-full rounded border px-3 py-2 h-24"
+                rows={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Project Start Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.project_start_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, project_start_date: e.target.value }))}
+                  className="w-full rounded border px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Delivery Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.delivery_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, delivery_date: e.target.value }))}
+                  className="w-full rounded border px-3 py-2"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Discount Configuration */}
+          <div className="space-y-4">
+            <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Discount</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Discount Type
+                </label>
+                <select
+                  value={formData.discount_type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value }))}
+                  className="w-full rounded border px-3 py-2"
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed Amount ($)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Discount Value
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.discount_value}
+                  onChange={(e) => setFormData(prev => ({ ...prev, discount_value: e.target.value }))}
+                  className="w-full rounded border px-3 py-2"
+                  placeholder={formData.discount_type === 'percentage' ? '10' : '100.00'}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Technology Stack */}
+          <div className="space-y-4">
+            <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Technology Stack</h4>
+            
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Technologies Used (comma-separated)
+              </label>
+              <input
+                type="text"
+                value={Array.isArray(formData.technology_stack) ? formData.technology_stack.join(', ') : ''}
+                onChange={(e) => {
+                  const techs = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                  setFormData(prev => ({ ...prev, technology_stack: techs }));
+                }}
+                placeholder="React, Node.js, PostgreSQL, TypeScript..."
+                className="w-full rounded border px-3 py-2"
+              />
+            </div>
+          </div>
+
+          {/* Terms & Conditions */}
+          <div className="space-y-4">
+            <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Terms & Conditions</h4>
+            
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Custom Terms & Conditions
+              </label>
+              <textarea
+                value={formData.terms_conditions}
+                onChange={(e) => setFormData(prev => ({ ...prev, terms_conditions: e.target.value }))}
+                placeholder="Payment terms, project conditions, or leave blank for default terms..."
+                className="w-full rounded border px-3 py-2 h-32"
+                rows={6}
+              />
+            </div>
+          </div>
+
+          {/* Signature Requirement */}
+          <div className="space-y-4">
+            <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Signature</h4>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="require_signature"
+                checked={formData.require_signature}
+                onChange={(e) => setFormData(prev => ({ ...prev, require_signature: e.target.checked }))}
+                className="mr-2"
+              />
+              <label htmlFor="require_signature" className="text-sm">
+                Require client signature before payment
+              </label>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">

@@ -11,7 +11,21 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const orgId = guard.orgId!;
   
   const { id: invoiceId } = await ctx.params;
-  const { amount_cents, description, status, issued_at, due_at } = await req.json();
+  const { 
+    amount_cents, 
+    description, 
+    status, 
+    issued_at, 
+    due_at,
+    project_overview,
+    project_start_date,
+    delivery_date,
+    discount_type,
+    discount_value,
+    technology_stack,
+    terms_conditions,
+    require_signature
+  } = await req.json();
 
   if (!amount_cents || amount_cents <= 0) {
     return NextResponse.json({ error: "Amount is required and must be positive" }, { status: 400 });
@@ -39,6 +53,16 @@ export async function PATCH(req: Request, ctx: Ctx) {
       status,
       updated_at: new Date().toISOString(),
     };
+
+    // Add enhanced fields if provided
+    if (project_overview !== undefined) updatePayload.project_overview = project_overview;
+    if (project_start_date !== undefined) updatePayload.project_start_date = project_start_date;
+    if (delivery_date !== undefined) updatePayload.delivery_date = delivery_date;
+    if (discount_type !== undefined) updatePayload.discount_type = discount_type;
+    if (discount_value !== undefined) updatePayload.discount_value = discount_value;
+    if (technology_stack !== undefined) updatePayload.technology_stack = technology_stack;
+    if (terms_conditions !== undefined) updatePayload.terms_conditions = terms_conditions;
+    if (require_signature !== undefined) updatePayload.require_signature = require_signature;
 
     // Only update dates if they are provided
     if (issued_at) {
