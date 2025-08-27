@@ -7,19 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Try to get session without the custom callback
-    const session = await getServerSession({
-      ...authOptions,
-      callbacks: {
-        // Minimal callbacks to avoid Supabase issues
-        async jwt({ token }) {
-          return token;
-        },
-        async session({ session }) {
-          return session;
-        },
-      }
-    });
+    // Try to get session with minimal options
+    const session = await getServerSession(authOptions);
 
     return NextResponse.json({ 
       status: "ok", 
