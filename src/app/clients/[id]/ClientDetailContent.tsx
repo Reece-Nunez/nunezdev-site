@@ -6,8 +6,6 @@ import ClientForm from '@/components/client-detail/ClientForm';
 import ClientNotes from '@/components/client-detail/ClientNotes';
 import ClientTasks from '@/components/client-detail/ClientTasks';
 import { ClientDeals, ClientInvoices } from '@/components/client-detail/Related';
-import AddDeal from '@/components/client-detail/AddDeal';
-import AddInvoice from '@/components/client-detail/AddInvoice';
 import AddPayment from '@/components/client-detail/AddPayment';
 
 export default function ClientDetailContent({ clientId }: { clientId: string }) {
@@ -26,21 +24,41 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
 
       {/* Deals */}
       <section className="rounded-lg border p-4">
-        <h2 className="mb-3 font-semibold">Deals</h2>
-        <AddDeal clientId={clientId} onCreated={bump} />
-        <div className="mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Deals</h2>
+          <Link
+            href={`/dashboard/deals/new?clientId=${clientId}`}
+            className="rounded-lg px-4 py-2 text-white text-sm font-medium transition-colors"
+            style={{ backgroundColor: '#ffc312' }}
+            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#e6ad0f'}
+            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#ffc312'}
+          >
+            + New Deal
+          </Link>
+        </div>
+        <div>
           <ClientDeals key={`deals-${refreshKey}`} clientId={clientId} />
         </div>
       </section>
 
       {/* Invoices & Payments */}
       <section className="rounded-lg border p-4">
-        <h2 className="mb-3 font-semibold">Invoices & Payments</h2>
-        <div className="flex gap-2 mb-4">
-          <AddInvoice clientId={clientId} onCreated={bump} />
-          <AddPayment clientId={clientId} onCreated={bump} />
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Invoices & Payments</h2>
+          <div className="flex gap-2">
+            <Link
+              href={`/dashboard/invoices/new?clientId=${clientId}`}
+              className="rounded-lg px-4 py-2 text-white text-sm font-medium transition-colors"
+              style={{ backgroundColor: '#ffc312' }}
+              onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#e6ad0f'}
+              onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#ffc312'}
+            >
+              + New Invoice
+            </Link>
+            <AddPayment clientId={clientId} onCreated={bump} />
+          </div>
         </div>
-        <div className="mt-4">
+        <div>
           <ClientInvoices key={`invoices-${refreshKey}`} clientId={clientId} />
         </div>
       </section>

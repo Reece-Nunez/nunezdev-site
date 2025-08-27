@@ -25,7 +25,7 @@ const hasPartialPayments = (invoice: Invoice) => {
   return totalPaid > 0 && totalPaid < (invoice.amount_cents || 0);
 };
 
-type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void' | 'overdue' | 'partially_paid';
+type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void' | 'overdue' | 'partially paid';
 
 interface Invoice {
   id: string;

@@ -98,6 +98,14 @@ export interface CreateInvoiceData {
   brand_logo_url?: string;
   brand_primary?: string;
   send_immediately?: boolean;
+  // New fields for enhanced invoice sections
+  project_overview?: string;
+  project_start_date?: string;
+  delivery_date?: string;
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number;
+  technology_stack?: string[];
+  terms_conditions?: string;
 }
 
 export interface InvoiceFilters {

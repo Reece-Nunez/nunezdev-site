@@ -50,6 +50,14 @@ export default function InvoiceBuilder({
     send_immediately: initialData?.send_immediately ?? false,
     brand_logo_url: initialData?.brand_logo_url || '/logo.png',
     brand_primary: initialData?.brand_primary || '#ffc312',
+    // New enhanced fields
+    project_overview: initialData?.project_overview || '',
+    project_start_date: initialData?.project_start_date || '',
+    delivery_date: initialData?.delivery_date || '',
+    discount_type: initialData?.discount_type || 'percentage',
+    discount_value: initialData?.discount_value || 0,
+    technology_stack: initialData?.technology_stack || [],
+    terms_conditions: initialData?.terms_conditions || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,13 +88,24 @@ export default function InvoiceBuilder({
   };
 
   // Calculate totals
-  const { subtotal, tax, total } = useMemo(() => {
+  const { subtotal, discount, tax, total } = useMemo(() => {
     const subtotal = formData.line_items.reduce((sum, item) => sum + item.amount_cents, 0);
-    const tax = 0; // TODO: Add tax calculation
-    const total = subtotal + tax;
     
-    return { subtotal, tax, total };
-  }, [formData.line_items]);
+    // Calculate discount
+    let discount = 0;
+    if (formData.discount_value && formData.discount_value > 0) {
+      if (formData.discount_type === 'percentage') {
+        discount = Math.round(subtotal * (formData.discount_value / 100));
+      } else {
+        discount = Math.round((formData.discount_value || 0) * 100); // Convert to cents
+      }
+    }
+    
+    const tax = 0; // TODO: Add tax calculation
+    const total = subtotal - discount + tax;
+    
+    return { subtotal, discount, tax, total };
+  }, [formData.line_items, formData.discount_type, formData.discount_value]);
 
   const updateLineItem = (index: number, field: keyof InvoiceLineItem, value: any) => {
     const newLineItems = [...formData.line_items];
@@ -330,6 +349,14 @@ export default function InvoiceBuilder({
                 <span>Subtotal:</span>
                 <span>${(subtotal / 100).toFixed(2)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>
+                    Discount {formData.discount_type === 'percentage' ? `(${formData.discount_value}%)` : ''}:
+                  </span>
+                  <span>-${(discount / 100).toFixed(2)}</span>
+                </div>
+              )}
               {tax > 0 && (
                 <div className="flex justify-between text-sm">
                   <span>Tax:</span>
@@ -344,6 +371,209 @@ export default function InvoiceBuilder({
           </div>
         </div>
         {errors.total && <p className="text-red-500 text-sm mt-2 text-right">{errors.total}</p>}
+      </div>
+
+      {/* Project Details */}
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4">Project Details</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Project Overview</label>
+            <textarea
+              value={formData.project_overview}
+              onChange={(e) => setFormData(prev => ({ ...prev, project_overview: e.target.value }))}
+              placeholder="Detailed description of the project, technologies used, and deliverables..."
+              rows={3}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Project Start Date</label>
+              <input
+                type="date"
+                value={formData.project_start_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, project_start_date: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Delivery Date</label>
+              <input
+                type="date"
+                value={formData.delivery_date}
+                onChange={(e) => setFormData(prev => ({ ...prev, delivery_date: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Discount Section */}
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4">Project Discount (Optional)</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div>
+            <label className="block text-sm font-medium mb-1">Discount Type</label>
+            <select
+              value={formData.discount_type}
+              onChange={(e) => setFormData(prev => ({ ...prev, discount_type: e.target.value as 'percentage' | 'fixed' }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed Amount ($)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {formData.discount_type === 'percentage' ? 'Percentage' : 'Amount ($)'}
+            </label>
+            <input
+              type="number"
+              min="0"
+              step={formData.discount_type === 'percentage' ? '1' : '0.01'}
+              max={formData.discount_type === 'percentage' ? '100' : undefined}
+              value={formData.discount_value || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              placeholder={formData.discount_type === 'percentage' ? '0' : '0.00'}
+            />
+          </div>
+          
+          <div className="text-sm text-gray-600">
+            {formData.discount_value && formData.discount_value > 0 ? (
+              <div className="p-2 bg-green-50 rounded border border-green-200">
+                <span className="text-green-700 font-medium">
+                  Discount: ${(discount / 100).toFixed(2)}
+                </span>
+                <div className="text-xs text-green-600">
+                  {formData.discount_type === 'percentage' 
+                    ? `${formData.discount_value}% of subtotal`
+                    : `Fixed amount`
+                  }
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-400 text-xs">No discount applied</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Technology Stack */}
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4">Technology Stack</h2>
+        
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">List the technologies that will be used in this project:</p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {['React', 'Next.js', 'TypeScript', 'Tailwind CSS', 'Supabase', 'Stripe', 'AWS Amplify', 'Framer Motion'].map((tech) => (
+              <label key={tech} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.technology_stack?.includes(tech) || false}
+                  onChange={(e) => {
+                    const currentStack = formData.technology_stack || [];
+                    if (e.target.checked) {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        technology_stack: [...currentStack, tech] 
+                      }));
+                    } else {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        technology_stack: currentStack.filter(t => t !== tech) 
+                      }));
+                    }
+                  }}
+                  className="rounded"
+                />
+                <span className="text-sm">{tech}</span>
+              </label>
+            ))}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Custom Technologies</label>
+            <input
+              type="text"
+              placeholder="Add custom technologies (comma-separated)"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const value = (e.target as HTMLInputElement).value.trim();
+                  if (value) {
+                    const customTechs = value.split(',').map(t => t.trim()).filter(t => t);
+                    const currentStack = formData.technology_stack || [];
+                    const newStack = [...currentStack];
+                    customTechs.forEach(tech => {
+                      if (!newStack.includes(tech)) {
+                        newStack.push(tech);
+                      }
+                    });
+                    setFormData(prev => ({ ...prev, technology_stack: newStack }));
+                    (e.target as HTMLInputElement).value = '';
+                  }
+                }
+              }}
+            />
+            <p className="text-xs text-gray-500 mt-1">Press Enter to add custom technologies</p>
+          </div>
+
+          {formData.technology_stack && formData.technology_stack.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2">Selected Technologies:</p>
+              <div className="flex flex-wrap gap-2">
+                {formData.technology_stack.map((tech, index) => (
+                  <span 
+                    key={index}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"
+                  >
+                    {tech}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          technology_stack: prev.technology_stack?.filter(t => t !== tech)
+                        }));
+                      }}
+                      className="text-blue-600 hover:text-blue-800 ml-1"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Enhanced Terms & Conditions */}
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4">Terms & Conditions</h2>
+        
+        <div>
+          <textarea
+            value={formData.terms_conditions}
+            onChange={(e) => setFormData(prev => ({ ...prev, terms_conditions: e.target.value }))}
+            placeholder="Enter custom terms and conditions for this project..."
+            rows={4}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Custom terms will be displayed in addition to standard payment terms
+          </p>
+        </div>
       </div>
 
       {/* Payment Terms & Options */}

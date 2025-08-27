@@ -49,7 +49,18 @@ export default function InvoiceBuilderPreview({
 }: InvoiceBuilderPreviewProps) {
   const selectedClient = clients.find(c => c.id === invoiceData.client_id);
   const subtotal = invoiceData.line_items.reduce((sum, item) => sum + item.amount_cents, 0);
-  const total = subtotal; // Add tax/discount calculation if needed
+  
+  // Calculate discount
+  let discount = 0;
+  if (invoiceData.discount_value && invoiceData.discount_value > 0) {
+    if (invoiceData.discount_type === 'percentage') {
+      discount = Math.round(subtotal * (invoiceData.discount_value / 100));
+    } else {
+      discount = Math.round((invoiceData.discount_value || 0) * 100); // Convert to cents
+    }
+  }
+  
+  const total = subtotal - discount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -67,70 +78,70 @@ export default function InvoiceBuilderPreview({
 
         {/* Invoice Preview Content */}
         <div className="p-8">
-          <div className="max-w-2xl mx-auto bg-white">
-            {/* Header with Logo/Branding */}
-            <div className="border-b-4 pb-8 mb-8" style={{ borderColor: invoiceData.brand_primary || '#ffc312' }}>
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-4">
-                  <img 
-                    src={invoiceData.brand_logo_url || '/logo.png'} 
-                    alt="NunezDev Logo" 
-                    className="w-16 h-16 object-contain"
-                  />
-                  <div>
-                    <h1 className="text-3xl font-bold" style={{ color: '#111111' }}>NunezDev</h1>
-                    <p className="text-gray-600 mt-1">Professional Web Development Services</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <h2 className="text-2xl font-bold" style={{ color: '#5b7c99' }}>INVOICE</h2>
-                  <p className="text-gray-600">#{Date.now().toString().slice(-8)}</p>
-                </div>
+          <div className="max-w-3xl mx-auto bg-white">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold" style={{ color: '#111111' }}>INVOICE</h1>
+              <h2 className="text-xl text-gray-600 mt-2">{invoiceData.title || 'Custom Website Development Services'}</h2>
+            </div>
+
+            {/* Client Information */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Client Information</h3>
+              <div className="text-gray-700">
+                <p className="font-medium text-lg">{selectedClient?.name || 'Client Name'}</p>
+                {selectedClient?.company && <p className="text-gray-600">{selectedClient.company}</p>}
+                {selectedClient?.email && <p className="text-gray-600">{selectedClient.email}</p>}
               </div>
             </div>
 
             {/* Invoice Details */}
-            <div className="grid grid-cols-2 gap-8 mb-8">
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: '#111111' }}>From:</h3>
-                <div className="text-gray-600">
-                  <div className="flex items-center gap-3 mb-2">
-                    <img 
-                      src="/reece-avatar.png" 
-                      alt="Reece Nunez" 
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-medium text-gray-800">Reece Nunez</p>
-                      <p className="text-sm">NunezDev</p>
-                    </div>
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Invoice Details</h3>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Invoice #:</span>
+                  <span className="text-gray-800">ND-{new Date().getFullYear()}-{Date.now().toString().slice(-3)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Date:</span>
+                  <span className="text-gray-800">{new Date().toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Due Date:</span>
+                  <span className="text-gray-800">{
+                    (() => {
+                      const dueDate = new Date();
+                      const days = invoiceData.payment_terms === 'due_on_receipt' ? 0 : parseInt(invoiceData.payment_terms);
+                      dueDate.setDate(dueDate.getDate() + days);
+                      return dueDate.toLocaleDateString();
+                    })()
+                  }</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Payment Terms:</span>
+                  <span className="text-gray-800">{getPaymentTermsDisplay(invoiceData.payment_terms)}</span>
+                </div>
+                {invoiceData.project_start_date && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Project Start:</span>
+                    <span className="text-gray-800">{new Date(invoiceData.project_start_date).toLocaleDateString()}</span>
                   </div>
-                  <p>Professional Web Developer</p>
-                  <p>Email: contact@nunezdev.com</p>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2" style={{ color: '#111111' }}>Bill To:</h3>
-                <div className="text-gray-600">
-                  <p className="font-medium">{selectedClient?.name || 'Client Name'}</p>
-                  {selectedClient?.company && <p>{selectedClient.company}</p>}
-                  <p>{selectedClient?.email || 'client@email.com'}</p>
-                </div>
+                )}
+                {invoiceData.delivery_date && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Delivery Date:</span>
+                    <span className="text-gray-800">{new Date(invoiceData.delivery_date).toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Invoice Title & Description */}
-            {(invoiceData.title || invoiceData.description) && (
+            {/* Project Overview */}
+            {invoiceData.project_overview && (
               <div className="mb-8">
-                {invoiceData.title && (
-                  <h3 className="text-xl font-semibold mb-2" style={{ color: '#111111' }}>
-                    {invoiceData.title}
-                  </h3>
-                )}
-                {invoiceData.description && (
-                  <p className="text-gray-600">{invoiceData.description}</p>
-                )}
+                <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Project Overview</h3>
+                <p className="text-gray-700 leading-relaxed">{invoiceData.project_overview}</p>
               </div>
             )}
 
@@ -138,79 +149,112 @@ export default function InvoiceBuilderPreview({
             <div className="mb-8">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-2 font-semibold text-gray-800">Description</th>
-                    <th className="text-center py-2 font-semibold text-gray-800">Hrs</th>
-                    <th className="text-right py-2 font-semibold text-gray-800">Rate</th>
-                    <th className="text-right py-2 font-semibold text-gray-800">Amount</th>
+                  <tr className="border-b-2 border-gray-300">
+                    <th className="text-left py-3 font-semibold text-gray-800">Service Description</th>
+                    <th className="text-center py-3 font-semibold text-gray-800">Hours</th>
+                    <th className="text-right py-3 font-semibold text-gray-800">Rate</th>
+                    <th className="text-right py-3 font-semibold text-gray-800">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoiceData.line_items.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-100">
-                      <td className="py-3 text-gray-600">{item.description || 'Service Description'}</td>
-                      <td className="py-3 text-center text-gray-600">{item.quantity}</td>
-                      <td className="py-3 text-right text-gray-600">{currency(item.rate_cents)}</td>
-                      <td className="py-3 text-right text-gray-800 font-medium">{currency(item.amount_cents)}</td>
+                    <tr key={index} className="border-b border-gray-200">
+                      <td className="py-4 text-gray-700 pr-4">{item.description || 'Service Description'}</td>
+                      <td className="py-4 text-center text-gray-700">{item.quantity}</td>
+                      <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
+                      <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Total */}
-            <div className="border-t-2 border-gray-200 pt-4 mb-8">
+            {/* Totals */}
+            <div className="border-t-2 border-gray-300 pt-4 mb-8">
               <div className="flex justify-end">
-                <div className="w-64 space-y-2 text-right">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal:</span>
-                    <span className="text-gray-800">{currency(subtotal)}</span>
+                <div className="w-72 space-y-3">
+                  <div className="flex justify-between text-gray-700">
+                    <span>Subtotal ({invoiceData.line_items.reduce((sum, item) => sum + item.quantity, 0)} hours × {currency(invoiceData.line_items.length > 0 ? invoiceData.line_items[0].rate_cents : 0)}):</span>
+                    <span className="font-semibold">{currency(subtotal)}</span>
                   </div>
-                  <div className="border-t pt-2">
-                    <div className="text-xl font-bold text-gray-800 flex justify-between">
-                      <span>Total:</span>
-                      <span style={{ color: invoiceData.brand_primary || '#ffc312' }}>
-                        {currency(total)}
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>
+                        Project Discount ({invoiceData.discount_type === 'percentage' 
+                          ? `${invoiceData.discount_value}%` 
+                          : 'Fixed Amount'}):
                       </span>
+                      <span className="font-semibold">-{currency(discount)}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-3">
+                    <div className="text-xl font-bold text-gray-800 flex justify-between">
+                      <span>Total Project Cost:</span>
+                      <span>{currency(total)}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Notes */}
-            {invoiceData.notes && (
+            {/* Technology Stack */}
+            {invoiceData.technology_stack && invoiceData.technology_stack.length > 0 && (
               <div className="mb-8">
-                <h3 className="font-semibold text-gray-800 mb-2">Notes</h3>
-                <div className="text-gray-600 whitespace-pre-wrap">{invoiceData.notes}</div>
+                <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Technology Stack</h3>
+                <p className="text-gray-700 mb-3">Your website will be built using modern, industry-standard technologies:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {invoiceData.technology_stack.map((tech, index) => (
+                    <div key={index} className="flex items-center">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                      <span className="text-gray-700">{tech}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Payment Terms */}
+            {/* Terms & Conditions */}
             <div className="mb-8">
-              <h3 className="font-semibold text-gray-800 mb-2">Payment Terms</h3>
-              <div className="text-gray-600">
-                <p>{getPaymentTermsDescription(invoiceData.payment_terms)}</p>
+              <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Terms & Conditions</h3>
+              <div className="space-y-2 text-gray-700 text-sm">
+                <p><strong>Payment Terms:</strong> {getPaymentTermsDescription(invoiceData.payment_terms)}</p>
+                {invoiceData.project_start_date && invoiceData.delivery_date && (
+                  <p><strong>Project Timeline:</strong> {Math.ceil((new Date(invoiceData.delivery_date).getTime() - new Date(invoiceData.project_start_date).getTime()) / (1000 * 60 * 60 * 24))} days from project start to delivery.</p>
+                )}
+                <p><strong>Revisions:</strong> Up to 3 rounds of revisions included. Additional revisions billed at $75/hour.</p>
+                <p><strong>Content:</strong> Client responsible for providing all text content, images, and branding materials.</p>
+                <p><strong>Support:</strong> 30 days of free post-launch support included for bug fixes and minor adjustments.</p>
                 {invoiceData.require_signature && (
-                  <p className="text-sm text-amber-600 mt-2">
-                    ⚠️ Digital signature required before payment
-                  </p>
+                  <p><strong>Signature:</strong> Digital signature required before payment processing.</p>
+                )}
+                {invoiceData.terms_conditions && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded border-l-4 border-blue-500">
+                    <p className="text-gray-800 whitespace-pre-wrap">{invoiceData.terms_conditions}</p>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Terms & Conditions */}
-            <div className="pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-800 mb-2">Terms & Conditions</h3>
-              <div className="text-sm text-gray-600 space-y-2">
-                <p>• {getPaymentTermsDescription(invoiceData.payment_terms)}</p>
-                <p>• Late payments may be subject to a 1.5% monthly service charge</p>
-                <p>• Please include invoice number with payment</p>
-                {invoiceData.require_signature && (
-                  <p>• This invoice requires a digital signature before payment</p>
-                )}
+            {/* Thank You Section */}
+            <div className="text-center py-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold mb-2" style={{ color: invoiceData.brand_primary || '#ffc312' }}>
+                Thank you for choosing our development services!
+              </h3>
+              <p className="text-gray-600">
+                We look forward to bringing your project to life. Please don't hesitate to reach out with any questions.
+              </p>
+              <div className="mt-4 text-sm text-gray-500">
+                <p>Please remit payment via bank transfer, check, or digital payment platform.</p>
               </div>
             </div>
+
+            {/* Notes */}
+            {invoiceData.notes && (
+              <div className="mt-6 p-4 bg-gray-50 rounded">
+                <h4 className="font-semibold text-gray-800 mb-2">Additional Notes</h4>
+                <div className="text-gray-700 text-sm whitespace-pre-wrap">{invoiceData.notes}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
