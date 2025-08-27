@@ -95,7 +95,7 @@ export async function POST(
           after_completion: {
             type: 'redirect',
             redirect: {
-              url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/invoice/${invoice.access_token}?payment=success`,
+              url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${invoice.access_token}?payment=success`,
             },
           },
         });
@@ -124,7 +124,7 @@ export async function POST(
 
     // Generate agreement URL if signature required
     if (invoice.require_signature) {
-      agreementUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/invoices/${invoiceId}/agreement`;
+      agreementUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoices/${invoiceId}/agreement`;
     }
 
     // Update invoice status
@@ -147,7 +147,7 @@ export async function POST(
     }
 
     // Send email with secure invoice link
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
     const secureInvoiceUrl = `${baseUrl}/invoice/${invoice.access_token}`;
     
     try {
