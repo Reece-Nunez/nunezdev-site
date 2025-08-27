@@ -35,7 +35,14 @@ export const authOptions: NextAuthOptions = {
           return session;
         }
 
-        const supabase = await supabaseServer();
+        let supabase;
+        try {
+          supabase = await supabaseServer();
+        } catch (supabaseError) {
+          console.error("[NextAuth] Failed to create Supabase client:", supabaseError instanceof Error ? supabaseError.message : String(supabaseError));
+          return session;
+        }
+
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError) {
