@@ -29,7 +29,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(find:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Read(C:\\Users\\reece\\Downloads/**)"
     ],
     "deny": [],
     "ask": [],
