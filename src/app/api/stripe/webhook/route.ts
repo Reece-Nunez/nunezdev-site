@@ -93,7 +93,7 @@ async function checkAndUpdateDealStage(supabase: any, deal: any) {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Moved Stripe initialization to function level to avoid build-time issues
 
 function mapStatus(s?: Stripe.Invoice.Status | null) {
   switch (s) {
@@ -317,6 +317,8 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
 }
 
 export async function POST(req: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  
   const sig = req.headers.get("stripe-signature");
   const body = await req.text();
 

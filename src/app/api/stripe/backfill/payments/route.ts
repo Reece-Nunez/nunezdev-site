@@ -5,8 +5,6 @@ import { supabaseServer } from "@/lib/supabaseServer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 interface PaymentMatchResult {
   paymentIntent: Stripe.PaymentIntent;
   matchedInvoice?: {
@@ -21,7 +19,8 @@ interface PaymentMatchResult {
 async function findMatchingInvoice(
   paymentIntent: Stripe.PaymentIntent,
   supabase: any,
-  orgId: string
+  orgId: string,
+  stripe: Stripe
 ): Promise<PaymentMatchResult["matchedInvoice"]> {
   
   // Strategy 1: Check metadata for direct invoice ID
@@ -251,6 +250,7 @@ async function findMatchingInvoice(
  * GET /api/stripe/backfill/payments?limit=100&dry=true&start_date=2024-01-01
  */
 export async function GET(req: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const url = new URL(req.url);
   const limit = Number(url.searchParams.get("limit") || "100");
   const dry = url.searchParams.get("dry") === "true";
@@ -301,7 +301,7 @@ export async function GET(req: Request) {
       console.log(`[stripe-backfill] - Metadata:`, pi.metadata);
 
       try {
-        const matchedInvoice = await findMatchingInvoice(pi, supabase, orgId);
+        const matchedInvoice = await findMatchingInvoice(pi, supabase, orgId, stripe);
         
         const result: PaymentMatchResult = {
           paymentIntent: pi,

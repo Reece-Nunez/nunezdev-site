@@ -6,8 +6,6 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 type RelinkSummary = {
   scanned: number;
   updated: number;
@@ -31,6 +29,7 @@ async function getOrgIdForUser() {
 
 /** GET = preview how many orphans exist (no changes) */
 export async function GET() {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   try {
     const orgId = await getOrgIdForUser();
     const admin = supabaseAdmin();
@@ -60,6 +59,7 @@ export async function GET() {
 
 /** POST = attempt to relink */
 export async function POST(req: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const url = new URL(req.url);
   const limit = Number(url.searchParams.get("limit") || "200");
   const adopt = url.searchParams.get("adopt") === "1";
