@@ -7,7 +7,7 @@ export default function AutomationTestPage() {
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const runTest = async (testType: 'payment' | 'signing' | 'combined') => {
+  const runTest = async (testType: 'payment' | 'signing' | 'combined' | 'debug') => {
     if (!invoiceId.trim()) {
       alert('Please enter an invoice ID');
       return;
@@ -19,6 +19,8 @@ export default function AutomationTestPage() {
         ? '/api/test/invoice-automation'
         : testType === 'payment'
         ? '/api/test/payment-automation' 
+        : testType === 'debug'
+        ? '/api/debug/test-automation'
         : '/api/test/signing-automation';
 
       const response = await fetch(endpoint, {
@@ -81,6 +83,13 @@ export default function AutomationTestPage() {
               className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
             >
               Test Signing Only
+            </button>
+            <button
+              onClick={() => runTest('debug')}
+              disabled={loading}
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              🐛 Debug Test (Detailed)
             </button>
           </div>
         </div>
