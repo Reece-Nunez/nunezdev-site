@@ -12,9 +12,21 @@ export async function GET() {
       hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
       hasNextAuthUrl: !!process.env.NEXTAUTH_URL,
       hasStripeSecret: !!process.env.STRIPE_SECRET_KEY,
+      hasStripeWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
+      hasHubspotToken: !!process.env.HUBSPOT_PRIVATE_APP_TOKEN,
+      hasResendKey: !!process.env.RESEND_API_KEY,
       nodeEnv: process.env.NODE_ENV,
       vercelEnv: process.env.VERCEL_ENV,
       awsRegion: process.env.AWS_REGION,
+      // Show first few chars of each env var to verify they're actually set
+      envVarPrefixes: {
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 10),
+        supabaseAnon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 10),
+        supabaseService: process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10),
+        nextAuthSecret: process.env.NEXTAUTH_SECRET?.substring(0, 6),
+        nextAuthUrl: process.env.NEXTAUTH_URL?.substring(0, 15),
+        stripeSecret: process.env.STRIPE_SECRET_KEY?.substring(0, 10),
+      }
     };
 
     return NextResponse.json({ 
