@@ -10,6 +10,11 @@ interface Invoice {
   issued_at?: string;
   due_at?: string;
   created_at: string;
+  invoice_payments?: Array<{
+    amount_cents: number;
+    payment_method: string;
+    paid_at: string;
+  }>;
 }
 
 interface InvoiceAnalyticsProps {
@@ -22,46 +27,76 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     
+    // Helper function to calculate total payments for an invoice
+    const getTotalPaid = (invoice: Invoice) => {
+      return (invoice.invoice_payments || []).reduce((sum, payment) => sum + payment.amount_cents, 0);
+    };
+    
+    // Helper function to get remaining balance
+    const getRemainingBalance = (invoice: Invoice) => {
+      const totalPaid = getTotalPaid(invoice);
+      return Math.max(0, invoice.amount_cents - totalPaid);
+    };
+
+    // Enhanced invoice categorization with partial payments
+    const invoiceCategories = invoices.reduce((acc, inv) => {
+      const totalPaid = getTotalPaid(inv);
+      const remainingBalance = getRemainingBalance(inv);
+      
+      if (inv.status === 'paid' || remainingBalance === 0) {
+        acc.fullyPaid.push({ ...inv, totalPaid, remainingBalance });
+      } else if (totalPaid > 0) {
+        acc.partiallyPaid.push({ ...inv, totalPaid, remainingBalance });
+      } else if (['sent', 'overdue'].includes(inv.status)) {
+        acc.unpaid.push({ ...inv, totalPaid, remainingBalance });
+      } else {
+        acc.other.push({ ...inv, totalPaid, remainingBalance });
+      }
+      
+      return acc;
+    }, {
+      fullyPaid: [] as Array<Invoice & { totalPaid: number; remainingBalance: number }>,
+      partiallyPaid: [] as Array<Invoice & { totalPaid: number; remainingBalance: number }>,
+      unpaid: [] as Array<Invoice & { totalPaid: number; remainingBalance: number }>,
+      other: [] as Array<Invoice & { totalPaid: number; remainingBalance: number }>
+    });
+    
     // Status breakdown
     const statusBreakdown = invoices.reduce((acc, inv) => {
       acc[inv.status] = (acc[inv.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    // Revenue calculations
-    const totalRevenue = invoices
-      .filter(inv => inv.status === 'paid')
+    // Revenue calculations - now account for partial payments
+    const totalRevenue = invoiceCategories.fullyPaid
       .reduce((sum, inv) => sum + inv.amount_cents, 0);
 
-    const pendingRevenue = invoices
-      .filter(inv => ['sent', 'overdue'].includes(inv.status))
-      .reduce((sum, inv) => sum + inv.amount_cents, 0);
+    // Pending revenue is now the actual remaining balance (not full invoice amounts)
+    const pendingRevenue = [...invoiceCategories.partiallyPaid, ...invoiceCategories.unpaid]
+      .reduce((sum, inv) => sum + inv.remainingBalance, 0);
 
-    const thisMonthRevenue = invoices
+    const thisMonthRevenue = invoiceCategories.fullyPaid
       .filter(inv => 
-        inv.status === 'paid' && 
         inv.issued_at && 
         new Date(inv.issued_at) >= thisMonth
       )
       .reduce((sum, inv) => sum + inv.amount_cents, 0);
 
-    const lastMonthRevenue = invoices
+    const lastMonthRevenue = invoiceCategories.fullyPaid
       .filter(inv => 
-        inv.status === 'paid' && 
         inv.issued_at && 
         new Date(inv.issued_at) >= lastMonth && 
         new Date(inv.issued_at) < thisMonth
       )
       .reduce((sum, inv) => sum + inv.amount_cents, 0);
 
-    // Overdue invoices
-    const overdueInvoices = invoices.filter(inv => 
-      inv.status === 'sent' && 
+    // Overdue invoices - now includes partially paid overdue invoices
+    const overdueInvoices = [...invoiceCategories.partiallyPaid, ...invoiceCategories.unpaid].filter(inv => 
       inv.due_at && 
       new Date(inv.due_at) < now
     );
 
-    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + inv.amount_cents, 0);
+    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + inv.remainingBalance, 0);
 
     // Average invoice value
     const avgInvoiceValue = invoices.length > 0 
@@ -73,6 +108,12 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
       ? ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
       : 0;
 
+    // Partial payment statistics
+    const partialPaymentTotal = invoiceCategories.partiallyPaid
+      .reduce((sum, inv) => sum + inv.totalPaid, 0);
+    const partialPaymentRemaining = invoiceCategories.partiallyPaid
+      .reduce((sum, inv) => sum + inv.remainingBalance, 0);
+
     return {
       statusBreakdown,
       totalRevenue,
@@ -83,6 +124,12 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
       overdueAmount,
       avgInvoiceValue,
       momGrowth,
+      // New partial payment data
+      partiallyPaidCount: invoiceCategories.partiallyPaid.length,
+      partialPaymentTotal,
+      partialPaymentRemaining,
+      unpaidInvoices: invoiceCategories.unpaid.length,
+      invoiceCategories, // For debugging or advanced features
     };
   }, [invoices]);
 
@@ -119,9 +166,16 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
             <p className="text-2xl font-bold text-blue-600">
               {formatCurrency(analytics.pendingRevenue)}
             </p>
-            <p className="text-xs text-gray-500">
-              {analytics.statusBreakdown.sent || 0} sent invoices
-            </p>
+            <div className="text-xs text-gray-500 space-y-0.5">
+              <div>
+                {analytics.unpaidInvoices} unpaid • {analytics.partiallyPaidCount} partial
+              </div>
+              {analytics.partiallyPaidCount > 0 && (
+                <div className="text-emerald-600">
+                  {formatCurrency(analytics.partialPaymentTotal)} received
+                </div>
+              )}
+            </div>
           </div>
           <div className="p-2 bg-blue-100 rounded-lg">
             <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">

@@ -10,7 +10,22 @@ const fetcher = (u: string) => fetch(u).then(r => r.json());
 const currency = (cents?: number | null) =>
   ((cents ?? 0) / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 
-type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void' | 'overdue';
+// Helper functions for payment calculations
+const getTotalPaid = (invoice: Invoice) => {
+  return (invoice.invoice_payments || []).reduce((sum, payment) => sum + payment.amount_cents, 0);
+};
+
+const getRemainingBalance = (invoice: Invoice) => {
+  const totalPaid = getTotalPaid(invoice);
+  return Math.max(0, (invoice.amount_cents || 0) - totalPaid);
+};
+
+const hasPartialPayments = (invoice: Invoice) => {
+  const totalPaid = getTotalPaid(invoice);
+  return totalPaid > 0 && totalPaid < (invoice.amount_cents || 0);
+};
+
+type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void' | 'overdue' | 'partially_paid';
 
 interface Invoice {
   id: string;
@@ -22,6 +37,11 @@ interface Invoice {
   stripe_invoice_id?: string | null;
   signed_at?: string | null;
   hosted_invoice_url?: string | null;
+  invoice_payments?: Array<{
+    amount_cents: number;
+    payment_method: string;
+    paid_at: string;
+  }>;
 }
 
 interface InvoicesResponse {
@@ -253,6 +273,7 @@ export default function DashboardInvoices() {
             <option value="all">All</option>
             <option value="sent">Sent</option>
             <option value="paid">Paid</option>
+            <option value="partially_paid">Partially Paid</option>
             <option value="overdue">Overdue</option>
             <option value="draft">Draft</option>
             <option value="void">Void</option>
@@ -319,7 +340,21 @@ export default function DashboardInvoices() {
                 <td className="px-3 py-2">
                   <InvoiceStatusBadge status={r.status} />
                 </td>
-                <td className="px-3 py-2 text-right">{currency(r.amount_cents)}</td>
+                <td className="px-3 py-2 text-right">
+                  <div>
+                    {currency(r.amount_cents)}
+                    {hasPartialPayments(r) && (
+                      <div className="text-xs space-y-0.5 mt-1">
+                        <div className="text-emerald-600">
+                          {currency(getTotalPaid(r))} paid
+                        </div>
+                        <div className="text-orange-600 font-medium">
+                          {currency(getRemainingBalance(r))} due
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </td>
                 <td className="px-3 py-2">{r.issued_at ? new Date(r.issued_at).toLocaleDateString() : '—'}</td>
                 <td className="px-3 py-2">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</td>
 

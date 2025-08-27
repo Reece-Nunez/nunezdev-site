@@ -15,9 +15,13 @@ export async function GET(req: Request) {
   const q = url.searchParams.get('q');           // client name/email contains
   const limit = Number(url.searchParams.get('limit') ?? 50);
 
-  // Base query
+  // Base query - include payment data for accurate calculations
   let query = supabase.from("invoices")
-    .select("id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, clients(name,email)")
+    .select(`
+      id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, signed_at, hosted_invoice_url,
+      clients(name,email),
+      invoice_payments(amount_cents, payment_method, paid_at)
+    `)
     .eq("org_id", orgId)
     .order("issued_at", { ascending: false })
     .limit(limit);
