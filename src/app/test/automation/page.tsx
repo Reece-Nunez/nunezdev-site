@@ -7,7 +7,7 @@ export default function AutomationTestPage() {
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const runTest = async (testType: 'payment' | 'signing' | 'combined' | 'debug') => {
+  const runTest = async (testType: 'payment' | 'signing' | 'combined' | 'debug' | 'cleanup') => {
     if (!invoiceId.trim()) {
       alert('Please enter an invoice ID');
       return;
@@ -21,6 +21,8 @@ export default function AutomationTestPage() {
         ? '/api/test/payment-automation' 
         : testType === 'debug'
         ? '/api/debug/test-automation'
+        : testType === 'cleanup'
+        ? '/api/debug/cleanup-test-payments'
         : '/api/test/signing-automation';
 
       const response = await fetch(endpoint, {
@@ -90,6 +92,13 @@ export default function AutomationTestPage() {
               className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
               🐛 Debug Test (Detailed)
+            </button>
+            <button
+              onClick={() => runTest('cleanup')}
+              disabled={loading}
+              className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50"
+            >
+              🧹 Clean Test Data
             </button>
           </div>
         </div>
