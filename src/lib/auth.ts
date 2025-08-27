@@ -29,8 +29,20 @@ export const authOptions: NextAuthOptions = {
     // Put Supabase user/org on the NextAuth session so useSession() works
     async session({ session }) {
       try {
+        // Check if required environment variables are available
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          console.error("[NextAuth] Missing Supabase environment variables");
+          return session;
+        }
+
         const supabase = await supabaseServer();
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error("[NextAuth] Supabase auth error:", userError.message);
+          return session;
+        }
+        
         if (user) {
           // basic fields
           interface SessionUser {
@@ -52,19 +64,26 @@ export const authOptions: NextAuthOptions = {
           } as SessionUser;
 
           // attach latest org (if any)
-          const { data: m } = await supabase
+          const { data: m, error: orgError } = await supabase
             .from("org_members")
             .select("org_id, role, created_at")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(1);
 
-          ((session as unknown) as CustomSession).orgId = m?.[0]?.org_id ?? null;
-          ((session as unknown) as CustomSession).role = m?.[0]?.role ?? null;
+          if (orgError) {
+            console.error("[NextAuth] Org query error:", orgError.message);
+            ((session as unknown) as CustomSession).orgId = null;
+            ((session as unknown) as CustomSession).role = null;
+          } else {
+            ((session as unknown) as CustomSession).orgId = m?.[0]?.org_id ?? null;
+            ((session as unknown) as CustomSession).role = m?.[0]?.role ?? null;
+          }
         } else {
           session.user = undefined as unknown as typeof session.user;
         }
-      } catch {
+      } catch (error) {
+        console.error("[NextAuth] Session callback error:", error instanceof Error ? error.message : String(error));
         // ignore — keep session minimal
       }
       return session;
