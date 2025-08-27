@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, ctx: Ctx) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  
   const { id } = await ctx.params;
   const { stripe_payment_intent_id, stripe_charge_id } = await req.json();
 
