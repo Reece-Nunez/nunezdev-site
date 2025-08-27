@@ -143,7 +143,7 @@ async function findMatchingInvoice(
         };
       }
 
-      const exactMatch = invoices?.find(inv => inv.amount_cents === paymentAmount);
+      const exactMatch = invoices?.find((inv: any) => inv.amount_cents === paymentAmount);
       if (exactMatch) {
         return {
           id: exactMatch.id,
@@ -200,7 +200,7 @@ async function findMatchingInvoice(
           }
 
           // If multiple matches, prefer the one with exact amount
-          const exactMatch = invoices?.find(inv => inv.amount_cents === paymentAmount);
+          const exactMatch = invoices?.find((inv: any) => inv.amount_cents === paymentAmount);
           if (exactMatch) {
             return {
               id: exactMatch.id,

@@ -107,7 +107,7 @@ async function createStripeInvoice(
   // Send invoice if requested
   let finalInvoice = draft;
   if (invoiceData.send_immediately) {
-    finalInvoice = await stripe.invoices.sendInvoice(draft.id);
+    finalInvoice = await stripe.invoices.sendInvoice(draft.id!);
   }
 
   return { invoice: finalInvoice, customerId };
@@ -311,8 +311,8 @@ export async function GET(req: Request) {
   if (search) {
     const searchLower = search.toLowerCase();
     filteredData = filteredData.filter(invoice => 
-      invoice.clients?.name?.toLowerCase().includes(searchLower) ||
-      invoice.clients?.email?.toLowerCase().includes(searchLower) ||
+      (invoice.clients as any)?.name?.toLowerCase().includes(searchLower) ||
+      (invoice.clients as any)?.email?.toLowerCase().includes(searchLower) ||
       invoice.invoice_number?.toLowerCase().includes(searchLower) ||
       invoice.title?.toLowerCase().includes(searchLower)
     );

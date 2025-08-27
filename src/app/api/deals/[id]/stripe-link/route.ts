@@ -3,7 +3,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-07-30.basil",
 });
 
 export const runtime = "nodejs";
@@ -45,7 +45,7 @@ export async function POST(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     }
 
-    if (!deal.client?.email) {
+    if (!(deal.client as any)?.email) {
       return NextResponse.json({ error: "Client must have an email to create payment link" }, { status: 400 });
     }
 
@@ -54,7 +54,7 @@ export async function POST(req: Request, ctx: Ctx) {
     try {
       // First, try to find existing customer by email
       const customers = await stripe.customers.list({
-        email: deal.client.email,
+        email: (deal.client as any).email,
         limit: 1,
       });
 
@@ -63,10 +63,10 @@ export async function POST(req: Request, ctx: Ctx) {
       } else {
         // Create new customer
         customer = await stripe.customers.create({
-          email: deal.client.email,
-          name: deal.client.name,
+          email: (deal.client as any).email,
+          name: (deal.client as any).name,
           metadata: {
-            client_id: deal.client.id,
+            client_id: (deal.client as any).id,
             org_id: orgId,
           },
         });
@@ -103,7 +103,7 @@ export async function POST(req: Request, ctx: Ctx) {
         },
         metadata: {
           deal_id: dealId,
-          client_id: deal.client.id,
+          client_id: (deal.client as any).id,
           org_id: orgId,
           type: "deal_payment",
         },
@@ -116,7 +116,7 @@ export async function POST(req: Request, ctx: Ctx) {
         .from("invoices")
         .insert({
           org_id: orgId,
-          client_id: deal.client.id,
+          client_id: (deal.client as any).id,
           status: "sent",
           amount_cents: paymentAmount,
           description: paymentDescription,

@@ -449,7 +449,7 @@ export default function InvoiceBuilder({
               alt="Logo Preview" 
               className="w-12 h-12 object-contain"
               onError={(e) => {
-                e.target.style.display = 'none';
+                (e.target as HTMLElement).style.display = 'none';
               }}
             />
             <div>
@@ -493,13 +493,13 @@ export default function InvoiceBuilder({
           onMouseEnter={(e) => {
             if (!loading && total > 0) {
               const color = formData.brand_primary || '#ffc312';
-              e.target.style.backgroundColor = color === '#ffc312' ? '#e6ad0f' : color;
-              e.target.style.filter = 'brightness(0.9)';
+              (e.target as HTMLElement).style.backgroundColor = color === '#ffc312' ? '#e6ad0f' : color;
+              (e.target as HTMLElement).style.filter = 'brightness(0.9)';
             }
           }}
           onMouseLeave={(e) => {
-            e.target.style.backgroundColor = formData.brand_primary || '#ffc312';
-            e.target.style.filter = 'brightness(1)';
+            (e.target as HTMLElement).style.backgroundColor = formData.brand_primary || '#ffc312';
+            (e.target as HTMLElement).style.filter = 'brightness(1)';
           }}
         >
           {loading ? 'Creating...' : formData.send_immediately ? 'Create & Send Invoice' : 'Create Draft Invoice'}

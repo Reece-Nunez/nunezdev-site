@@ -162,8 +162,8 @@ export default function InvoiceDetailPage() {
             onClick={() => setShowEdit(true)}
             className="px-4 py-2 text-white rounded-lg transition-colors"
             style={{ backgroundColor: '#5b7c99' }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#4a6780'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#5b7c99'}
+            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#4a6780'}
+            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#5b7c99'}
           >
             Edit
           </button>
@@ -179,8 +179,8 @@ export default function InvoiceDetailPage() {
               disabled={sending}
               className="px-4 py-2 text-white rounded-lg disabled:opacity-50 transition-colors"
               style={{ backgroundColor: '#ffc312' }}
-              onMouseEnter={(e) => !sending && (e.target.style.backgroundColor = '#e6ad0f')}
-              onMouseLeave={(e) => (e.target.style.backgroundColor = '#ffc312')}
+              onMouseEnter={(e) => !sending && ((e.target as HTMLElement).style.backgroundColor = '#e6ad0f')}
+              onMouseLeave={(e) => ((e.target as HTMLElement).style.backgroundColor = '#ffc312')}
             >
               {sending ? 'Sending...' : 'Send Invoice'}
             </button>

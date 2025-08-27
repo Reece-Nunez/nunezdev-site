@@ -107,7 +107,7 @@ async function findMatchingInvoice(
     }
 
     // If multiple quoted invoices, prefer exact amount
-    const exactQuotedMatch = quotedInvoices?.find(inv => inv.amount_cents === paymentIntent.amount);
+    const exactQuotedMatch = quotedInvoices?.find((inv: any) => inv.amount_cents === paymentIntent.amount);
     if (exactQuotedMatch) {
       console.log(`[findMatchingInvoice] Exact amount quoted invoice match: ${exactQuotedMatch.id}`);
       return {
@@ -153,7 +153,7 @@ async function findMatchingInvoice(
     }
 
     // If multiple matches, prefer exact amount
-    const exactMatch = invoices?.find(inv => inv.amount_cents === paymentIntent.amount);
+    const exactMatch = invoices?.find((inv: any) => inv.amount_cents === paymentIntent.amount);
     if (exactMatch) {
       console.log(`[findMatchingInvoice] Exact amount match found: ${exactMatch.id}`);
       return {
@@ -216,7 +216,7 @@ async function findMatchingInvoice(
 
     console.log(`[findMatchingInvoice] Found ${invoices?.length || 0} potential matches`);
     if (invoices?.length) {
-      invoices.forEach(inv => {
+      invoices.forEach((inv: any) => {
         console.log(`[findMatchingInvoice] - Invoice ${inv.id}: amount=${inv.amount_cents}, status=${inv.status}, email=${inv.clients.email}`);
       });
     }
@@ -231,7 +231,7 @@ async function findMatchingInvoice(
     }
 
     // If multiple matches, prefer the one with exact amount
-    const exactMatch = invoices?.find(inv => inv.amount_cents === paymentIntent.amount);
+    const exactMatch = invoices?.find((inv: any) => inv.amount_cents === paymentIntent.amount);
     if (exactMatch) {
       return {
         id: exactMatch.id,

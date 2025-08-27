@@ -216,8 +216,8 @@ export default function DashboardInvoices() {
             href="/dashboard/invoices/new"
             className="rounded-lg px-4 py-2 text-white text-sm font-medium transition-colors"
             style={{ backgroundColor: '#ffc312' }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#e6ad0f'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#ffc312'}
+            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#e6ad0f'}
+            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#ffc312'}
           >
             + New Invoice
           </a>
@@ -243,7 +243,7 @@ export default function DashboardInvoices() {
       )}
 
       {/* Analytics */}
-      <InvoiceAnalytics invoices={rows} />
+      <InvoiceAnalytics invoices={rows as any} />
 
       {/* Filters */}
       <div className="rounded-2xl border bg-white p-4 flex flex-wrap gap-2 items-end">

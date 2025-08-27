@@ -70,7 +70,7 @@ export async function GET(_req: Request, ctx: Ctx) {
           notes
         )
       `)
-      .eq("client_id", deal.client?.id)
+      .eq("client_id", (deal.client as any)?.id)
       .eq("org_id", orgId)
       .order("created_at", { ascending: false });
 

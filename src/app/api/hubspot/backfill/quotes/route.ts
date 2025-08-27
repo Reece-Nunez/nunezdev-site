@@ -248,7 +248,7 @@ export async function GET(req: Request) {
       }
 
       // Fetch deal payments and amounts
-      let dealData = { total: 0, subtotal: 0, tax: 0, payments: [], dealStage: undefined };
+      let dealData: any = { total: 0, subtotal: 0, tax: 0, payments: [], dealStage: undefined };
       try {
         dealData = await fetchDealPayments(q);
       } catch (error) {

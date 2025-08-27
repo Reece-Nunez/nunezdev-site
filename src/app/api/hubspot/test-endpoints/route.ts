@@ -30,10 +30,10 @@ export async function GET() {
       const response = await hsGet("/crm/v3/objects/commerce_payments", test.params);
       results["commerce_payments_tests"][test.name] = {
         success: true,
-        hasResults: response?.results?.length > 0,
-        resultCount: response?.results?.length || 0,
-        sampleFields: response?.results?.[0] ? Object.keys(response.results[0].properties || {}) : [],
-        sampleRecord: response?.results?.[0] || null
+        hasResults: (response as any)?.results?.length > 0,
+        resultCount: (response as any)?.results?.length || 0,
+        sampleFields: (response as any)?.results?.[0] ? Object.keys((response as any).results[0].properties || {}) : [],
+        sampleRecord: (response as any)?.results?.[0] || null
       };
     } catch (error) {
       results["commerce_payments_tests"][test.name] = {
@@ -48,7 +48,7 @@ export async function GET() {
     const schemaResponse = await hsGet("/crm/v3/schemas");
     results["schemas"] = {
       success: true,
-      availableObjects: schemaResponse?.results?.map((obj: any) => obj.name) || []
+      availableObjects: (schemaResponse as any)?.results?.map((obj: any) => obj.name) || []
     };
   } catch (error) {
     results["schemas"] = {

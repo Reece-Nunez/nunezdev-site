@@ -329,8 +329,8 @@ export default function InvoiceAgreementPage() {
                 backgroundColor: '#ffc312',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#e6ad0f'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#ffc312'}
+              onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#e6ad0f'}
+              onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#ffc312'}
             >
               {signing ? 'Signing Invoice...' : 'Sign Invoice & Acknowledge Terms'}
             </button>

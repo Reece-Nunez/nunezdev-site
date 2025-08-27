@@ -53,7 +53,7 @@ export async function POST(
       return NextResponse.json({ error: "Only draft invoices can be sent" }, { status: 400 });
     }
 
-    if (!invoice.clients.email) {
+    if (!(invoice.clients as any).email) {
       return NextResponse.json({ error: "Client must have an email address to send invoice" }, { status: 400 });
     }
 
@@ -77,7 +77,7 @@ export async function POST(
                   description: invoice.description || 'Professional web development services',
                   metadata: {
                     invoice_id: invoice.id,
-                    client_id: client.id,
+                    client_id: (client as any).id,
                     org_id: orgId,
                   },
                 },
@@ -88,7 +88,7 @@ export async function POST(
           ],
           metadata: {
             invoice_id: invoice.id,
-            client_id: client.id,
+            client_id: (client as any).id,
             org_id: orgId,
             invoice_number: invoice.invoice_number || '',
           },
@@ -152,8 +152,8 @@ export async function POST(
     
     try {
       await sendInvoiceEmail({
-        to: client.email,
-        clientName: client.name,
+        to: (client as any).email,
+        clientName: (client as any).name,
         invoiceNumber: invoice.invoice_number || `INV-${invoice.id.split('-')[0]}`,
         invoiceUrl: secureInvoiceUrl,
         amount: currency(invoice.amount_cents),
@@ -161,7 +161,7 @@ export async function POST(
         requiresSignature: invoice.require_signature || false,
       });
       
-      console.log(`Invoice email sent to ${client.email}`);
+      console.log(`Invoice email sent to ${(client as any).email}`);
     } catch (emailError) {
       console.error("Email sending failed:", emailError);
       // Don't fail the request - invoice is still sent
@@ -170,13 +170,13 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message: process.env.RESEND_API_KEY 
-        ? "Invoice sent successfully! Email has been sent to the client." 
+        ? "Invoice sent successfully! Email has been sent to the (client as any)." 
         : `Invoice sent successfully! Share this link with your client: ${secureInvoiceUrl}`,
       stripe_invoice_url: stripeInvoiceUrl,
       agreement_url: agreementUrl,
       hosted_url: secureInvoiceUrl,
       secure_invoice_url: secureInvoiceUrl,
-      client_email: client.email,
+      client_email: (client as any).email,
     });
 
   } catch (error) {
