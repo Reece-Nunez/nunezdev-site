@@ -31,6 +31,8 @@
       "Bash(find:*)",
       "Bash(git log:*)",
       "Read(C:\\Users\\reece\\Downloads/**)",
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Read(C:\\Users\\reece\\Downloads/**)",
       "Read(C:\\Users\\reece\\Downloads/**)"
     ],
     "deny": [],

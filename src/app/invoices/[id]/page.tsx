@@ -55,6 +55,14 @@ interface Invoice extends InvoiceLite {
   tax_cents?: number;
   discount_cents?: number;
   payment_terms?: string;
+  // Enhanced fields
+  project_overview?: string;
+  project_start_date?: string;
+  delivery_date?: string;
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number;
+  technology_stack?: string[];
+  terms_conditions?: string;
   clients?: {
     id: string;
     name: string;
@@ -426,112 +434,106 @@ function InvoicePreviewModal({ invoice, onClose }: { invoice: Invoice; onClose: 
 }
 
 function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
+  // Calculate discount for display
+  const subtotal = invoice.subtotal_cents || invoice.line_items?.reduce((sum, item) => sum + item.amount_cents, 0) || 0;
+  let discount = 0;
+  if (invoice.discount_value && invoice.discount_value > 0) {
+    if (invoice.discount_type === 'percentage') {
+      discount = Math.round(subtotal * (invoice.discount_value / 100));
+    } else {
+      discount = Math.round(invoice.discount_value * 100); // Convert to cents
+    }
+  }
+  
   return (
-    <div className="max-w-2xl mx-auto bg-white">
-      {/* Header with Logo/Branding */}
-      <div className="border-b-4 border-yellow pb-8 mb-8" style={{ borderColor: '#ffc312' }}>
-        <div className="flex justify-between items-start">
-          <div className="flex items-center gap-4">
-            <img 
-              src="/logo.png" 
-              alt="NunezDev Logo" 
-              className="w-16 h-16 object-contain"
-            />
-            <div>
-              <h1 className="text-3xl font-bold" style={{ color: '#111111' }}>NunezDev</h1>
-              <p className="text-gray-600 mt-1">Professional Web Development Services</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <h2 className="text-2xl font-bold" style={{ color: '#5b7c99' }}>INVOICE</h2>
-            <p className="text-gray-600">
-              #{invoice.invoice_number || invoice.id.split('-')[0]}
-            </p>
-          </div>
+    <div className="max-w-3xl mx-auto bg-white">
+      {/* Enhanced Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold" style={{ color: '#111111' }}>INVOICE</h1>
+        <h2 className="text-xl text-gray-600 mt-2">{invoice.title || 'Professional Development Services'}</h2>
+      </div>
+
+      {/* Client Information */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Client Information</h3>
+        <div className="text-gray-700">
+          <p className="font-medium text-lg">{invoice.clients?.name}</p>
+          {invoice.clients?.company && <p className="text-gray-600">{invoice.clients.company}</p>}
+          {invoice.clients?.email && <p className="text-gray-600">{invoice.clients.email}</p>}
+          {invoice.clients?.phone && <p className="text-gray-600">{invoice.clients.phone}</p>}
         </div>
       </div>
 
-      {/* Invoice Details */}
-      <div className="grid grid-cols-2 gap-8 mb-8">
-        <div>
-          <h3 className="font-semibold mb-2" style={{ color: '#111111' }}>From:</h3>
-          <div className="text-gray-600">
-            <div className="flex items-center gap-3 mb-2">
-              <img 
-                src="/reece-avatar.png" 
-                alt="Reece Nunez" 
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <div>
-                <p className="font-medium text-gray-800">Reece Nunez</p>
-                <p className="text-sm">NunezDev</p>
-              </div>
-            </div>
-            <p>Professional Web Developer</p>
-            <p>Email: contact@nunezdev.com</p>
+      {/* Enhanced Invoice Details */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Invoice Details</h3>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Invoice #:</span>
+            <span className="text-gray-800">{invoice.invoice_number || invoice.id.split('-')[0]}</span>
           </div>
-        </div>
-        
-        <div>
-          <h3 className="font-semibold text-gray-800 mb-2">Bill To:</h3>
-          <div className="text-gray-600">
-            <p className="font-medium">{invoice.clients?.name}</p>
-            {invoice.clients?.company && <p>{invoice.clients.company}</p>}
-            <p>{invoice.clients?.email}</p>
-            {invoice.clients?.phone && <p>{invoice.clients.phone}</p>}
+          <div className="flex justify-between">
+            <span className="text-gray-600">Date:</span>
+            <span className="text-gray-800">{invoice.issued_at ? new Date(invoice.issued_at).toLocaleDateString() : new Date().toLocaleDateString()}</span>
           </div>
-        </div>
-      </div>
-
-      {/* Invoice Info */}
-      <div className="grid grid-cols-2 gap-8 mb-8">
-        <div>
-          {invoice.issued_at && (
-            <div className="mb-2">
-              <span className="font-medium text-gray-800">Issue Date:</span>
-              <span className="text-gray-600 ml-2">{new Date(invoice.issued_at).toLocaleDateString()}</span>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Due Date:</span>
+            <span className="text-gray-800">{invoice.due_at ? new Date(invoice.due_at).toLocaleDateString() : 'TBD'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Payment Terms:</span>
+            <span className="text-gray-800">{getPaymentTermsDisplay(invoice.payment_terms || '30')}</span>
+          </div>
+          {invoice.project_start_date && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Project Start:</span>
+              <span className="text-gray-800">{new Date(invoice.project_start_date).toLocaleDateString()}</span>
             </div>
           )}
-          {invoice.due_at && (
-            <div>
-              <span className="font-medium text-gray-800">Due Date:</span>
-              <span className="text-gray-600 ml-2">{new Date(invoice.due_at).toLocaleDateString()}</span>
+          {invoice.delivery_date && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Delivery Date:</span>
+              <span className="text-gray-800">{new Date(invoice.delivery_date).toLocaleDateString()}</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Project Overview */}
+      {invoice.project_overview && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Project Overview</h3>
+          <p className="text-gray-700 leading-relaxed">{invoice.project_overview}</p>
+        </div>
+      )}
 
       {/* Service Details */}
       <div className="mb-8">
         <table className="w-full">
           <thead>
-            <tr className="border-b-2 border-gray-200">
-              <th className="text-left py-2 font-semibold text-gray-800">Description</th>
-              {invoice.line_items && invoice.line_items.length > 0 && (
-                <>
-                  <th className="text-center py-2 font-semibold text-gray-800">Qty</th>
-                  <th className="text-right py-2 font-semibold text-gray-800">Rate</th>
-                </>
-              )}
-              <th className="text-right py-2 font-semibold text-gray-800">Amount</th>
+            <tr className="border-b-2 border-gray-300">
+              <th className="text-left py-3 font-semibold text-gray-800">Service Description</th>
+              <th className="text-center py-3 font-semibold text-gray-800">Hours</th>
+              <th className="text-right py-3 font-semibold text-gray-800">Rate</th>
+              <th className="text-right py-3 font-semibold text-gray-800">Amount</th>
             </tr>
           </thead>
           <tbody>
             {invoice.line_items && invoice.line_items.length > 0 ? (
               invoice.line_items.map((item, index) => (
-                <tr key={index} className="border-b border-gray-100">
-                  <td className="py-3 text-gray-600">{item.description}</td>
-                  <td className="py-3 text-center text-gray-600">{item.quantity}</td>
-                  <td className="py-3 text-right text-gray-600">{currency(item.rate_cents)}</td>
-                  <td className="py-3 text-right text-gray-800 font-medium">{currency(item.amount_cents)}</td>
+                <tr key={index} className="border-b border-gray-200">
+                  <td className="py-4 text-gray-700 pr-4">{item.description}</td>
+                  <td className="py-4 text-center text-gray-700">{item.quantity}</td>
+                  <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
+                  <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
                 </tr>
               ))
             ) : (
-              <tr className="border-b border-gray-100">
-                <td className="py-4 text-gray-600">
-                  {invoice.description || invoice.title || 'Services'}
+              <tr className="border-b border-gray-200">
+                <td className="py-4 text-gray-700">
+                  {invoice.description || invoice.title || 'Professional Services'}
                 </td>
-                <td className="py-4 text-right text-gray-800 font-medium">
+                <td className="py-4 text-right text-gray-800 font-semibold" colSpan={3}>
                   {currency(invoice.amount_cents)}
                 </td>
               </tr>
@@ -540,48 +542,92 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </table>
       </div>
 
-      {/* Total */}
-      <div className="border-t-2 border-gray-200 pt-4">
+      {/* Enhanced Totals */}
+      <div className="border-t-2 border-gray-300 pt-4 mb-8">
         <div className="flex justify-end">
-          <div className="w-64 space-y-2 text-right">
-            {invoice.subtotal_cents && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="text-gray-800">{currency(invoice.subtotal_cents)}</span>
+          <div className="w-72 space-y-3">
+            <div className="flex justify-between text-gray-700">
+              <span>Subtotal ({invoice.line_items?.reduce((sum, item) => sum + item.quantity, 0) || 1} hours × {currency(invoice.line_items?.[0]?.rate_cents || invoice.amount_cents)}):</span>
+              <span className="font-semibold">{currency(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>
+                  Project Discount ({invoice.discount_type === 'percentage' 
+                    ? `${invoice.discount_value}%` 
+                    : 'Fixed Amount'}):
+                </span>
+                <span className="font-semibold">-{currency(discount)}</span>
               </div>
             )}
-            {invoice.tax_cents && invoice.tax_cents > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax:</span>
-                <span className="text-gray-800">{currency(invoice.tax_cents)}</span>
-              </div>
-            )}
-            {invoice.discount_cents && invoice.discount_cents > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Discount:</span>
-                <span className="text-green-600">-{currency(invoice.discount_cents)}</span>
-              </div>
-            )}
-            <div className="border-t pt-2">
+            <div className="border-t pt-3">
               <div className="text-xl font-bold text-gray-800 flex justify-between">
-                <span>Total:</span>
-                <span style={{ color: '#ffc312' }}>{currency(invoice.amount_cents)}</span>
+                <span>Total Project Cost:</span>
+                <span>{currency(invoice.amount_cents)}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Terms */}
-      <div className="mt-8 pt-6 border-t border-gray-200">
-        <h3 className="font-semibold text-gray-800 mb-2">Terms & Conditions</h3>
-        <div className="text-sm text-gray-600 space-y-2">
-          <p>• {getPaymentTermsDescription(invoice.payment_terms || '30')}</p>
-          <p>• Late payments may be subject to a 1.5% monthly service charge</p>
-          <p>• Please include invoice number with payment</p>
-          <p>• This invoice requires a digital signature before payment</p>
+      {/* Technology Stack */}
+      {invoice.technology_stack && invoice.technology_stack.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Technology Stack</h3>
+          <p className="text-gray-700 mb-3">Your project will be built using modern, industry-standard technologies:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {invoice.technology_stack.map((tech, index) => (
+              <div key={index} className="flex items-center">
+                <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                <span className="text-gray-700">{tech}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Enhanced Terms & Conditions */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Terms & Conditions</h3>
+        <div className="space-y-2 text-gray-700 text-sm">
+          <p><strong>Payment Terms:</strong> {getPaymentTermsDescription(invoice.payment_terms || '30')}</p>
+          {invoice.project_start_date && invoice.delivery_date && (
+            <p><strong>Project Timeline:</strong> {Math.ceil((new Date(invoice.delivery_date).getTime() - new Date(invoice.project_start_date).getTime()) / (1000 * 60 * 60 * 24))} days from project start to delivery.</p>
+          )}
+          <p><strong>Revisions:</strong> Up to 3 rounds of revisions included. Additional revisions billed at $75/hour.</p>
+          <p><strong>Content:</strong> Client responsible for providing all text content, images, and branding materials.</p>
+          <p><strong>Support:</strong> 30 days of free post-launch support included for bug fixes and minor adjustments.</p>
+          {invoice.require_signature && (
+            <p><strong>Signature:</strong> Digital signature required before payment processing.</p>
+          )}
+          {invoice.terms_conditions && (
+            <div className="mt-4 p-3 bg-gray-50 rounded border-l-4 border-blue-500">
+              <p className="text-gray-800 whitespace-pre-wrap">{invoice.terms_conditions}</p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Thank You Section */}
+      <div className="text-center py-6 border-t border-gray-200">
+        <h3 className="text-lg font-semibold mb-2" style={{ color: '#ffc312' }}>
+          Thank you for choosing our development services!
+        </h3>
+        <p className="text-gray-600">
+          We look forward to bringing your project to life. Please don't hesitate to reach out with any questions.
+        </p>
+        <div className="mt-4 text-sm text-gray-500">
+          <p>Please remit payment via bank transfer, check, or digital payment platform.</p>
+        </div>
+      </div>
+
+      {/* Additional Notes */}
+      {invoice.notes && (
+        <div className="mt-6 p-4 bg-gray-50 rounded">
+          <h4 className="font-semibold text-gray-800 mb-2">Additional Notes</h4>
+          <div className="text-gray-700 text-sm whitespace-pre-wrap">{invoice.notes}</div>
+        </div>
+      )}
 
       {/* Signature Section */}
       {!invoice.signed_at && (

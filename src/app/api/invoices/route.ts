@@ -23,10 +23,20 @@ async function requireAuthedOrgId() {
   return { ok: true as const, supabase, orgId, user };
 }
 
-function calculateInvoiceTotals(line_items: InvoiceLineItem[]) {
+function calculateInvoiceTotals(line_items: InvoiceLineItem[], discount_type?: string, discount_value?: number) {
   const subtotal_cents = line_items.reduce((sum, item) => sum + item.amount_cents, 0);
+  
+  // Calculate discount
+  let discount_cents = 0;
+  if (discount_value && discount_value > 0) {
+    if (discount_type === 'percentage') {
+      discount_cents = Math.round(subtotal_cents * (discount_value / 100));
+    } else if (discount_type === 'fixed') {
+      discount_cents = Math.round(discount_value * 100); // Convert to cents
+    }
+  }
+  
   const tax_cents = 0; // TODO: Implement tax calculation based on client location
-  const discount_cents = 0; // TODO: Implement discount logic
   const total_cents = subtotal_cents + tax_cents - discount_cents;
   
   return { subtotal_cents, tax_cents, discount_cents, total_cents };
@@ -132,8 +142,12 @@ export async function POST(req: Request) {
       item.amount_cents = Math.round(item.quantity * item.rate_cents);
     }
 
-    // Calculate totals
-    const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(invoiceData.line_items);
+    // Calculate totals with discount
+    const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
+      invoiceData.line_items, 
+      invoiceData.discount_type, 
+      invoiceData.discount_value
+    );
 
     if (total_cents <= 0) {
       return NextResponse.json({ error: "Invoice total must be greater than $0" }, { status: 400 });
@@ -187,6 +201,14 @@ export async function POST(req: Request) {
       due_at: invoiceData.send_immediately ? dueDate.toISOString() : null,
       brand_logo_url: invoiceData.brand_logo_url,
       brand_primary: invoiceData.brand_primary,
+      // Enhanced invoice fields
+      project_overview: invoiceData.project_overview,
+      project_start_date: invoiceData.project_start_date,
+      delivery_date: invoiceData.delivery_date,
+      discount_type: invoiceData.discount_type,
+      discount_value: invoiceData.discount_value,
+      technology_stack: invoiceData.technology_stack,
+      terms_conditions: invoiceData.terms_conditions,
     };
 
     const { data: dbInvoice, error: dbError } = await supabase
