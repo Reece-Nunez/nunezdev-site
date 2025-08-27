@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     JWT_SECRET: process.env.JWT_SECRET,
     HUBSPOT_PRIVATE_APP_TOKEN: process.env.HUBSPOT_PRIVATE_APP_TOKEN,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
   },
   experimental: {
     serverComponentsExternalPackages: ['@supabase/ssr']
