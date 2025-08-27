@@ -45,6 +45,7 @@ interface Invoice extends InvoiceLite {
   invoice_number?: string;
   title?: string;
   notes?: string;
+  require_signature?: boolean;
   line_items?: Array<{
     description: string;
     quantity: number;

@@ -12,9 +12,7 @@ const nextConfig: NextConfig = {
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/ssr']
-  }
+  serverExternalPackages: ['@supabase/ssr']
 };
 
 export default nextConfig;
