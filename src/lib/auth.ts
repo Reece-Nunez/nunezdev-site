@@ -12,6 +12,11 @@ import { supabaseServer } from "@/lib/supabaseServer";
 export const authOptions: NextAuthOptions = {
   // Do not change basePath unless you also update client calls.
   session: { strategy: "jwt" },
+  
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
 
   providers: [
     Credentials({
@@ -26,20 +31,41 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    // Simplified session callback - no Supabase integration for now
+    // Session callback that reads from Supabase
     async session({ session, token }) {
-      console.log("[NextAuth] Session callback called with:", { hasSession: !!session, hasToken: !!token });
+      console.log("[NextAuth] Session callback called");
       
-      // Just return the basic session for now
-      if (session?.user) {
-        // Add any token data to session if needed
-        if (token?.sub) {
-          (session.user as any).id = token.sub;
+      try {
+        // Check if we have Supabase env vars
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          console.log("[NextAuth] Missing Supabase env vars");
+          return session;
         }
+
+        const supabase = await supabaseServer();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error || !user) {
+          console.log("[NextAuth] No Supabase user found:", error?.message);
+          return { ...session, user: undefined };
+        }
+
+        console.log("[NextAuth] Found Supabase user:", user.email);
+        
+        // Update session with Supabase user data
+        return {
+          ...session,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || user.email,
+          }
+        };
+        
+      } catch (error) {
+        console.error("[NextAuth] Session callback error:", error);
+        return session;
       }
-      
-      console.log("[NextAuth] Returning session:", { hasUser: !!session?.user });
-      return session;
     },
 
     // Basic JWT callback

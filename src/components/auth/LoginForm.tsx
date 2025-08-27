@@ -23,7 +23,9 @@ export default function LoginForm({ next = "/dashboard" }: { next?: string }) {
     const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
     setLoading(false);
     if (error) { setErr(error.message); return; }
-    router.push(next);
+    
+    // Force page refresh to let NextAuth pick up the Supabase session
+    window.location.href = next;
   }
 
   async function signInMagic(e: React.FormEvent) {
