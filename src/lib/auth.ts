@@ -11,6 +11,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
  */
 export const authOptions: NextAuthOptions = {
   // Do not change basePath unless you also update client calls.
+  secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   
   pages: {
