@@ -4,7 +4,8 @@ export type PaymentTerms = '7' | '14' | '30' | '45' | '60' | '90' | 'due_on_rece
 
 export interface InvoiceLineItem {
   id?: string;
-  description: string;
+  title?: string; // Short title for the line item
+  description: string; // Longer description 
   quantity: number;
   rate_cents: number;
   amount_cents: number;

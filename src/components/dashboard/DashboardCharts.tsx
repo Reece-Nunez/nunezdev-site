@@ -8,7 +8,8 @@ const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style:
 
 // Format month from YYYY-MM to readable format
 const formatMonth = (monthStr: string) => {
-  const date = new Date(monthStr + '-01');
+  const [year, month] = monthStr.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 

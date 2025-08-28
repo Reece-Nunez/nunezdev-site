@@ -308,6 +308,7 @@ export default function PublicInvoiceView() {
           <PaymentPlanDisplay 
             invoiceId={invoice.id} 
             isPublic={true}
+            accessToken={token}
             className="mb-8"
             requireSignature={invoice.require_signature || false}
             isSigned={!!invoice.signed_at}

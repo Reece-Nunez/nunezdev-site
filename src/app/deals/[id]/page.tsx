@@ -287,7 +287,7 @@ export default function DealDetailPage() {
   };
 
   if (isLoading) return <div className="p-6 my-36">Loading deal...</div>;
-  if (error || !data) return <div className="p-6 my-36 text-red-600">Failed to load deal</div>;
+  if (error || !data || !data.deal) return <div className="p-6 my-36 text-red-600">Failed to load deal</div>;
 
   const { deal, invoices, financials } = data;
 

@@ -17,6 +17,7 @@ interface PaymentInstallment {
 interface PaymentPlanDisplayProps {
   invoiceId: string;
   isPublic?: boolean; // Whether this is being viewed by the client (public) or owner (private)
+  accessToken?: string; // Access token for public access
   onPaymentClick?: (installment: PaymentInstallment) => void;
   className?: string;
   requireSignature?: boolean; // Whether the invoice requires signature
@@ -25,7 +26,8 @@ interface PaymentPlanDisplayProps {
 
 export default function PaymentPlanDisplay({ 
   invoiceId, 
-  isPublic = false, 
+  isPublic = false,
+  accessToken,
   onPaymentClick,
   className = "",
   requireSignature = false,
@@ -42,7 +44,13 @@ export default function PaymentPlanDisplay({
   const fetchPaymentPlan = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/invoices/${invoiceId}/payment-plans`);
+      
+      // Use public endpoint if isPublic and accessToken are provided
+      const endpoint = isPublic && accessToken 
+        ? `/api/public/invoice/${accessToken}/payment-plans`
+        : `/api/invoices/${invoiceId}/payment-plans`;
+        
+      const response = await fetch(endpoint);
       if (!response.ok) {
         throw new Error('Failed to fetch payment plan');
       }

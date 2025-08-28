@@ -67,28 +67,41 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
       return acc;
     }, {} as Record<string, number>);
 
-    // Revenue calculations - now account for partial payments
-    const totalRevenue = invoiceCategories.fullyPaid
-      .reduce((sum, inv) => sum + inv.amount_cents, 0);
+    // Total Revenue - sum of ALL payments received (regardless of invoice status)
+    const totalRevenue = invoices
+      .reduce((total, inv) => {
+        const totalPaymentsReceived = (inv.invoice_payments || [])
+          .reduce((sum, payment) => sum + payment.amount_cents, 0);
+        return total + totalPaymentsReceived;
+      }, 0);
 
     // Pending revenue is now the actual remaining balance (not full invoice amounts)
     const pendingRevenue = [...invoiceCategories.partiallyPaid, ...invoiceCategories.unpaid]
       .reduce((sum, inv) => sum + inv.remainingBalance, 0);
 
-    const thisMonthRevenue = invoiceCategories.fullyPaid
-      .filter(inv => 
-        inv.issued_at && 
-        new Date(inv.issued_at) >= thisMonth
-      )
-      .reduce((sum, inv) => sum + inv.amount_cents, 0);
+    // Calculate this month's revenue based on actual payment dates (paid_at)
+    const thisMonthRevenue = invoices
+      .reduce((total, inv) => {
+        const paymentsThisMonth = (inv.invoice_payments || [])
+          .filter(payment => {
+            const paymentDate = new Date(payment.paid_at);
+            return paymentDate >= thisMonth;
+          })
+          .reduce((sum, payment) => sum + payment.amount_cents, 0);
+        return total + paymentsThisMonth;
+      }, 0);
 
-    const lastMonthRevenue = invoiceCategories.fullyPaid
-      .filter(inv => 
-        inv.issued_at && 
-        new Date(inv.issued_at) >= lastMonth && 
-        new Date(inv.issued_at) < thisMonth
-      )
-      .reduce((sum, inv) => sum + inv.amount_cents, 0);
+    // Calculate last month's revenue based on actual payment dates (paid_at)
+    const lastMonthRevenue = invoices
+      .reduce((total, inv) => {
+        const paymentsLastMonth = (inv.invoice_payments || [])
+          .filter(payment => {
+            const paymentDate = new Date(payment.paid_at);
+            return paymentDate >= lastMonth && paymentDate < thisMonth;
+          })
+          .reduce((sum, payment) => sum + payment.amount_cents, 0);
+        return total + paymentsLastMonth;
+      }, 0);
 
     // Overdue invoices - now includes partially paid overdue invoices
     const overdueInvoices = [...invoiceCategories.partiallyPaid, ...invoiceCategories.unpaid].filter(inv => 

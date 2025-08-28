@@ -3,6 +3,22 @@
 import { currency } from '@/lib/ui';
 import type { CreateInvoiceData } from '@/types/invoice';
 
+// Simple markdown-like function for bullet points
+const formatTextWithBullets = (text: string) => {
+  if (!text) return '';
+  
+  // Convert bullet points (• or -) at the start of lines to HTML
+  const lines = text.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('• ') || trimmed.startsWith('- ')) {
+      return `<div class="flex items-start gap-2 mb-1"><span class="text-gray-600 mt-0.5">•</span><span>${trimmed.substring(2)}</span></div>`;
+    }
+    return trimmed ? `<div class="mb-1">${trimmed}</div>` : '<div class="mb-1"></div>';
+  });
+  
+  return lines.join('');
+};
+
 function getPaymentTermsDisplay(terms: string): string {
   switch (terms) {
     case 'due_on_receipt': return 'Due on receipt';
@@ -173,7 +189,15 @@ export default function InvoiceBuilderPreview({
                 <tbody>
                   {invoiceData.line_items.map((item, index) => (
                     <tr key={index} className="border-b border-gray-200">
-                      <td className="py-4 text-gray-700 pr-4">{item.description || 'Service Description'}</td>
+                      <td className="py-4 text-gray-700 pr-4">
+                        {item.title && (
+                          <div className="font-semibold text-gray-800 mb-1">{item.title}</div>
+                        )}
+                        <div 
+                          className="text-sm"
+                          dangerouslySetInnerHTML={{ __html: formatTextWithBullets(item.description || 'Service Description') }}
+                        />
+                      </td>
                       <td className="py-4 text-center text-gray-700">{item.quantity}</td>
                       <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
                       <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
@@ -307,7 +331,10 @@ export default function InvoiceBuilderPreview({
                 )}
                 {invoiceData.terms_conditions && (
                   <div className="mt-4 p-3 bg-gray-50 rounded border-l-4 border-blue-500">
-                    <p className="text-gray-800 whitespace-pre-wrap">{invoiceData.terms_conditions}</p>
+                    <div 
+                      className="text-gray-800"
+                      dangerouslySetInnerHTML={{ __html: formatTextWithBullets(invoiceData.terms_conditions) }}
+                    />
                   </div>
                 )}
               </div>
@@ -330,7 +357,10 @@ export default function InvoiceBuilderPreview({
             {invoiceData.notes && (
               <div className="mt-6 p-4 bg-gray-50 rounded">
                 <h4 className="font-semibold text-gray-800 mb-2">Additional Notes</h4>
-                <div className="text-gray-700 text-sm whitespace-pre-wrap">{invoiceData.notes}</div>
+                <div 
+                  className="text-gray-700 text-sm"
+                  dangerouslySetInnerHTML={{ __html: formatTextWithBullets(invoiceData.notes) }}
+                />
               </div>
             )}
           </div>

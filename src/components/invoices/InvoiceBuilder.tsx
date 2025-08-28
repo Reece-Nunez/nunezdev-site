@@ -44,7 +44,7 @@ export default function InvoiceBuilder({
     description: initialData?.description || '',
     notes: initialData?.notes || '',
     line_items: initialData?.line_items || [
-      { description: '', quantity: 1, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
+      { title: '', description: '', quantity: 1, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
     ],
     payment_terms: initialData?.payment_terms || '30',
     require_signature: initialData?.require_signature ?? true,
@@ -143,7 +143,7 @@ export default function InvoiceBuilder({
       ...prev,
       line_items: [
         ...prev.line_items,
-        { description: '', quantity: 1, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
+        { title: '', description: '', quantity: 1, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
       ]
     }));
     
@@ -298,7 +298,7 @@ export default function InvoiceBuilder({
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left">Description</th>
+                <th className="px-3 py-2 text-left">Title & Description</th>
                 <th className="px-3 py-2 text-center w-20">Hrs</th>
                 <th className="px-3 py-2 text-right w-28">Rate</th>
                 <th className="px-3 py-2 text-right w-28">Amount</th>
@@ -309,18 +309,27 @@ export default function InvoiceBuilder({
               {formData.line_items.map((item, index) => (
                 <tr key={index} className="border-t">
                   <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                      placeholder="Service or product description"
-                      className={`w-full rounded border px-2 py-1 text-sm ${
-                        errors[`line_item_${index}_description`] ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors[`line_item_${index}_description`] && (
-                      <p className="text-red-500 text-xs mt-1">{errors[`line_item_${index}_description`]}</p>
-                    )}
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={item.title || ''}
+                        onChange={(e) => updateLineItem(index, 'title', e.target.value)}
+                        placeholder="Short title (e.g., 'Frontend Development')"
+                        className="w-full rounded border border-gray-300 px-2 py-1 text-sm font-medium"
+                      />
+                      <textarea
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                        placeholder="Detailed description (e.g., 'React/Next.js implementation, responsive design, component architecture')"
+                        rows={2}
+                        className={`w-full rounded border px-2 py-1 text-sm resize-none ${
+                          errors[`line_item_${index}_description`] ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      />
+                      {errors[`line_item_${index}_description`] && (
+                        <p className="text-red-500 text-xs mt-1">{errors[`line_item_${index}_description`]}</p>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2">
                     <input
@@ -595,16 +604,35 @@ export default function InvoiceBuilder({
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Terms & Conditions</h2>
         
+        {/* Default Terms Preview */}
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">Default Terms (automatically included):</h3>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div>• Payment is due within 30 days of invoice date</div>
+            <div>• Late payments may be subject to a 1.5% monthly service charge</div>
+            <div>• Please include invoice number with payment</div>
+            <div>• This invoice requires a digital signature before payment</div>
+          </div>
+        </div>
+        
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Additional Custom Terms & Conditions
+          </label>
           <textarea
             value={formData.terms_conditions}
             onChange={(e) => setFormData(prev => ({ ...prev, terms_conditions: e.target.value }))}
-            placeholder="Enter custom terms and conditions for this project..."
-            rows={4}
+            placeholder="Enter additional custom terms and conditions for this project...
+            
+Tip: Use bullet points with • or - for better formatting:
+• Hosting: First year included
+• Support: 30 days free support included
+• Revisions: Up to 3 rounds included"
+            rows={6}
             className="w-full rounded-lg border border-gray-300 px-3 py-2"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Custom terms will be displayed in addition to standard payment terms
+            These custom terms will be displayed in addition to the default terms above
           </p>
         </div>
       </div>
@@ -667,8 +695,13 @@ export default function InvoiceBuilder({
           <textarea
             value={formData.notes}
             onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            placeholder="Additional terms, project details, or notes for the client..."
-            rows={3}
+            placeholder="Additional terms, project details, or notes for the client...
+
+Use bullet points for better formatting:
+• Timeline: Project completion in 4-6 weeks
+• Communication: Weekly progress updates
+• Files: Source code and assets delivered upon completion"
+            rows={5}
             className="w-full rounded-lg border border-gray-300 px-3 py-2"
           />
         </div>
