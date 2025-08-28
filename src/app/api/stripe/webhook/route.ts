@@ -185,6 +185,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   // Try to find invoice by metadata
   const metadata = paymentIntent.metadata || {};
   let invoiceId = metadata.invoice_id || metadata.hubspot_quote_id;
+  const installmentId = metadata.installment_id; // For payment plan installments
   const dealId = metadata.deal_id;
   const clientId = metadata.client_id;
   const orgId = metadata.org_id;
@@ -249,7 +250,40 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   }
 
   if (invoiceId) {
-    // Add payment record instead of directly updating invoice status
+    // Handle payment plan installment payments
+    if (installmentId) {
+      // Update the specific installment status
+      const { error: installmentError } = await supabase
+        .from('invoice_payment_plans')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          stripe_payment_intent_id: paymentIntent.id
+        })
+        .eq('id', installmentId);
+
+      if (!installmentError) {
+        console.log(`[stripe-webhook] updated payment plan installment ${installmentId} as paid`);
+        
+        // Add activity log for installment payment
+        await supabase
+          .from('client_activity_log')
+          .insert({
+            invoice_id: invoiceId,
+            client_id: clientId,
+            activity_type: 'payment_completed',
+            activity_data: {
+              installment_id: installmentId,
+              amount_cents: paymentIntent.amount,
+              payment_intent_id: paymentIntent.id
+            }
+          });
+      } else {
+        console.error('Failed to update installment status:', installmentError);
+      }
+    }
+
+    // Add payment record for all payments (installment or full)
     const { error: paymentError } = await supabase
       .from('invoice_payments')
       .insert({
@@ -260,6 +294,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         paid_at: new Date().toISOString(),
         metadata: {
           payment_intent_id: paymentIntent.id,
+          installment_id: installmentId || null,
           customer: paymentIntent.customer,
           receipt_email: paymentIntent.receipt_email
         }
@@ -267,6 +302,20 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
     if (!paymentError) {
       console.log(`[stripe-webhook] added payment record for invoice ${invoiceId} with payment intent ${paymentIntent.id}`);
+      
+      // Add activity log
+      await supabase
+        .from('client_activity_log')
+        .insert({
+          invoice_id: invoiceId,
+          client_id: clientId,
+          activity_type: 'payment_completed',
+          activity_data: {
+            amount_cents: paymentIntent.amount,
+            payment_intent_id: paymentIntent.id,
+            installment_id: installmentId || null
+          }
+        });
       
       // Check if we should auto-update deal stage
       if (dealId || clientId) {

@@ -39,6 +39,7 @@ export async function POST(
       .select(`
         id, client_id, status, amount_cents, line_items, payment_terms,
         title, description, require_signature, access_token, invoice_number,
+        payment_plan_enabled, payment_plan_type,
         clients!inner(id, name, email, stripe_customer_id)
       `)
       .eq("id", invoiceId)
@@ -61,55 +62,121 @@ export async function POST(
     let stripeInvoiceUrl = null;
     let agreementUrl = null;
 
-    // Create Stripe Payment Link if Stripe is configured
+    // Create Stripe Payment Links
     if (process.env.STRIPE_SECRET_KEY) {
       try {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-        // Create a payment link with the invoice amount
-        const paymentLink = await stripe.paymentLinks.create({
-          line_items: [
-            {
-              price_data: {
-                currency: 'usd',
-                product_data: {
-                  name: invoice.title || `Invoice ${invoice.invoice_number || invoice.id.split('-')[0]}`,
-                  description: invoice.description || 'Professional web development services',
-                  metadata: {
-                    invoice_id: invoice.id,
-                    client_id: (client as any).id,
-                    org_id: orgId,
+        // Check if invoice has payment plan enabled
+        if (invoice.payment_plan_enabled && invoice.payment_plan_type !== 'full') {
+          // Get payment plan installments
+          const { data: installments, error: installmentsError } = await supabase
+            .from("invoice_payment_plans")
+            .select("*")
+            .eq("invoice_id", invoiceId)
+            .order("installment_number");
+
+          if (!installmentsError && installments && installments.length > 0) {
+            console.log(`Creating ${installments.length} payment links for payment plan invoice ${invoiceId}`);
+            
+            // Create payment links for each installment
+            for (const installment of installments) {
+              const installmentPaymentLink = await stripe.paymentLinks.create({
+                line_items: [
+                  {
+                    price_data: {
+                      currency: 'usd',
+                      product_data: {
+                        name: `${invoice.invoice_number || invoice.id.split('-')[0]} - ${installment.installment_label}`,
+                        description: `${installment.installment_label} for ${(client as any).name}`,
+                        metadata: {
+                          invoice_id: invoice.id,
+                          installment_id: installment.id,
+                          client_id: (client as any).id,
+                          org_id: orgId,
+                        },
+                      },
+                      unit_amount: installment.amount_cents,
+                    },
+                    quantity: 1,
+                  },
+                ],
+                metadata: {
+                  invoice_id: invoice.id,
+                  installment_id: installment.id,
+                  client_id: (client as any).id,
+                  org_id: orgId,
+                  invoice_number: invoice.invoice_number || '',
+                  installment_number: installment.installment_number.toString(),
+                },
+                after_completion: {
+                  type: 'redirect',
+                  redirect: {
+                    url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${invoice.access_token}?payment=success&installment=${installment.installment_number}`,
                   },
                 },
-                unit_amount: invoice.amount_cents,
+              });
+
+              // Update installment with payment link
+              await supabase
+                .from("invoice_payment_plans")
+                .update({
+                  stripe_payment_link_id: installmentPaymentLink.id,
+                  stripe_payment_link_url: installmentPaymentLink.url,
+                })
+                .eq("id", installment.id);
+            }
+
+            // For payment plans, we don't set a single stripeInvoiceUrl since there are multiple links
+            stripeInvoiceUrl = null;
+            console.log(`Successfully created payment links for all ${installments.length} installments`);
+          }
+        } else {
+          // Create single payment link for non-payment-plan invoices
+          const paymentLink = await stripe.paymentLinks.create({
+            line_items: [
+              {
+                price_data: {
+                  currency: 'usd',
+                  product_data: {
+                    name: invoice.title || `Invoice ${invoice.invoice_number || invoice.id.split('-')[0]}`,
+                    description: invoice.description || 'Professional web development services',
+                    metadata: {
+                      invoice_id: invoice.id,
+                      client_id: (client as any).id,
+                      org_id: orgId,
+                    },
+                  },
+                  unit_amount: invoice.amount_cents,
+                },
+                quantity: 1,
               },
-              quantity: 1,
+            ],
+            metadata: {
+              invoice_id: invoice.id,
+              client_id: (client as any).id,
+              org_id: orgId,
+              invoice_number: invoice.invoice_number || '',
             },
-          ],
-          metadata: {
-            invoice_id: invoice.id,
-            client_id: (client as any).id,
-            org_id: orgId,
-            invoice_number: invoice.invoice_number || '',
-          },
-          after_completion: {
-            type: 'redirect',
-            redirect: {
-              url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${invoice.access_token}?payment=success`,
+            after_completion: {
+              type: 'redirect',
+              redirect: {
+                url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${invoice.access_token}?payment=success`,
+              },
             },
-          },
-        });
+          });
 
-        stripeInvoiceUrl = paymentLink.url;
+          stripeInvoiceUrl = paymentLink.url;
 
-        // Update database with Payment Link URL
-        await supabase
-          .from("invoices")
-          .update({ 
-            stripe_payment_link: paymentLink.id,
-            stripe_hosted_invoice_url: paymentLink.url 
-          })
-          .eq("id", invoiceId);
+          // Update database with Payment Link URL
+          await supabase
+            .from("invoices")
+            .update({ 
+              stripe_payment_link: paymentLink.id,
+              stripe_hosted_invoice_url: paymentLink.url 
+            })
+            .eq("id", invoiceId);
+        }
 
       } catch (stripeError) {
         console.error("Stripe Payment Link error:", stripeError);
