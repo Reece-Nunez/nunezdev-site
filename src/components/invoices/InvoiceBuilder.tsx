@@ -784,6 +784,7 @@ export default function InvoiceBuilder({
         <InvoiceBuilderPreview
           invoiceData={formData}
           clients={clients}
+          paymentPlan={paymentPlan}
           onClose={() => setShowPreview(false)}
         />
       )}

@@ -36,15 +36,29 @@ interface Client {
   company?: string;
 }
 
+interface PaymentPlan {
+  enabled: boolean;
+  type: 'full' | '50_50' | '40_30_30' | 'custom';
+  installments: {
+    installment_number: number;
+    installment_label: string;
+    amount_cents: number;
+    due_date: string;
+    grace_period_days: number;
+  }[];
+}
+
 interface InvoiceBuilderPreviewProps {
   invoiceData: CreateInvoiceData;
   clients: Client[];
+  paymentPlan?: PaymentPlan;
   onClose: () => void;
 }
 
 export default function InvoiceBuilderPreview({ 
   invoiceData, 
   clients, 
+  paymentPlan,
   onClose 
 }: InvoiceBuilderPreviewProps) {
   const selectedClient = clients.find(c => c.id === invoiceData.client_id);
@@ -196,6 +210,70 @@ export default function InvoiceBuilderPreview({
                 </div>
               </div>
             </div>
+
+            {/* Payment Plan */}
+            {paymentPlan?.enabled && paymentPlan.installments.length > 1 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4" style={{ color: '#111111' }}>Payment Schedule</h3>
+                <p className="text-gray-700 mb-4">
+                  This invoice offers a flexible payment plan to make your investment more manageable:
+                </p>
+                
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="grid gap-3">
+                    {paymentPlan.installments.map((installment, index) => {
+                      const dueDate = installment.due_date ? new Date(installment.due_date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : 'TBD';
+                      
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white rounded border">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{installment.installment_label}</div>
+                              <div className="text-sm text-gray-600">
+                                Due: {dueDate}
+                                {installment.grace_period_days > 0 && (
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    ({installment.grace_period_days} day grace period)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-semibold text-gray-900">
+                              {currency(installment.amount_cents)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {((installment.amount_cents / total) * 100).toFixed(0)}% of total
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Payment Plan Total:</span>
+                      <span className="text-lg font-semibold text-gray-900">
+                        {currency(paymentPlan.installments.reduce((sum, inst) => sum + inst.amount_cents, 0))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                  <p><strong>Payment Instructions:</strong> You will receive individual payment links for each installment. Each payment can be made independently when due.</p>
+                </div>
+              </div>
+            )}
 
             {/* Technology Stack */}
             {invoiceData.technology_stack && invoiceData.technology_stack.length > 0 && (

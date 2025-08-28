@@ -8,6 +8,7 @@ import { currency } from '@/lib/ui';
 import EditInvoice from '@/components/client-detail/EditInvoice';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import { useToast } from '@/components/ui/Toast';
+import PaymentPlanDisplay from '@/components/invoices/PaymentPlanDisplay';
 import type { InvoiceLite } from '@/types/client_detail';
 
 function getPaymentTermsDisplay(terms: string): string {
@@ -570,6 +571,13 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
           </div>
         </div>
       </div>
+
+      {/* Payment Plan */}
+      <PaymentPlanDisplay 
+        invoiceId={invoice.id} 
+        isPublic={false}
+        className="mb-8"
+      />
 
       {/* Technology Stack */}
       {invoice.technology_stack && invoice.technology_stack.length > 0 && (

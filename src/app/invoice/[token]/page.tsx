@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { currency } from '@/lib/ui';
 import SignatureCapture from '@/components/invoices/SignatureCapture';
+import PaymentPlanDisplay from '@/components/invoices/PaymentPlanDisplay';
 
 function getPaymentTermsDescription(terms: string): string {
   switch (terms) {
@@ -20,6 +21,7 @@ function getPaymentTermsDescription(terms: string): string {
 
 interface InvoiceData {
   id: string;
+  client_id: string;
   invoice_number: string;
   title?: string;
   description?: string;
@@ -301,6 +303,29 @@ export default function PublicInvoiceView() {
               <p>{getPaymentTermsDescription(invoice.payment_terms || '30')}</p>
             </div>
           </div>
+
+          {/* Payment Plan */}
+          <PaymentPlanDisplay 
+            invoiceId={invoice.id} 
+            isPublic={true}
+            className="mb-8"
+            onPaymentClick={(installment) => {
+              // Track payment link click
+              fetch('/api/activity/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  invoice_id: invoice.id,
+                  client_id: invoice.client_id,
+                  activity_type: 'payment_link_clicked',
+                  activity_data: {
+                    installment_id: installment.id,
+                    amount_cents: installment.amount_cents
+                  }
+                })
+              }).catch(console.error);
+            }}
+          />
 
           {/* Signature Section */}
           {invoice.signed_at ? (
