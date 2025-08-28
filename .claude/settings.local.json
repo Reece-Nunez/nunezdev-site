@@ -33,7 +33,10 @@
       "Read(C:\\Users\\reece\\Downloads/**)",
       "Read(C:\\Users\\reece\\Downloads/**)",
       "Read(C:\\Users\\reece\\Downloads/**)",
-      "Read(C:\\Users\\reece\\Downloads/**)"
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],
