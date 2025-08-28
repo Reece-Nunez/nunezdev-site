@@ -478,7 +478,7 @@ export default function DealDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Invoices & Payments</h2>
               <button 
-                onClick={() => setShowInvoiceModal(true)}
+                onClick={() => window.location.href = '/dashboard/invoices/new'}
                 className="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700 text-sm"
               >
                 + Create Invoice

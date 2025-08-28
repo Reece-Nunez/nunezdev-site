@@ -43,7 +43,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const { data, error } = await gate.supabase
     .from("invoices")
-    .select("id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id")
+    .select("id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, invoice_number, description")
     .eq("org_id", gate.orgId)
     .eq("client_id", clientId)
     .order("issued_at", { ascending: false });

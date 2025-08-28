@@ -13,11 +13,13 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
   
   const totals = useMemo(() => {
     const t = { invoiced: 0, paid: 0, due: 0 };
-    for (const r of rows) {
-      t.invoiced += r.total_invoiced_cents ?? 0;
-      t.paid += r.total_paid_cents ?? 0;
-      t.due += r.balance_due_cents ?? 0;
-      // t.draft += r.draft_invoiced_cents ?? 0;
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        t.invoiced += r.total_invoiced_cents ?? 0;
+        t.paid += r.total_paid_cents ?? 0;
+        t.due += r.balance_due_cents ?? 0;
+        // t.draft += r.draft_invoiced_cents ?? 0;
+      }
     }
     return t;
   }, [rows]);
@@ -88,7 +90,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {Array.isArray(rows) ? rows.map((r) => (
               <tr key={r.id} className="border-t">
                 <td className="px-3 py-2">
                   <Link href={`/clients/${r.id}`} className="font-medium text-blue-600 hover:underline">
@@ -131,7 +133,13 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                   </div>
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
+                  No clients found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

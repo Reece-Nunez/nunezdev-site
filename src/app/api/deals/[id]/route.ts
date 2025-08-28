@@ -51,7 +51,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     }
 
     // Fetch invoices related to this deal's client
-    const { data: invoices } = await supabase
+    const { data: invoices, error: invoicesError } = await supabase
       .from("invoices")
       .select(`
         id,
@@ -61,13 +61,13 @@ export async function GET(_req: Request, ctx: Ctx) {
         due_at,
         description,
         created_at,
+        invoice_number,
         invoice_payments (
           id,
           amount_cents,
           paid_at,
           payment_method,
-          stripe_payment_intent_id,
-          notes
+          stripe_payment_intent_id
         )
       `)
       .eq("client_id", (deal.client as any)?.id)

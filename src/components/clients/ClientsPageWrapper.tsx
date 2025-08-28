@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import ClientsTable from './ClientsTable';
 import type { ClientOverview } from '@/types/clients';
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = (url: string) => fetch(url).then(r => r.json()).then(data => data.clients || []);
 
 export default function ClientsPageWrapper() {
   const { data, mutate } = useSWR<ClientOverview[]>('/api/clients', fetcher);

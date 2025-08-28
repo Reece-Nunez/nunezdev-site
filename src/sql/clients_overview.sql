@@ -18,7 +18,8 @@ select
   coalesce(sum(case when i.status in ('sent','paid','overdue') then i.amount_cents else 0 end), 0) as total_invoiced_cents,
   coalesce(sum(case when i.status = 'paid' then i.amount_cents else 0 end), 0) as total_paid_cents,
   coalesce(sum(case when i.status in ('sent','overdue') then i.amount_cents else 0 end), 0)
-    - coalesce(sum(case when i.status = 'paid' then i.amount_cents else 0 end), 0) as balance_due_cents
+    - coalesce(sum(case when i.status = 'paid' then i.amount_cents else 0 end), 0) as balance_due_cents,
+  coalesce(sum(case when i.status = 'draft' then i.amount_cents else 0 end), 0) as draft_invoiced_cents
 from clients c
 left join invoices i on i.client_id = c.id
 group by c.id;
@@ -58,6 +59,7 @@ select
   coalesce(cf.total_invoiced_cents, 0) as total_invoiced_cents,
   coalesce(cf.total_paid_cents, 0) as total_paid_cents,
   coalesce(cf.balance_due_cents, 0) as balance_due_cents,
+  coalesce(cf.draft_invoiced_cents, 0) as draft_invoiced_cents,
   cdc.stage as current_stage,
   ca.last_activity_at,
   ca.open_deals_count,
