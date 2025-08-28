@@ -14,7 +14,7 @@ export default function NewInvoicePage() {
   
   // Fetch clients for the dropdown
   const { data: clientsData } = useSWR('/api/clients', fetcher);
-  const clients = clientsData || [];
+  const clients = clientsData?.clients || [];
 
   const handleCreateInvoice = async (invoiceData: CreateInvoiceData) => {
     setCreating(true);

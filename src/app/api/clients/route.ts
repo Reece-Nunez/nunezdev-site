@@ -12,8 +12,8 @@ export async function GET() {
   const orgId = memberships[0].org_id;
 
   const { data, error } = await supabase
-    .from("clients_overview")
-    .select("*")
+    .from("clients")
+    .select("id, name, email, phone, company, status, created_at")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false });
 
