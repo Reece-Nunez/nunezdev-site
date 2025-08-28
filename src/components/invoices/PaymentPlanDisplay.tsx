@@ -106,13 +106,25 @@ export default function PaymentPlanDisplay({
   };
 
   const canShowPaymentButton = (installment: PaymentInstallment) => {
+    // Debug logging
+    console.log('PaymentPlan debug:', {
+      requireSignature,
+      isSigned,
+      installmentStatus: installment.status,
+      hasPaymentLink: !!installment.stripe_payment_link_url,
+      installmentId: installment.id
+    });
+    
     // If signature is required but not completed, disable payment buttons
     if (requireSignature && !isSigned) {
+      console.log('Payment button disabled: signature required but not signed');
       return false;
     }
     
     // Only show payment buttons for pending installments with payment links
-    return installment.status === 'pending' && installment.stripe_payment_link_url;
+    const canShow = installment.status === 'pending' && installment.stripe_payment_link_url;
+    console.log('Payment button decision:', canShow);
+    return canShow;
   };
 
   if (loading) {

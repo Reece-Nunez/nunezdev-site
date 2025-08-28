@@ -133,6 +133,16 @@ export default function PublicInvoiceView() {
 
   const needsSignature = invoice.require_signature && !invoice.signed_at;
 
+  // Debug logging
+  console.log('Invoice debug info:', {
+    require_signature: invoice.require_signature,
+    signed_at: invoice.signed_at,
+    needsSignature: needsSignature,
+    status: invoice.status,
+    hosted_invoice_url: (invoice as any).hosted_invoice_url,
+    stripe_hosted_invoice_url: invoice.stripe_hosted_invoice_url,
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 py-48">
       <div className="max-w-3xl mx-auto px-4">
@@ -419,8 +429,8 @@ export default function PublicInvoiceView() {
             </div>
           ) : null}
 
-          {/* Payment Button */}
-          {invoice.status !== 'paid' && (!needsSignature || invoice.signed_at) && (
+          {/* Payment Button - Show if not paid and (no signature required OR already signed) */}
+          {invoice.status !== 'paid' && (!invoice.require_signature || invoice.signed_at) && (
             <div className="mt-8 text-center">
               {((invoice as any).hosted_invoice_url || invoice.stripe_hosted_invoice_url) ? (
                 <a 
