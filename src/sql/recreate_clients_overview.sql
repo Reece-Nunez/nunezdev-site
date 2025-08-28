@@ -21,13 +21,20 @@ SELECT * FROM ranked WHERE rnk = 1;
 CREATE OR REPLACE VIEW client_financials AS
 SELECT
   c.id AS client_id,
-  COALESCE(SUM(CASE WHEN i.status IN ('sent','paid','overdue') THEN i.amount_cents ELSE 0 END), 0) AS total_invoiced_cents,
-  COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount_cents ELSE 0 END), 0) AS total_paid_cents,
-  COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue') THEN i.amount_cents ELSE 0 END), 0)
-    - COALESCE(SUM(CASE WHEN i.status = 'paid' THEN i.amount_cents ELSE 0 END), 0) AS balance_due_cents,
-  COALESCE(SUM(CASE WHEN i.status = 'draft' THEN i.amount_cents ELSE 0 END), 0) AS draft_invoiced_cents
+  COALESCE(SUM(CASE WHEN i.status IN ('sent','paid','overdue','partially_paid') THEN i.amount_cents ELSE 0 END), 0)::bigint AS total_invoiced_cents,
+  COALESCE(SUM(COALESCE(p.total_payments::bigint, 0)), 0)::bigint AS total_paid_cents,
+  (COALESCE(SUM(CASE WHEN i.status IN ('sent','overdue','partially_paid') THEN i.amount_cents ELSE 0 END), 0)
+    - COALESCE(SUM(COALESCE(p.total_payments::bigint, 0)), 0))::bigint AS balance_due_cents,
+  COALESCE(SUM(CASE WHEN i.status = 'draft' THEN i.amount_cents ELSE 0 END), 0)::bigint AS draft_invoiced_cents
 FROM clients c
 LEFT JOIN invoices i ON i.client_id = c.id
+LEFT JOIN (
+  SELECT 
+    ip.invoice_id,
+    SUM(ip.amount_cents)::bigint AS total_payments
+  FROM invoice_payments ip
+  GROUP BY ip.invoice_id
+) p ON p.invoice_id = i.id
 GROUP BY c.id;
 
 -- Activity + extras per client
