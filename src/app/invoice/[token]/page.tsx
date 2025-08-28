@@ -36,6 +36,11 @@ interface InvoiceData {
   require_signature?: boolean;
   payment_terms?: string;
   stripe_hosted_invoice_url?: string;
+  hosted_invoice_url?: string;
+  project_overview?: string;
+  project_start_date?: string;
+  delivery_date?: string;
+  terms_conditions?: string;
   line_items?: Array<{
     description: string;
     quantity: number;
@@ -242,6 +247,38 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
+          {/* Project Overview */}
+          {(invoice as any).project_overview && (
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold mb-2" style={{ color: '#111111' }}>
+                Project Overview
+              </h3>
+              <div className="text-gray-600 whitespace-pre-wrap">{(invoice as any).project_overview}</div>
+            </div>
+          )}
+
+          {/* Project Dates */}
+          {((invoice as any).project_start_date || (invoice as any).delivery_date) && (
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div>
+                {(invoice as any).project_start_date && (
+                  <div className="mb-2">
+                    <span className="font-medium text-gray-800">Project Start:</span>
+                    <span className="text-gray-600 ml-2">{new Date((invoice as any).project_start_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+              <div>
+                {(invoice as any).delivery_date && (
+                  <div>
+                    <span className="font-medium text-gray-800">Delivery Date:</span>
+                    <span className="text-gray-600 ml-2">{new Date((invoice as any).delivery_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Line Items */}
           <div className="mb-8">
             <table className="w-full">
@@ -303,6 +340,14 @@ export default function PublicInvoiceView() {
               <p>{getPaymentTermsDescription(invoice.payment_terms || '30')}</p>
             </div>
           </div>
+
+          {/* Terms and Conditions */}
+          {(invoice as any).terms_conditions && (
+            <div className="mb-8">
+              <h3 className="font-semibold text-gray-800 mb-2">Terms and Conditions</h3>
+              <div className="text-gray-600 whitespace-pre-wrap">{(invoice as any).terms_conditions}</div>
+            </div>
+          )}
 
           {/* Payment Plan */}
           <PaymentPlanDisplay 
@@ -375,11 +420,11 @@ export default function PublicInvoiceView() {
           ) : null}
 
           {/* Payment Button */}
-          {invoice.status !== 'paid' && invoice.signed_at && (
+          {invoice.status !== 'paid' && (!needsSignature || invoice.signed_at) && (
             <div className="mt-8 text-center">
-              {invoice.stripe_hosted_invoice_url ? (
+              {((invoice as any).hosted_invoice_url || invoice.stripe_hosted_invoice_url) ? (
                 <a 
-                  href={invoice.stripe_hosted_invoice_url}
+                  href={(invoice as any).hosted_invoice_url || invoice.stripe_hosted_invoice_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block px-8 py-3 text-white font-medium rounded-lg transition-colors"

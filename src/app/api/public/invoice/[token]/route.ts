@@ -26,6 +26,7 @@ export async function GET(
       .from("invoices")
       .select(`
         id,
+        client_id,
         invoice_number,
         title,
         description,
@@ -46,6 +47,11 @@ export async function GET(
         brand_logo_url,
         brand_primary,
         stripe_hosted_invoice_url,
+        hosted_invoice_url,
+        project_overview,
+        project_start_date,
+        delivery_date,
+        terms_conditions,
         clients!inner(
           name,
           email,

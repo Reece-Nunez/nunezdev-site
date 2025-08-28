@@ -263,11 +263,12 @@ export async function POST(req: Request) {
           orgId
         );
 
-        // Update database with Stripe ID
+        // Update database with Stripe ID and URL
         await supabase
           .from("invoices")
           .update({ 
             stripe_invoice_id: stripeInvoice.id,
+            stripe_hosted_invoice_url: stripeInvoice.hosted_invoice_url,
             hosted_invoice_url: stripeInvoice.hosted_invoice_url 
           })
           .eq("id", dbInvoice.id);
@@ -279,15 +280,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // Generate agreement URL if signature required
+    // Generate agreement URL if signature required (but don't override Stripe URL)
     if (invoiceData.require_signature) {
       agreementUrl = `/invoices/${dbInvoice.id}/agreement`;
       
-      // Update with hosted invoice URL for signature flow
-      await supabase
-        .from("invoices")
-        .update({ hosted_invoice_url: agreementUrl })
-        .eq("id", dbInvoice.id);
+      // Only update hosted_invoice_url if there's no Stripe URL
+      if (!stripeInvoiceUrl) {
+        await supabase
+          .from("invoices")
+          .update({ hosted_invoice_url: agreementUrl })
+          .eq("id", dbInvoice.id);
+      }
     }
 
     return NextResponse.json({
