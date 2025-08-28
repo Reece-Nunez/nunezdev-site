@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { sendBusinessNotification } from "@/lib/notifications";
 
 async function autoUpdateDealStage(supabase: any, dealId?: string, clientId?: string, orgId?: string) {
   try {
@@ -302,6 +303,42 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
     if (!paymentError) {
       console.log(`[stripe-webhook] added payment record for invoice ${invoiceId} with payment intent ${paymentIntent.id}`);
+      
+      // Get client and invoice details for notifications
+      const { data: invoiceDetails } = await supabase
+        .from('invoices')
+        .select(`
+          invoice_number,
+          clients!inner(name, email)
+        `)
+        .eq('id', invoiceId)
+        .single();
+
+      // Get installment details if this was an installment payment
+      let installmentLabel = 'Payment';
+      if (installmentId) {
+        const { data: installmentData } = await supabase
+          .from('invoice_payment_plans')
+          .select('installment_label')
+          .eq('id', installmentId)
+          .single();
+        
+        if (installmentData) {
+          installmentLabel = installmentData.installment_label;
+        }
+      }
+      
+      // Send business notification for payment received
+      if (invoiceDetails) {
+        await sendBusinessNotification('payment_received', {
+          invoice_id: invoiceId,
+          client_name: (invoiceDetails.clients as any).name,
+          invoice_number: invoiceDetails.invoice_number,
+          amount_cents: paymentIntent.amount,
+          installment_label: installmentLabel,
+          payment_method: paymentIntent.payment_method_types?.[0] || 'card'
+        });
+      }
       
       // Add activity log
       await supabase

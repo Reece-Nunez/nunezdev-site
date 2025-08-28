@@ -19,13 +19,17 @@ interface PaymentPlanDisplayProps {
   isPublic?: boolean; // Whether this is being viewed by the client (public) or owner (private)
   onPaymentClick?: (installment: PaymentInstallment) => void;
   className?: string;
+  requireSignature?: boolean; // Whether the invoice requires signature
+  isSigned?: boolean; // Whether the invoice has been signed
 }
 
 export default function PaymentPlanDisplay({ 
   invoiceId, 
   isPublic = false, 
   onPaymentClick,
-  className = "" 
+  className = "",
+  requireSignature = false,
+  isSigned = false
 }: PaymentPlanDisplayProps) {
   const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +97,16 @@ export default function PaymentPlanDisplay({
     return new Date() > gracePeriodEnd;
   };
 
+  const canShowPaymentButton = (installment: PaymentInstallment) => {
+    // If signature is required but not completed, disable payment buttons
+    if (requireSignature && !isSigned) {
+      return false;
+    }
+    
+    // Only show payment buttons for pending installments with payment links
+    return installment.status === 'pending' && installment.stripe_payment_link_url;
+  };
+
   if (loading) {
     return (
       <div className={`animate-pulse ${className}`}>
@@ -158,10 +172,10 @@ export default function PaymentPlanDisplay({
                   </div>
                 )}
                 
-                {installment.status === 'pending' && installment.stripe_payment_link_url && (
+                {canShowPaymentButton(installment) && (
                   <div className="flex space-x-2">
                     <a
-                      href={installment.stripe_payment_link_url}
+                      href={installment.stripe_payment_link_url!}
                       onClick={() => onPaymentClick?.(installment)}
                       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                         isOverdue(installment)
@@ -173,6 +187,15 @@ export default function PaymentPlanDisplay({
                     >
                       {isOverdue(installment) ? 'Pay Now (Overdue)' : 'Pay Now'}
                     </a>
+                  </div>
+                )}
+
+                {/* Show signature required message for public views */}
+                {isPublic && installment.status === 'pending' && installment.stripe_payment_link_url && requireSignature && !isSigned && (
+                  <div className="flex items-center space-x-2">
+                    <div className="px-4 py-2 text-sm bg-gray-100 text-gray-500 rounded-lg cursor-not-allowed">
+                      Signature Required
+                    </div>
                   </div>
                 )}
 
@@ -212,6 +235,25 @@ export default function PaymentPlanDisplay({
             <span className="font-medium text-orange-600">
               ${(installments.filter(i => i.status !== 'paid').reduce((sum, i) => sum + i.amount_cents, 0) / 100).toFixed(2)}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Signature Required Notice - only show if signature is required but not completed */}
+      {isPublic && requireSignature && !isSigned && installments.some(i => i.status === 'pending' && i.stripe_payment_link_url) && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-yellow-800">Signature Required</h4>
+              <p className="text-sm text-yellow-700 mt-1">
+                You must sign this invoice before payments can be processed. Please scroll down to complete your digital signature first.
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -309,6 +309,8 @@ export default function PublicInvoiceView() {
             invoiceId={invoice.id} 
             isPublic={true}
             className="mb-8"
+            requireSignature={invoice.require_signature || false}
+            isSigned={!!invoice.signed_at}
             onPaymentClick={(installment) => {
               // Track payment link click
               fetch('/api/activity/track', {
