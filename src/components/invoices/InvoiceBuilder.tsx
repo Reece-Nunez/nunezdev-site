@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import type { CreateInvoiceData, InvoiceLineItem, PaymentTerms, InvoiceTemplate } from '@/types/invoice';
 import InvoiceTemplates from './InvoiceTemplates';
 import InvoiceBuilderPreview from './InvoiceBuilderPreview';
+import PaymentPlanBuilder, { PaymentPlanInstallment } from './PaymentPlanBuilder';
 
 interface Client {
   id: string;
@@ -58,6 +59,12 @@ export default function InvoiceBuilder({
     discount_value: initialData?.discount_value || 0,
     technology_stack: initialData?.technology_stack || [],
     terms_conditions: initialData?.terms_conditions || '',
+  });
+
+  const [paymentPlan, setPaymentPlan] = useState({
+    enabled: false,
+    type: 'full' as 'full' | '50_50' | '40_30_30' | 'custom',
+    installments: [] as PaymentPlanInstallment[]
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -181,8 +188,34 @@ export default function InvoiceBuilder({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSave(formData);
+      const invoiceData = {
+        ...formData,
+        payment_plan_enabled: paymentPlan.enabled,
+        payment_plan_type: paymentPlan.type,
+        payment_plan_installments: paymentPlan.installments
+      };
+      onSave(invoiceData);
     }
+  };
+
+  const calculateDueDate = (paymentTerms: PaymentTerms): string => {
+    const today = new Date();
+    let daysToAdd = 30; // default
+    
+    switch (paymentTerms) {
+      case 'due_on_receipt': daysToAdd = 0; break;
+      case '7': daysToAdd = 7; break;
+      case '14': daysToAdd = 14; break;
+      case '30': daysToAdd = 30; break;
+      case '45': daysToAdd = 45; break;
+      case '60': daysToAdd = 60; break;
+      case '90': daysToAdd = 90; break;
+      default: daysToAdd = 30;
+    }
+    
+    const dueDate = new Date(today);
+    dueDate.setDate(dueDate.getDate() + daysToAdd);
+    return dueDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
   };
 
   const selectedClient = clients.find(c => c.id === formData.client_id);
@@ -574,6 +607,16 @@ export default function InvoiceBuilder({
             Custom terms will be displayed in addition to standard payment terms
           </p>
         </div>
+      </div>
+
+      {/* Payment Plan */}
+      <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <PaymentPlanBuilder
+          totalAmountCents={total}
+          paymentPlan={paymentPlan}
+          onChange={setPaymentPlan}
+          invoiceDueDate={calculateDueDate(formData.payment_terms)}
+        />
       </div>
 
       {/* Payment Terms & Options */}

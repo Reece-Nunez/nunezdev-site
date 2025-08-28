@@ -106,6 +106,16 @@ export interface CreateInvoiceData {
   discount_value?: number;
   technology_stack?: string[];
   terms_conditions?: string;
+  // Payment plan fields
+  payment_plan_enabled?: boolean;
+  payment_plan_type?: 'full' | '50_50' | '40_30_30' | 'custom';
+  payment_plan_installments?: {
+    installment_number: number;
+    installment_label: string;
+    amount_cents: number;
+    due_date: string;
+    grace_period_days: number;
+  }[];
 }
 
 export interface InvoiceFilters {

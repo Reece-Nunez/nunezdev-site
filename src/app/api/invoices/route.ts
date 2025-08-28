@@ -207,6 +207,8 @@ export async function POST(req: Request) {
       delivery_date: invoiceData.delivery_date,
       discount_type: invoiceData.discount_type,
       discount_value: invoiceData.discount_value,
+      payment_plan_enabled: invoiceData.payment_plan_enabled || false,
+      payment_plan_type: invoiceData.payment_plan_type || 'full',
       technology_stack: invoiceData.technology_stack,
       terms_conditions: invoiceData.terms_conditions,
     };
@@ -223,6 +225,29 @@ export async function POST(req: Request) {
 
     if (dbError) {
       return NextResponse.json({ error: dbError.message }, { status: 400 });
+    }
+
+    // Create payment plan installments if payment plan is enabled
+    if (invoiceData.payment_plan_enabled && invoiceData.payment_plan_installments) {
+      const installmentsToInsert = invoiceData.payment_plan_installments.map(installment => ({
+        invoice_id: dbInvoice.id,
+        plan_type: invoiceData.payment_plan_type,
+        installment_number: installment.installment_number,
+        installment_label: installment.installment_label,
+        amount_cents: installment.amount_cents,
+        due_date: installment.due_date || null,
+        grace_period_days: installment.grace_period_days || 0,
+        status: 'pending'
+      }));
+
+      const { error: installmentsError } = await supabase
+        .from("invoice_payment_plans")
+        .insert(installmentsToInsert);
+
+      if (installmentsError) {
+        console.error("Error creating payment plan installments:", installmentsError);
+        // Don't fail the entire invoice creation, just log the error
+      }
     }
 
     let stripeInvoiceUrl = null;
