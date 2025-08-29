@@ -20,7 +20,7 @@ export async function GET() {
       .limit(20);
 
     // Get payments specifically for Matt's invoices (if any exist)
-    let mattPayments = [];
+    let mattPayments: any[] = [];
     if (invoices && invoices.length > 0) {
       const invoiceIds = invoices.map(inv => inv.id);
       const { data: mattPaymentData } = await supabase
