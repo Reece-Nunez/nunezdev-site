@@ -99,7 +99,7 @@ export async function GET(request: Request) {
 
     // Get payments for this client's invoices
     const invoiceIds = invoices?.map(inv => inv.id) || [];
-    let payments = [];
+    let payments: any[] = [];
     if (invoiceIds.length > 0) {
       const { data: paymentData, error: paymentError } = await supabase
         .from("invoice_payments")
