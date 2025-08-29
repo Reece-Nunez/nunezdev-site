@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type Ctx = { params: Promise<{ token: string }> };
 
 // Public endpoint to get payment plans for an invoice via access token
 export async function GET(req: Request, ctx: Ctx) {
   const { token } = await ctx.params;
-  const supabase = await supabaseServer();
+  
+  // Create a Supabase client with service role for public access
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   try {
     // Get invoice by access token (public access)

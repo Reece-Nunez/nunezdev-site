@@ -50,16 +50,25 @@ export default function PaymentPlanDisplay({
         ? `/api/public/invoice/${accessToken}/payment-plans`
         : `/api/invoices/${invoiceId}/payment-plans`;
         
+      console.log('PaymentPlanDisplay: fetching from endpoint:', endpoint);
+        
       const response = await fetch(endpoint);
+      console.log('PaymentPlanDisplay: response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch payment plan');
+        const errorText = await response.text();
+        console.error('PaymentPlanDisplay: API error:', response.status, errorText);
+        throw new Error(`Failed to fetch payment plan: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
+      console.log('PaymentPlanDisplay: received data:', data);
+      
       if (data.payment_plan_enabled && data.installments) {
         setInstallments(data.installments);
       }
     } catch (err) {
+      console.error('PaymentPlanDisplay: fetch error:', err);
       setError(err instanceof Error ? err.message : 'Error loading payment plan');
     } finally {
       setLoading(false);
@@ -140,8 +149,16 @@ export default function PaymentPlanDisplay({
     );
   }
 
-  if (error || installments.length === 0) {
-    return null; // Don't show anything if no payment plan or error
+  // If there's an error fetching payment plans, just don't show the payment plan section
+  // The main invoice page will still show the regular "Pay Invoice" button
+  if (error) {
+    console.log('PaymentPlanDisplay: not showing due to error:', error);
+    return null; 
+  }
+  
+  // If no installments, don't show payment plan section
+  if (installments.length === 0) {
+    return null; 
   }
 
   // If only one installment and it's a full payment, don't show as a payment plan
