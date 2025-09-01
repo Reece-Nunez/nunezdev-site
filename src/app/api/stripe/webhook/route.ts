@@ -248,6 +248,24 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         }
       }
     }
+    
+    // Final fallback: if we have deal metadata but still no invoice, try finding by deal and amount
+    if (!invoiceId && dealId && clientId && orgId) {
+      const { data: dealInvoicesByAmount } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('amount_cents', paymentIntent.amount)
+        .eq('client_id', clientId)
+        .eq('org_id', orgId)
+        .in('status', ['sent', 'draft'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+        
+      if (dealInvoicesByAmount?.length === 1) {
+        invoiceId = dealInvoicesByAmount[0].id;
+        console.log(`[stripe-webhook] matched payment intent to invoice by deal metadata and amount: ${invoiceId}`);
+      }
+    }
   }
 
   if (invoiceId) {

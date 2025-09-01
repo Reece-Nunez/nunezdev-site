@@ -81,6 +81,27 @@ export async function POST(req: Request, ctx: Ctx) {
       const paymentAmount = amount_cents || deal.value_cents;
       const paymentDescription = description || `Payment for ${deal.title}`;
 
+      // Create an invoice record first so we can include its ID in the payment link metadata
+      const { data: invoice, error: invoiceError } = await supabase
+        .from("invoices")
+        .insert({
+          org_id: orgId,
+          client_id: (deal.client as any).id,
+          status: "sent",
+          amount_cents: paymentAmount,
+          description: paymentDescription,
+          issued_at: new Date().toISOString(),
+          due_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+          source: "stripe_payment_link"
+        })
+        .select()
+        .single();
+
+      if (invoiceError) {
+        console.error("Failed to create invoice record:", invoiceError);
+        return NextResponse.json({ error: "Failed to create invoice record" }, { status: 500 });
+      }
+
       const paymentLink = await stripe.paymentLinks.create({
         line_items: [
           {
@@ -105,32 +126,24 @@ export async function POST(req: Request, ctx: Ctx) {
           deal_id: dealId,
           client_id: (deal.client as any).id,
           org_id: orgId,
+          invoice_id: invoice.id, // This is the key fix!
           type: "deal_payment",
         },
         customer_creation: "always",
         allow_promotion_codes: true,
       });
 
-      // Create an invoice record to track this payment link
-      const { data: invoice, error: invoiceError } = await supabase
+      // Update the invoice with the payment link URL and Stripe payment link ID
+      const { error: updateError } = await supabase
         .from("invoices")
-        .insert({
-          org_id: orgId,
-          client_id: (deal.client as any).id,
-          status: "sent",
-          amount_cents: paymentAmount,
-          description: paymentDescription,
-          issued_at: new Date().toISOString(),
-          due_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-          source: "stripe_payment_link",
+        .update({
           external_url: paymentLink.url,
           stripe_invoice_id: paymentLink.id
         })
-        .select()
-        .single();
+        .eq("id", invoice.id);
 
-      if (invoiceError) {
-        console.error("Failed to create invoice record:", invoiceError);
+      if (updateError) {
+        console.error("Failed to update invoice with payment link:", updateError);
         // Don't fail the request, just log the error
       }
 
@@ -138,7 +151,7 @@ export async function POST(req: Request, ctx: Ctx) {
         payment_link: paymentLink.url,
         stripe_payment_link_id: paymentLink.id,
         customer_id: customer.id,
-        invoice_id: invoice?.id,
+        invoice_id: invoice.id,
         message: "Stripe payment link created successfully"
       });
 
