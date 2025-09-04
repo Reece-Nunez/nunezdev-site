@@ -229,24 +229,32 @@ export async function POST(req: Request) {
 
     // Create payment plan installments if payment plan is enabled
     if (invoiceData.payment_plan_enabled && invoiceData.payment_plan_installments) {
-      const installmentsToInsert = invoiceData.payment_plan_installments.map(installment => ({
-        invoice_id: dbInvoice.id,
-        plan_type: invoiceData.payment_plan_type,
-        installment_number: installment.installment_number,
-        installment_label: installment.installment_label,
-        amount_cents: installment.amount_cents,
-        due_date: installment.due_date || null,
-        grace_period_days: installment.grace_period_days || 0,
-        status: 'pending'
-      }));
-
-      const { error: installmentsError } = await supabase
+      // Check if installments already exist for this invoice
+      const { data: existingInstallments } = await supabase
         .from("invoice_payment_plans")
-        .insert(installmentsToInsert);
+        .select("id")
+        .eq("invoice_id", dbInvoice.id);
 
-      if (installmentsError) {
-        console.error("Error creating payment plan installments:", installmentsError);
-        // Don't fail the entire invoice creation, just log the error
+      if (!existingInstallments || existingInstallments.length === 0) {
+        const installmentsToInsert = invoiceData.payment_plan_installments.map(installment => ({
+          invoice_id: dbInvoice.id,
+          plan_type: invoiceData.payment_plan_type,
+          installment_number: installment.installment_number,
+          installment_label: installment.installment_label,
+          amount_cents: installment.amount_cents,
+          due_date: installment.due_date || null,
+          grace_period_days: installment.grace_period_days || 0,
+          status: 'pending'
+        }));
+
+        const { error: installmentsError } = await supabase
+          .from("invoice_payment_plans")
+          .insert(installmentsToInsert);
+
+        if (installmentsError) {
+          console.error("Error creating payment plan installments:", installmentsError);
+          // Don't fail the entire invoice creation, just log the error
+        }
       }
     }
 

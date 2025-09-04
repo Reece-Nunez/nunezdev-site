@@ -3,6 +3,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useRef, useMemo, useEffect, useState } from "react";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 function ParticleField({ burst }: { burst: boolean }) {
   const ref = useRef<THREE.Points>(null);
@@ -58,6 +59,18 @@ function ParticleField({ burst }: { burst: boolean }) {
     }
   });
 
+  const texture = useMemo(() => {
+    try {
+      const loader = new THREE.TextureLoader();
+      return loader.load("/textures/circle.png", undefined, undefined, (error) => {
+        console.warn("Failed to load texture:", error);
+      });
+    } catch (error) {
+      console.warn("Error creating texture:", error);
+      return null;
+    }
+  }, []);
+
   return (
     <points ref={ref} geometry={geometry}>
       <pointsMaterial
@@ -68,7 +81,7 @@ function ParticleField({ burst }: { burst: boolean }) {
         blending={THREE.AdditiveBlending}
         opacity={0.8}
         depthWrite={false}
-        map={new THREE.TextureLoader().load("/textures/circle.png")}
+        map={texture}
         alphaTest={0.1}
       />
     </points>
@@ -100,28 +113,33 @@ export default function ThreeBackground() {
   }, [burst]);
 
   return (
-    <div
-      className="fixed top-0 left-0 w-full h-full -z-10"
-      style={{ pointerEvents: "none" }}
-    >
-      <Canvas
-        camera={{ position: [0, 0, 4], fov: 75 }}
-        dpr={typeof window !== "undefined" ? window.devicePixelRatio : 1}
-        gl={{ alpha: true }}
+    <ErrorBoundary>
+      <div
+        className="fixed top-0 left-0 w-full h-full -z-10"
+        style={{ pointerEvents: "none" }}
       >
-        <color attach="background" args={["#000000"]} />
-        <ambientLight intensity={0.7} />
-        <ParallaxGroup>
-          <ParticleField burst={burst} />
-        </ParallaxGroup>
-      </Canvas>
+        <Canvas
+          camera={{ position: [0, 0, 4], fov: 75 }}
+          dpr={typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1}
+          gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
+          onCreated={({ gl }) => {
+            gl.setSize(window.innerWidth, window.innerHeight, false);
+          }}
+        >
+          <color attach="background" args={["#000000"]} />
+          <ambientLight intensity={0.7} />
+          <ParallaxGroup>
+            <ParticleField burst={burst} />
+          </ParallaxGroup>
+        </Canvas>
 
-      {/* Hidden button to trigger the burst */}
-      <button
-        id="burstTrigger"
-        className="hidden"
-        onClick={() => setBurst(true)}
-      />
-    </div>
+        {/* Hidden button to trigger the burst */}
+        <button
+          id="burstTrigger"
+          className="hidden"
+          onClick={() => setBurst(true)}
+        />
+      </div>
+    </ErrorBoundary>
   );
 }
