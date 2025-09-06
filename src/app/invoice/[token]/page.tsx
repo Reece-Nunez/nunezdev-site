@@ -179,7 +179,7 @@ export default function PublicInvoiceView() {
               </div>
               <div className="text-left sm:text-right flex-shrink-0 self-start">
                 <h2 className="text-lg sm:text-xl font-bold" style={{ color: '#5b7c99' }}>INVOICE</h2>
-                <p className="text-xs sm:text-sm text-gray-600">#{invoice.invoice_number || invoice.id?.split('-')[0] || 'N/A'}</p>
+                <p className="text-xs sm:text-sm text-gray-600">#{invoice.invoice_number || (invoice.id ? invoice.id.split('-')[0] : 'N/A')}</p>
                 {invoice.status === 'paid' && (
                   <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                     PAID

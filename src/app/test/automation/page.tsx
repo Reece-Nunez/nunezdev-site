@@ -43,7 +43,15 @@ export default function AutomationTestPage() {
   return (
     <div className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Invoice Automation Testing</h1>
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Invoice Automation Testing</h1>
+          <button 
+            className="border border-gray-300 bg-yellow px-4 py-2 rounded-lg hover:bg-yellow/50 transition whitespace-nowrap"
+            onClick={() => window.location.href = '/dashboard'}
+          >
+            Dashboard
+          </button>
+        </div>
         
         {/* Input */}
         <div className="bg-white p-6 rounded-lg shadow mb-6">
@@ -96,7 +104,7 @@ export default function AutomationTestPage() {
             <button
               onClick={() => runTest('cleanup')}
               disabled={loading}
-              className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50"
+              className="px-6 py-3 bg-yellow text-white rounded-lg hover:bg-yellow/70 disabled:opacity-50"
             >
               🧹 Clean Test Data
             </button>

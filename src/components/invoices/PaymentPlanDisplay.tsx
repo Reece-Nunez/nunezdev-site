@@ -298,6 +298,12 @@ export default function PaymentPlanDisplay({
   );
 
   async function generatePaymentLinks() {
+    // Don't allow generating payment links from public view
+    if (isPublic) {
+      console.warn('Cannot generate payment links from public view');
+      return;
+    }
+    
     try {
       const response = await fetch(`/api/invoices/${invoiceId}/payment-plans`, {
         method: 'POST'
