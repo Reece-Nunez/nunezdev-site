@@ -107,7 +107,13 @@ export async function POST(
                   client_id: (client as any).id,
                   org_id: orgId,
                   invoice_number: invoice.invoice_number || '',
+                  client_email: (client as any).email,
+                  client_name: (client as any).name,
+                  amount_cents: installment.amount_cents.toString(),
+                  source: 'stripe_payment_link',
+                  installment_label: installment.installment_label,
                   installment_number: installment.installment_number.toString(),
+                  created_at: new Date().toISOString()
                 },
                 after_completion: {
                   type: 'redirect',
@@ -157,6 +163,11 @@ export async function POST(
               client_id: (client as any).id,
               org_id: orgId,
               invoice_number: invoice.invoice_number || '',
+              client_email: (client as any).email,
+              client_name: (client as any).name,
+              amount_cents: invoice.amount_cents.toString(),
+              source: 'stripe_payment_link',
+              created_at: new Date().toISOString()
             },
             after_completion: {
               type: 'redirect',
