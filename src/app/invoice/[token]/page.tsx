@@ -155,13 +155,15 @@ export default function PublicInvoiceView() {
   const needsSignature = invoice.require_signature && !invoice.signed_at;
 
   // Debug logging
-  console.log('Invoice debug info:', {
+  console.log('[PublicInvoice] Payment URLs debug:', {
     require_signature: invoice.require_signature,
     signed_at: invoice.signed_at,
     needsSignature: needsSignature,
     status: invoice.status,
     hosted_invoice_url: (invoice as any).hosted_invoice_url,
     stripe_hosted_invoice_url: invoice.stripe_hosted_invoice_url,
+    willUseStripeUrl: !!invoice.stripe_hosted_invoice_url,
+    finalPaymentUrl: invoice.stripe_hosted_invoice_url || (invoice as any).hosted_invoice_url,
   });
 
   return (
@@ -505,9 +507,9 @@ export default function PublicInvoiceView() {
           {/* Payment Button - Show if not paid and (no signature required OR already signed) */}
           {invoice.status !== 'paid' && (!invoice.require_signature || invoice.signed_at) && (
             <div className="mt-8 text-center">
-              {((invoice as any).hosted_invoice_url || invoice.stripe_hosted_invoice_url) ? (
+              {(invoice.stripe_hosted_invoice_url || (invoice as any).hosted_invoice_url) ? (
                 <a 
-                  href={(invoice as any).hosted_invoice_url || invoice.stripe_hosted_invoice_url}
+                  href={invoice.stripe_hosted_invoice_url || (invoice as any).hosted_invoice_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base text-white font-medium rounded-lg transition-colors"
