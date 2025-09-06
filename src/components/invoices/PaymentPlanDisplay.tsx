@@ -50,25 +50,31 @@ export default function PaymentPlanDisplay({
         ? `/api/public/invoice/${accessToken}/payment-plans`
         : `/api/invoices/${invoiceId}/payment-plans`;
         
-      console.log('PaymentPlanDisplay: fetching from endpoint:', endpoint);
+      console.log('[PaymentPlanDisplay] Fetching payment plans:', {
+        isPublic,
+        accessToken,
+        invoiceId,
+        endpoint,
+        willUsePublicEndpoint: isPublic && accessToken
+      });
         
       const response = await fetch(endpoint);
-      console.log('PaymentPlanDisplay: response status:', response.status);
+      console.log('[PaymentPlanDisplay] Response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('PaymentPlanDisplay: API error:', response.status, errorText);
+        console.error('[PaymentPlanDisplay] API error:', response.status, errorText);
         throw new Error(`Failed to fetch payment plan: ${response.status} ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('PaymentPlanDisplay: received data:', data);
+      console.log('[PaymentPlanDisplay] Received data:', data);
       
       if (data.payment_plan_enabled && data.installments) {
         setInstallments(data.installments);
       }
     } catch (err) {
-      console.error('PaymentPlanDisplay: fetch error:', err);
+      console.error('[PaymentPlanDisplay] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Error loading payment plan');
     } finally {
       setLoading(false);

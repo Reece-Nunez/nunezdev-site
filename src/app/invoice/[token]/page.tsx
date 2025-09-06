@@ -76,13 +76,34 @@ export default function PublicInvoiceView() {
 
   const fetchInvoice = async () => {
     try {
+      console.log('[PublicInvoice] Fetching invoice for token:', token);
       const response = await fetch(`/api/public/invoice/${token}`);
+      console.log('[PublicInvoice] Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Invoice not found or access denied');
+        const errorText = await response.text();
+        console.error('[PublicInvoice] API error:', response.status, errorText);
+        throw new Error(`Invoice not found or access denied (${response.status})`);
       }
+      
       const data = await response.json();
+      console.log('[PublicInvoice] Received data:', {
+        id: data.id,
+        invoice_number: data.invoice_number,
+        status: data.status,
+        require_signature: data.require_signature,
+        signed_at: data.signed_at,
+        hosted_invoice_url: data.hosted_invoice_url,
+        stripe_hosted_invoice_url: data.stripe_hosted_invoice_url,
+        clients: data.clients,
+        hasId: !!data.id,
+        idType: typeof data.id,
+        fullData: data
+      });
+      
       setInvoice(data);
     } catch (err) {
+      console.error('[PublicInvoice] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load invoice');
     } finally {
       setLoading(false);
@@ -179,7 +200,15 @@ export default function PublicInvoiceView() {
               </div>
               <div className="text-left sm:text-right flex-shrink-0 self-start">
                 <h2 className="text-lg sm:text-xl font-bold" style={{ color: '#5b7c99' }}>INVOICE</h2>
-                <p className="text-xs sm:text-sm text-gray-600">#{invoice.invoice_number || (invoice.id ? invoice.id.split('-')[0] : 'N/A')}</p>
+                <p className="text-xs sm:text-sm text-gray-600">#{(() => {
+                  console.log('[PublicInvoice] Rendering invoice number:', {
+                    invoice_number: invoice.invoice_number,
+                    id: invoice.id,
+                    hasId: !!invoice.id,
+                    idType: typeof invoice.id
+                  });
+                  return invoice.invoice_number || (invoice.id ? invoice.id.toString().split('-')[0] : 'N/A');
+                })()}</p>
                 {invoice.status === 'paid' && (
                   <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                     PAID
@@ -399,6 +428,13 @@ export default function PublicInvoiceView() {
             isSigned={!!invoice.signed_at}
             onPaymentClick={(installment) => {
               // Track payment link click
+              console.log('[PublicInvoice] Tracking payment link click:', {
+                invoice_id: invoice.id,
+                client_id: invoice.client_id,
+                activity_type: 'payment_link_clicked',
+                installment
+              });
+              
               fetch('/api/activity/track', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -411,7 +447,14 @@ export default function PublicInvoiceView() {
                     amount_cents: installment.amount_cents
                   }
                 })
-              }).catch(console.error);
+              }).then(response => {
+                console.log('[PublicInvoice] Activity tracking response:', response.status);
+                if (!response.ok) {
+                  console.error('[PublicInvoice] Activity tracking failed:', response.status);
+                }
+              }).catch(error => {
+                console.error('[PublicInvoice] Activity tracking error:', error);
+              });
             }}
           />
 
