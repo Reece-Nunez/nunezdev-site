@@ -127,6 +127,7 @@ export async function POST(req: Request, ctx: Ctx) {
           amount_cents: paymentAmount.toString(),
           source: 'stripe_payment_link',
           deal_title: deal.title,
+          type: 'deal_payment',
           created_at: new Date().toISOString()
         },
         after_completion: {
@@ -134,13 +135,6 @@ export async function POST(req: Request, ctx: Ctx) {
           redirect: {
             url: success_url || `${process.env.NEXTAUTH_URL}/deals/${dealId}?payment=success`,
           },
-        },
-        metadata: {
-          deal_id: dealId,
-          client_id: (deal.client as any).id,
-          org_id: orgId,
-          invoice_id: invoice.id, // This is the key fix!
-          type: "deal_payment",
         },
         customer_creation: "always",
         allow_promotion_codes: true,
