@@ -193,6 +193,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
   // If no direct invoice ID, try to match by amount and external_url/hubspot_quote_id
   if (!invoiceId) {
+    console.log('[stripe-webhook] No invoice ID in metadata, attempting fallback matching');
+    
     // Try to find by amount and customer email
     let customerEmail: string | null = null;
     
@@ -211,13 +213,23 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     // Try receipt email as fallback
     customerEmail = customerEmail || paymentIntent.receipt_email;
 
+    console.log('[stripe-webhook] Fallback matching with:', {
+      paymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount,
+      customerEmail,
+      hasCustomer: !!paymentIntent.customer,
+      receiptEmail: paymentIntent.receipt_email
+    });
+
     if (customerEmail) {
       // First try to match against deal payments (stripe_payment_link source)
-      const { data: dealInvoices } = await supabase
+      const { data: dealInvoices, error: dealError } = await supabase
         .from('invoices')
         .select(`
           id,
           client_id,
+          source,
+          status,
           clients!inner(email)
         `)
         .eq('amount_cents', paymentIntent.amount)
@@ -225,16 +237,29 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         .in('status', ['sent', 'draft'])
         .eq('source', 'stripe_payment_link');
 
+      console.log('[stripe-webhook] Deal invoice query result:', {
+        dealInvoices,
+        dealError,
+        queryParams: {
+          amount_cents: paymentIntent.amount,
+          customerEmail,
+          status: ['sent', 'draft'],
+          source: 'stripe_payment_link'
+        }
+      });
+
       if (dealInvoices?.length === 1) {
         invoiceId = dealInvoices[0].id;
         console.log(`[stripe-webhook] matched payment intent to deal invoice by email/amount: ${invoiceId}`);
       } else {
         // Fallback to hubspot invoices
-        const { data: hubspotInvoices } = await supabase
+        const { data: hubspotInvoices, error: hubspotError } = await supabase
           .from('invoices')
           .select(`
             id,
             client_id,
+            source,
+            status,
             clients!inner(email)
           `)
           .eq('amount_cents', paymentIntent.amount)
@@ -242,9 +267,50 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
           .in('status', ['sent', 'draft'])
           .eq('source', 'hubspot');
 
+        console.log('[stripe-webhook] Hubspot invoice query result:', {
+          hubspotInvoices,
+          hubspotError,
+          queryParams: {
+            amount_cents: paymentIntent.amount,
+            customerEmail,
+            status: ['sent', 'draft'],
+            source: 'hubspot'
+          }
+        });
+
         if (hubspotInvoices?.length === 1) {
           invoiceId = hubspotInvoices[0].id;
           console.log(`[stripe-webhook] matched payment intent to hubspot invoice by email/amount: ${invoiceId}`);
+        } else {
+          // Try without source filter as final fallback
+          console.log('[stripe-webhook] Trying final fallback without source filter');
+          const { data: anyInvoices, error: anyError } = await supabase
+            .from('invoices')
+            .select(`
+              id,
+              client_id,
+              source,
+              status,
+              clients!inner(email)
+            `)
+            .eq('amount_cents', paymentIntent.amount)
+            .eq('clients.email', customerEmail)
+            .in('status', ['sent', 'draft']);
+
+          console.log('[stripe-webhook] Final fallback query result:', {
+            anyInvoices,
+            anyError,
+            queryParams: {
+              amount_cents: paymentIntent.amount,
+              customerEmail,
+              status: ['sent', 'draft']
+            }
+          });
+
+          if (anyInvoices?.length === 1) {
+            invoiceId = anyInvoices[0].id;
+            console.log(`[stripe-webhook] matched payment intent to invoice by email/amount (no source): ${invoiceId}`);
+          }
         }
       }
     }
