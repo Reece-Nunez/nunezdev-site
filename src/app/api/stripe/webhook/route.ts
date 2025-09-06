@@ -222,6 +222,17 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
     });
 
     if (customerEmail) {
+      // Try different email variations (handle common email differences)
+      const emailVariations = [
+        customerEmail,
+        customerEmail.replace('@gmail.com', '@nunezdev.com'), // reecenunez20@gmail.com -> reecenunez20@nunezdev.com
+        customerEmail.replace(/\d+@/, '@'),                    // reecenunez20@gmail.com -> reecenunez@gmail.com  
+        customerEmail.replace(/^\w+/, 'reece'),                // reecenunez20@gmail.com -> reece@gmail.com
+        customerEmail.replace(/^\w+/, 'reece').replace('@gmail.com', '@nunezdev.com') // -> reece@nunezdev.com
+      ];
+      
+      console.log('[stripe-webhook] Trying email variations:', emailVariations);
+      
       // First try to match against deal payments (stripe_payment_link source)
       const { data: dealInvoices, error: dealError } = await supabase
         .from('invoices')
@@ -233,7 +244,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
           clients!inner(email)
         `)
         .eq('amount_cents', paymentIntent.amount)
-        .eq('clients.email', customerEmail)
+        .in('clients.email', emailVariations)
         .in('status', ['sent', 'draft'])
         .eq('source', 'stripe_payment_link');
 
@@ -263,7 +274,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
             clients!inner(email)
           `)
           .eq('amount_cents', paymentIntent.amount)
-          .eq('clients.email', customerEmail)
+          .in('clients.email', emailVariations)
           .in('status', ['sent', 'draft'])
           .eq('source', 'hubspot');
 
@@ -294,7 +305,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
               clients!inner(email)
             `)
             .eq('amount_cents', paymentIntent.amount)
-            .eq('clients.email', customerEmail)
+            .in('clients.email', emailVariations)
             .in('status', ['sent', 'draft']);
 
           console.log('[stripe-webhook] Final fallback query result:', {
