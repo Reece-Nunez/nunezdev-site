@@ -1,7 +1,8 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import useSWR from 'swr';
 import SignaturePad from 'react-signature-canvas';
 import { currency } from '@/lib/ui';
@@ -27,6 +28,8 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function InvoiceAgreementPage() {
   const params = useParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const invoiceId = params.id as string;
   
   const pad = useRef<SignaturePad>(null);
@@ -34,6 +37,15 @@ export default function InvoiceAgreementPage() {
   const [email, setEmail] = useState('');
   const [signing, setSigning] = useState(false);
   const [signed, setSigned] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return; // Still loading
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+  }, [session, status, router]);
 
   const { data: invoice, error } = useSWR<Invoice>(
     invoiceId ? `/api/invoices/${invoiceId}/details` : null,
@@ -133,6 +145,29 @@ export default function InvoiceAgreementPage() {
     pad.current?.clear();
   };
 
+  // Show loading while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4 py-12 sm:py-36">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 max-w-md w-full min-w-0">
+          <div className="animate-pulse space-y-3 sm:space-y-4">
+            <div className="h-5 sm:h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="space-y-1.5 sm:space-y-2">
+              <div className="h-3 sm:h-4 bg-gray-200 rounded"></div>
+              <div className="h-3 sm:h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!session) {
+    return null;
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-3 sm:p-4 py-12 sm:py-36">
@@ -202,7 +237,7 @@ export default function InvoiceAgreementPage() {
               </div>
               <div className="text-right flex-shrink-0">
                 <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#5b7c99' }}>INVOICE</h2>
-                <p className="text-sm text-gray-600">#{invoice.id.split('-')[0]}</p>
+                <p className="text-sm text-gray-600">#{invoice.id ? invoice.id.split('-')[0] : 'N/A'}</p>
               </div>
             </div>
           </div>
