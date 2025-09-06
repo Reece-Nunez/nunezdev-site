@@ -117,11 +117,11 @@ export async function POST(req: Request, ctx: Ctx) {
           },
         ],
         metadata: {
-          invoice_id: invoiceRecord.id,
+          invoice_id: invoice.id,
           deal_id: dealId,
           client_id: deal.client_id,
           org_id: orgId,
-          invoice_number: invoiceRecord.invoice_number || '',
+          invoice_number: invoice.invoice_number || '',
           client_email: (deal.clients as any)?.email || '',
           client_name: (deal.clients as any)?.name || '',
           amount_cents: paymentAmount.toString(),
