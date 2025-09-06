@@ -63,7 +63,7 @@ export async function POST(req: Request, ctx: Ctx) {
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
       .select(`
-        id, org_id, invoice_number, access_token,
+        id, org_id, invoice_number, access_token, client_id,
         clients!inner(name, email)
       `)
       .eq("id", invoiceId)  
