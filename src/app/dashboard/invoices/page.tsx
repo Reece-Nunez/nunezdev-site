@@ -79,15 +79,15 @@ function FixClientFinancialsButton({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <button
         onClick={run}
         disabled={busy}
-        className="rounded-lg border border-green-300 px-3 py-2 hover:bg-green-50 disabled:opacity-60 text-green-700"
+        className="rounded-lg border border-green-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-green-50 disabled:opacity-60 text-green-700 text-xs sm:text-sm whitespace-nowrap"
       >
         {busy ? "Fixing…" : "Fix Client Financials"}
       </button>
-      {msg && <span className="text-xs text-gray-600">{msg}</span>}
+      {msg && <span className="text-xs text-gray-600 hidden sm:inline">{msg}</span>}
     </div>
   );
 }
@@ -137,15 +137,15 @@ function BackfillStripeButton({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <button
         onClick={run}
         disabled={busy}
-        className="rounded-lg border border-blue-300 px-3 py-2 hover:bg-blue-50 disabled:opacity-60 text-blue-700"
+        className="rounded-lg border border-blue-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-blue-50 disabled:opacity-60 text-blue-700 text-xs sm:text-sm whitespace-nowrap"
       >
         {busy ? "Backfilling…" : "Backfill Stripe Payments"}
       </button>
-      {msg && <span className="text-xs text-gray-600">{msg}</span>}
+      {msg && <span className="text-xs text-gray-600 hidden sm:inline">{msg}</span>}
     </div>
   );
 }
@@ -228,10 +228,10 @@ export default function DashboardInvoices() {
   return (
     <>
       <ToastContainer />
-      <div className="space-y-4 my-36">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Invoices</h1>
-        <div className="flex items-center gap-3">
+      <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
+      <div className="flex items-center justify-between gap-3 max-w-full">
+        <h1 className="text-xl sm:text-2xl font-semibold min-w-0 truncate">Invoices</h1>
+        <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
           <a
             href="/dashboard/invoices/new"
             className="rounded-lg px-4 py-2 text-white text-sm font-medium transition-colors"
@@ -244,12 +244,23 @@ export default function DashboardInvoices() {
           <button
             onClick={relinkOrphans}
             disabled={relinking}
-            className="rounded-lg border px-3 py-2 hover:bg-gray-50 disabled:opacity-60 text-sm"
+            className="rounded-lg border px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-gray-50 disabled:opacity-60 text-xs sm:text-sm whitespace-nowrap"
           >
             {relinking ? 'Relinking…' : 'Relink orphans'}
           </button>
           <FixClientFinancialsButton onDone={() => mutate(url)} />
           <BackfillStripeButton onDone={() => mutate(url)} />
+        </div>
+        <div className="sm:hidden flex-shrink-0">
+          <a
+            href="/dashboard/invoices/new"
+            className="rounded-lg px-3 py-2 text-white text-sm font-medium transition-colors"
+            style={{ backgroundColor: '#ffc312' }}
+            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#e6ad0f'}
+            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#ffc312'}
+          >
+            + New
+          </a>
         </div>
       </div>
 
@@ -266,35 +277,151 @@ export default function DashboardInvoices() {
       <InvoiceAnalytics invoices={rows as any} />
 
       {/* Filters */}
-      <div className="rounded-2xl border bg-white p-4 flex flex-wrap gap-2 items-end">
-        <label className="text-sm">
-          <div className="text-gray-600">Status</div>
-          <select className="rounded-lg border px-3 py-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">All</option>
-            <option value="sent">Sent</option>
-            <option value="paid">Paid</option>
-            <option value="partially_paid">Partially Paid</option>
-            <option value="overdue">Overdue</option>
-            <option value="draft">Draft</option>
-            <option value="void">Void</option>
-          </select>
-        </label>
-        <label className="text-sm">
-          <div className="text-gray-600">From</div>
-          <input type="date" className="rounded-lg border px-3 py-2" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="text-sm">
-          <div className="text-gray-600">To</div>
-          <input type="date" className="rounded-lg border px-3 py-2" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <label className="text-sm flex-1 min-w-[220px]">
-          <div className="text-gray-600">Client</div>
-          <input className="w-full rounded-lg border px-3 py-2" placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} />
-        </label>
+      <div className="rounded-2xl border bg-white p-3 sm:p-4 space-y-3 w-full min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label className="text-sm min-w-0">
+            <div className="text-gray-600">Status</div>
+            <select className="w-full rounded-lg border px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="all">All</option>
+              <option value="sent">Sent</option>
+              <option value="paid">Paid</option>
+              <option value="partially_paid">Partially Paid</option>
+              <option value="overdue">Overdue</option>
+              <option value="draft">Draft</option>
+              <option value="void">Void</option>
+            </select>
+          </label>
+          <label className="text-sm min-w-0">
+            <div className="text-gray-600">From</div>
+            <input type="date" className="w-full rounded-lg border px-3 py-2 text-sm" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </label>
+          <label className="text-sm min-w-0">
+            <div className="text-gray-600">To</div>
+            <input type="date" className="w-full rounded-lg border px-3 py-2 text-sm" value={to} onChange={(e) => setTo(e.target.value)} />
+          </label>
+          <label className="text-sm min-w-0">
+            <div className="text-gray-600">Client</div>
+            <input className="w-full rounded-lg border px-3 py-2 text-sm" placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </label>
+        </div>
+        
+        {/* Mobile admin buttons */}
+        <div className="sm:hidden flex flex-wrap gap-2">
+          <button
+            onClick={relinkOrphans}
+            disabled={relinking}
+            className="rounded-lg border px-2 py-1.5 hover:bg-gray-50 disabled:opacity-60 text-xs whitespace-nowrap"
+          >
+            {relinking ? 'Relinking…' : 'Relink'}
+          </button>
+          <FixClientFinancialsButton onDone={() => mutate(url)} />
+          <BackfillStripeButton onDone={() => mutate(url)} />
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+      {/* Mobile Cards - visible on small screens */}
+      <div className="lg:hidden w-full min-w-0 space-y-3">
+        {isLoading && (
+          <div className="bg-white rounded-xl border shadow-sm p-6 text-center text-gray-500">
+            Loading…
+          </div>
+        )}
+
+        {!isLoading && rows.length === 0 && (
+          <div className="bg-white rounded-xl border shadow-sm p-6 text-center text-gray-500">
+            No invoices found.
+          </div>
+        )}
+
+        {rows.map((r) => (
+          <div key={r.id} className="bg-white rounded-xl border shadow-sm p-3 w-full min-w-0">
+            <div className="flex items-start justify-between mb-2 gap-2 w-full min-w-0">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm">
+                  {r.clients?.name ? (
+                    <a href={`/invoices/${r.id}`} className="text-blue-600 hover:underline truncate block">
+                      {r.clients.name}
+                    </a>
+                  ) : '—'}
+                </div>
+                <div className="text-xs text-gray-500 truncate">{r.clients?.email ?? ''}</div>
+              </div>
+              <div className="flex-shrink-0">
+                <InvoiceStatusBadge status={r.status} />
+              </div>
+            </div>
+            
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between w-full min-w-0">
+                <span className="text-gray-600 flex-shrink-0">Amount:</span>
+                <div className="min-w-0 text-right">
+                  <div className="font-medium truncate">{currency(r.amount_cents)}</div>
+                  {hasPartialPayments(r) && (
+                    <div className="space-y-0.5">
+                      <div className="text-emerald-600 truncate">
+                        {currency(getTotalPaid(r))} paid
+                      </div>
+                      <div className="text-orange-600 font-medium truncate">
+                        {currency(getRemainingBalance(r))} due
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-between w-full min-w-0">
+                <span className="text-gray-600 flex-shrink-0">Issued:</span>
+                <span className="truncate ml-1 min-w-0">{r.issued_at ? new Date(r.issued_at).toLocaleDateString() : '—'}</span>
+              </div>
+              <div className="flex justify-between w-full min-w-0">
+                <span className="text-gray-600 flex-shrink-0">Due:</span>
+                <span className="truncate ml-1 min-w-0">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</span>
+              </div>
+              <div className="flex justify-between w-full min-w-0">
+                <span className="text-gray-600 flex-shrink-0">Signed:</span>
+                <span className="truncate ml-1 min-w-0">{r.signed_at ? new Date(r.signed_at).toLocaleDateString() : '—'}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+              <div className="flex gap-2">
+                <a
+                  href={`/invoices/${r.id}`}
+                  className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                >
+                  Edit
+                </a>
+                <button
+                  onClick={() => handleDeleteInvoice(r.id)}
+                  disabled={deletingInvoice === r.id}
+                  className="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
+                >
+                  {deletingInvoice === r.id ? '...' : 'Del'}
+                </button>
+              </div>
+              <div className="flex gap-2 text-xs">
+                {r.stripe_invoice_id && (
+                  <a
+                    className="text-blue-600 hover:underline"
+                    href={`https://dashboard.stripe.com/invoices/${r.stripe_invoice_id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Stripe
+                  </a>
+                )}
+                {!r.signed_at && r.hosted_invoice_url && (
+                  <a className="text-emerald-700 hover:underline" href={`/invoices/${r.id}/agreement`}>
+                    Sign
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop Table - hidden on small screens */}
+      <div className="hidden lg:block overflow-x-auto rounded-xl border bg-white shadow-sm">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>

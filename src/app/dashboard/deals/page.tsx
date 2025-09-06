@@ -57,41 +57,108 @@ export default function DealsPage() {
   const wonDeals = deals.filter(deal => deal.stage === 'Won');
 
   return (
-    <div className="p-6 space-y-6 my-36">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Deals</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/deals/new"
-            className="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:opacity-90"
-          >
-            + New Deal
-          </Link>
-        </div>
+    <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
+      <div className="flex items-center justify-between gap-3 max-w-full">
+        <h1 className="text-xl sm:text-2xl font-semibold min-w-0 truncate">Deals</h1>
+        <Link
+          href="/deals/new"
+          className="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:opacity-90 text-sm whitespace-nowrap flex-shrink-0"
+        >
+          + New
+        </Link>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg border p-4">
-          <div className="text-sm text-gray-600">Total Deals</div>
-          <div className="text-2xl font-semibold">{deals.length}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
+        <div className="bg-white rounded-lg border p-3 min-w-0">
+          <div className="text-xs text-gray-600">Total Deals</div>
+          <div className="text-base font-semibold truncate">{deals.length}</div>
         </div>
-        <div className="bg-white rounded-lg border p-4">
-          <div className="text-sm text-gray-600">Open Deals</div>
-          <div className="text-2xl font-semibold text-blue-600">{openDeals.length}</div>
+        <div className="bg-white rounded-lg border p-3 min-w-0">
+          <div className="text-xs text-gray-600">Open Deals</div>
+          <div className="text-base font-semibold text-blue-600 truncate">{openDeals.length}</div>
         </div>
-        <div className="bg-white rounded-lg border p-4">
-          <div className="text-sm text-gray-600">Won Deals</div>
-          <div className="text-2xl font-semibold text-green-600">{wonDeals.length}</div>
+        <div className="bg-white rounded-lg border p-3 min-w-0">
+          <div className="text-xs text-gray-600">Won Deals</div>
+          <div className="text-base font-semibold text-green-600 truncate">{wonDeals.length}</div>
         </div>
-        <div className="bg-white rounded-lg border p-4">
-          <div className="text-sm text-gray-600">Total Value</div>
-          <div className="text-2xl font-semibold">{currency(totalValue)}</div>
+        <div className="bg-white rounded-lg border p-3 min-w-0">
+          <div className="text-xs text-gray-600">Total Value</div>
+          <div className="text-base font-semibold truncate">{currency(totalValue)}</div>
         </div>
       </div>
 
-      {/* Deals Table */}
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      {/* Mobile Cards - visible on small screens */}
+      <div className="lg:hidden w-full min-w-0 space-y-3">
+        {deals.length === 0 ? (
+          <div className="bg-white rounded-xl border shadow-sm p-6 text-center text-gray-500">
+            No deals found. Try syncing from HubSpot or create deals manually.
+          </div>
+        ) : (
+          deals.map((deal) => (
+            <div key={deal.id} className="bg-white rounded-xl border shadow-sm p-3 w-full min-w-0">
+              <div className="flex items-start justify-between mb-2 gap-2 w-full min-w-0">
+                <div className="min-w-0 flex-1">
+                  <Link 
+                    href={`/deals/${deal.id}`}
+                    className="font-medium text-blue-600 hover:underline text-sm block truncate"
+                  >
+                    {deal.title}
+                  </Link>
+                  {deal.client && (
+                    <div className="text-xs text-gray-600 mt-1 truncate">
+                      {deal.client.name}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-shrink-0">
+                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${getStageColor(deal.stage)}`}>
+                    {deal.stage}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between w-full min-w-0">
+                  <span className="text-gray-600 flex-shrink-0">Value:</span>
+                  <span className="truncate ml-1 min-w-0 font-medium">{currency(deal.value_cents)}</span>
+                </div>
+                <div className="flex justify-between w-full min-w-0">
+                  <span className="text-gray-600 flex-shrink-0">Probability:</span>
+                  <span className="truncate ml-1 min-w-0">{deal.probability}%</span>
+                </div>
+                <div className="flex justify-between w-full min-w-0">
+                  <span className="text-gray-600 flex-shrink-0">Expected Close:</span>
+                  <span className="truncate ml-1 min-w-0">{formatDate(deal.expected_close_date)}</span>
+                </div>
+                <div className="flex justify-between items-center w-full">
+                  <span className="text-gray-600 flex-shrink-0">Progress:</span>
+                  <div className="h-1.5 w-12 rounded bg-gray-100 flex-shrink-0">
+                    <div
+                      className="h-1.5 rounded bg-emerald-500"
+                      style={{ width: `${stageToProgress(deal.stage)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 text-xs">
+                <span className={`inline-flex px-2 py-1 text-xs rounded ${
+                  deal.source === 'hubspot' 
+                    ? 'bg-orange-100 text-orange-700' 
+                    : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {deal.source || 'manual'}
+                </span>
+                <span className="text-gray-500">{formatDate(deal.created_at)}</span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table - hidden on small screens */}
+      <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 text-left">

@@ -294,7 +294,8 @@ export default function InvoiceBuilder({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table - hidden on small screens */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -381,6 +382,100 @@ export default function InvoiceBuilder({
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards - visible on small screens */}
+        <div className="lg:hidden space-y-4">
+          {formData.line_items.map((item, index) => (
+            <div key={index} className="border border-gray-300 rounded-lg p-4 bg-white w-full min-w-0">
+              <div className="flex items-start justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-700">Line Item {index + 1}</h3>
+                {formData.line_items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeLineItem(index)}
+                    className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded"
+                    title="Remove item"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={item.title || ''}
+                    onChange={(e) => updateLineItem(index, 'title', e.target.value)}
+                    placeholder="Short title (e.g., 'Frontend Development')"
+                    className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                  <textarea
+                    value={item.description}
+                    onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                    placeholder="Detailed description of work..."
+                    rows={3}
+                    className={`w-full rounded border px-3 py-2 text-sm resize-none ${
+                      errors[`line_item_${index}_description`] ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors[`line_item_${index}_description`] && (
+                    <p className="text-red-500 text-xs mt-1">{errors[`line_item_${index}_description`]}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={item.quantity}
+                      onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      className={`w-full rounded border px-3 py-2 text-sm text-center ${
+                        errors[`line_item_${index}_quantity`] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors[`line_item_${index}_quantity`] && (
+                      <p className="text-red-500 text-xs mt-1">{errors[`line_item_${index}_quantity`]}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rate ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={rateDisplayValues[index] ?? (item.rate_cents > 0 ? (item.rate_cents / 100).toString() : '')}
+                      onChange={(e) => updateLineItemRate(index, e.target.value)}
+                      className={`w-full rounded border px-3 py-2 text-sm text-right ${
+                        errors[`line_item_${index}_rate`] ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors[`line_item_${index}_rate`] && (
+                      <p className="text-red-500 text-xs mt-1">{errors[`line_item_${index}_rate`]}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <div className="w-full rounded border border-gray-200 px-3 py-2 text-sm text-right bg-gray-50 font-medium">
+                      ${(item.amount_cents / 100).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Totals */}

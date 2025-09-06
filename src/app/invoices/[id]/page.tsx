@@ -124,9 +124,10 @@ export default function InvoiceDetailPage() {
     }
   };
 
+
   if (error) {
     return (
-      <div className="p-6 my-36">
+      <div className="px-3 py-4 sm:p-6 space-y-4 max-w-7xl mx-auto min-w-0">
         <h1 className="text-2xl font-semibold mb-4 text-red-600">Error</h1>
         <p>Failed to load invoice: {error.message}</p>
         <Link href="/dashboard/invoices" className="text-blue-600 hover:underline mt-4 inline-block">
@@ -138,7 +139,7 @@ export default function InvoiceDetailPage() {
 
   if (!invoice) {
     return (
-      <div className="p-6 my-36">
+      <div className="px-3 py-4 sm:p-6 space-y-4 max-w-7xl mx-auto min-w-0">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-64"></div>
           <div className="h-4 bg-gray-200 rounded w-32"></div>
@@ -155,9 +156,9 @@ export default function InvoiceDetailPage() {
   return (
     <>
       <ToastContainer />
-      <div className="p-6 my-36 space-y-6">
+      <div className="px-3 py-4 sm:p-6 space-y-4 max-w-7xl mx-auto min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <Link href="/dashboard/invoices" className="text-blue-600 hover:underline text-sm">
             ← Back to Invoices
@@ -167,10 +168,10 @@ export default function InvoiceDetailPage() {
           </h1>
           {invoice.title && <p className="text-gray-600 text-sm mt-1">{invoice.title}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowEdit(true)}
-            className="px-4 py-2 text-white rounded-lg transition-colors"
+            className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors"
             style={{ backgroundColor: '#5b7c99' }}
             onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#4a6780'}
             onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#5b7c99'}
@@ -179,7 +180,7 @@ export default function InvoiceDetailPage() {
           </button>
           <button
             onClick={() => setShowPreview(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
             Preview
           </button>
@@ -187,7 +188,7 @@ export default function InvoiceDetailPage() {
             <button
               onClick={handleSendInvoice}
               disabled={sending}
-              className="px-4 py-2 text-white rounded-lg disabled:opacity-50 transition-colors"
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg disabled:opacity-50 transition-colors"
               style={{ backgroundColor: '#ffc312' }}
               onMouseEnter={(e) => !sending && ((e.target as HTMLElement).style.backgroundColor = '#e6ad0f')}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.backgroundColor = '#ffc312')}
@@ -199,9 +200,9 @@ export default function InvoiceDetailPage() {
       </div>
 
       {/* Invoice Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Client Information */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Client Information</h2>
           <div className="space-y-3">
             <div>
@@ -228,7 +229,7 @@ export default function InvoiceDetailPage() {
         </div>
 
         {/* Invoice Information */}
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Invoice Information</h2>
           <div className="space-y-3">
             <div>
@@ -265,9 +266,11 @@ export default function InvoiceDetailPage() {
 
       {/* Line Items */}
       {invoice.line_items && invoice.line_items.length > 0 && (
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Line Items</h2>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table - hidden on small screens */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -289,11 +292,38 @@ export default function InvoiceDetailPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards - visible on small screens */}
+          <div className="md:hidden space-y-4">
+            {invoice.line_items.map((item, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="space-y-3">
+                  <div className="font-medium text-gray-800">{item.description}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Quantity</div>
+                      <div className="text-sm font-medium">{item.quantity}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Rate</div>
+                      <div className="text-sm font-medium">{currency(item.rate_cents)}</div>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Total Amount</span>
+                      <span className="text-lg font-semibold text-gray-800">{currency(item.amount_cents)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
           
           {/* Invoice Totals */}
           <div className="mt-4 border-t pt-4">
             <div className="flex justify-end">
-              <div className="w-64 space-y-2">
+              <div className="w-full max-w-sm space-y-2">
                 {invoice.subtotal_cents && (
                   <div className="flex justify-between text-sm">
                     <span>Subtotal:</span>
@@ -324,7 +354,7 @@ export default function InvoiceDetailPage() {
 
       {/* Notes */}
       {invoice.notes && (
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Notes</h2>
           <div className="text-gray-700 whitespace-pre-wrap">{invoice.notes}</div>
         </div>
@@ -332,7 +362,7 @@ export default function InvoiceDetailPage() {
 
       {/* Signature Status */}
       {(invoice.signed_at || invoice.hosted_invoice_url) && (
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Signature Status</h2>
           {invoice.signed_at ? (
             <div className="flex items-center gap-2 text-green-600">
@@ -362,9 +392,11 @@ export default function InvoiceDetailPage() {
 
       {/* Payments */}
       {invoice.invoice_payments && invoice.invoice_payments.length > 0 && (
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Payment History</h2>
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table - hidden on small screens */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b">
@@ -383,6 +415,30 @@ export default function InvoiceDetailPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards - visible on small screens */}
+          <div className="sm:hidden space-y-3">
+            {invoice.invoice_payments.map((payment) => (
+              <div key={payment.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Date</span>
+                    <span className="text-sm font-medium">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Method</span>
+                    <span className="text-sm font-medium capitalize">{payment.payment_method}</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Amount</span>
+                      <span className="text-lg font-semibold text-gray-800">{currency(payment.amount_cents)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -413,21 +469,21 @@ export default function InvoiceDetailPage() {
 
 function InvoicePreviewModal({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-auto rounded-lg bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
+      <div className="w-full max-w-4xl max-h-[95vh] overflow-auto rounded-lg bg-white min-w-0">
         {/* Modal Header */}
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Invoice Preview</h2>
+        <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex justify-between items-center">
+          <h2 className="text-base sm:text-lg font-semibold">Invoice Preview</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 text-lg"
           >
             ✕
           </button>
         </div>
 
         {/* Invoice Preview Content */}
-        <div className="p-8">
+        <div className="p-3 sm:p-8">
           <InvoicePreviewContent invoice={invoice} />
         </div>
       </div>
@@ -450,9 +506,9 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
   return (
     <div className="max-w-3xl mx-auto bg-white">
       {/* Enhanced Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold" style={{ color: '#111111' }}>INVOICE</h1>
-        <h2 className="text-xl text-gray-600 mt-2">{invoice.title || 'Professional Development Services'}</h2>
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold truncate" style={{ color: '#111111' }}>INVOICE</h1>
+        <h2 className="text-sm sm:text-xl text-gray-600 mt-2 px-2">{invoice.title || 'Professional Development Services'}</h2>
       </div>
 
       {/* Client Information */}
@@ -469,7 +525,7 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
       {/* Enhanced Invoice Details */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Invoice Details</h3>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-600">Invoice #:</span>
             <span className="text-gray-800">{invoice.invoice_number || invoice.id.split('-')[0]}</span>
@@ -511,43 +567,91 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
 
       {/* Service Details */}
       <div className="mb-8">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b-2 border-gray-300">
-              <th className="text-left py-3 font-semibold text-gray-800">Service Description</th>
-              <th className="text-center py-3 font-semibold text-gray-800">Hours</th>
-              <th className="text-right py-3 font-semibold text-gray-800">Rate</th>
-              <th className="text-right py-3 font-semibold text-gray-800">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoice.line_items && invoice.line_items.length > 0 ? (
-              invoice.line_items.map((item, index) => (
-                <tr key={index} className="border-b border-gray-200">
-                  <td className="py-4 text-gray-700 pr-4">{item.description}</td>
-                  <td className="py-4 text-center text-gray-700">{item.quantity}</td>
-                  <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
-                  <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr className="border-b border-gray-200">
-                <td className="py-4 text-gray-700">
-                  {invoice.description || invoice.title || 'Professional Services'}
-                </td>
-                <td className="py-4 text-right text-gray-800 font-semibold" colSpan={3}>
-                  {currency(invoice.amount_cents)}
-                </td>
+        <h3 className="text-lg font-semibold mb-4" style={{ color: '#111111' }}>Service Details</h3>
+        
+        {/* Desktop Table - hidden on small screens */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b-2 border-gray-300">
+                <th className="text-left py-3 font-semibold text-gray-800">Service Description</th>
+                <th className="text-center py-3 font-semibold text-gray-800">Hours</th>
+                <th className="text-right py-3 font-semibold text-gray-800">Rate</th>
+                <th className="text-right py-3 font-semibold text-gray-800">Amount</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {invoice.line_items && invoice.line_items.length > 0 ? (
+                invoice.line_items.map((item, index) => (
+                  <tr key={index} className="border-b border-gray-200">
+                    <td className="py-4 text-gray-700 pr-4">{item.description}</td>
+                    <td className="py-4 text-center text-gray-700">{item.quantity}</td>
+                    <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
+                    <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr className="border-b border-gray-200">
+                  <td className="py-4 text-gray-700">
+                    {invoice.description || invoice.title || 'Professional Services'}
+                  </td>
+                  <td className="py-4 text-right text-gray-800 font-semibold" colSpan={3}>
+                    {currency(invoice.amount_cents)}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards - visible on small screens */}
+        <div className="md:hidden space-y-4">
+          {invoice.line_items && invoice.line_items.length > 0 ? (
+            invoice.line_items.map((item, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="space-y-3">
+                  <div className="font-medium text-gray-800">{item.description}</div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Hours</div>
+                      <div className="text-sm font-medium">{item.quantity}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Rate</div>
+                      <div className="text-sm font-medium">{currency(item.rate_cents)}</div>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500 uppercase tracking-wide">Total Amount</span>
+                      <span className="text-lg font-semibold text-gray-800">{currency(item.amount_cents)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div className="space-y-3">
+                <div className="font-medium text-gray-800">
+                  {invoice.description || invoice.title || 'Professional Services'}
+                </div>
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Total Amount</span>
+                    <span className="text-lg font-semibold text-gray-800">{currency(invoice.amount_cents)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Enhanced Totals */}
       <div className="border-t-2 border-gray-300 pt-4 mb-8">
         <div className="flex justify-end">
-          <div className="w-72 space-y-3">
+          <div className="w-full max-w-md space-y-3">
             <div className="flex justify-between text-gray-700">
               <span>Subtotal ({invoice.line_items?.reduce((sum, item) => sum + item.quantity, 0) || 1} hours × {currency(invoice.line_items?.[0]?.rate_cents || invoice.amount_cents)}):</span>
               <span className="font-semibold">{currency(subtotal)}</span>
@@ -584,10 +688,10 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Technology Stack</h3>
           <p className="text-gray-700 mb-3">Your project will be built using modern, industry-standard technologies:</p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {invoice.technology_stack.map((tech, index) => (
               <div key={index} className="flex items-center">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 flex-shrink-0"></span>
                 <span className="text-gray-700">{tech}</span>
               </div>
             ))}

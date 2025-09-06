@@ -93,26 +93,26 @@ export default function InvoiceBuilderPreview({
   const total = subtotal - discount;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-auto rounded-lg bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
+      <div className="w-full max-w-4xl max-h-[95vh] overflow-auto rounded-lg bg-white min-w-0">
         {/* Modal Header */}
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Invoice Preview</h2>
+        <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex justify-between items-center">
+          <h2 className="text-base sm:text-lg font-semibold">Invoice Preview</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 text-lg"
           >
             ✕
           </button>
         </div>
 
         {/* Invoice Preview Content */}
-        <div className="p-8">
-          <div className="max-w-3xl mx-auto bg-white">
+        <div className="p-3 sm:p-8">
+          <div className="max-w-3xl mx-auto bg-white min-w-0">
             {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold" style={{ color: '#111111' }}>INVOICE</h1>
-              <h2 className="text-xl text-gray-600 mt-2">{invoiceData.title || 'Custom Website Development Services'}</h2>
+            <div className="text-center mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-4xl font-bold truncate" style={{ color: '#111111' }}>INVOICE</h1>
+              <h2 className="text-sm sm:text-xl text-gray-600 mt-2 px-2">{invoiceData.title || 'Custom Website Development Services'}</h2>
             </div>
 
             {/* Client Information */}
@@ -128,7 +128,7 @@ export default function InvoiceBuilderPreview({
             {/* Invoice Details */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Invoice Details</h3>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Invoice #:</span>
                   <span className="text-gray-800">ND-{new Date().getFullYear()}-{Date.now().toString().slice(-3)}</span>
@@ -177,58 +177,96 @@ export default function InvoiceBuilderPreview({
 
             {/* Service Details */}
             <div className="mb-8">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-gray-300">
-                    <th className="text-left py-3 font-semibold text-gray-800">Service Description</th>
-                    <th className="text-center py-3 font-semibold text-gray-800">Hours</th>
-                    <th className="text-right py-3 font-semibold text-gray-800">Rate</th>
-                    <th className="text-right py-3 font-semibold text-gray-800">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceData.line_items.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-200">
-                      <td className="py-4 text-gray-700 pr-4">
-                        {item.title && (
-                          <div className="font-semibold text-gray-800 mb-1">{item.title}</div>
-                        )}
-                        <div 
-                          className="text-sm"
-                          dangerouslySetInnerHTML={{ __html: formatTextWithBullets(item.description || 'Service Description') }}
-                        />
-                      </td>
-                      <td className="py-4 text-center text-gray-700">{item.quantity}</td>
-                      <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
-                      <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: '#111111' }}>Service Details</h3>
+              
+              {/* Desktop Table - hidden on small screens */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-300">
+                      <th className="text-left py-3 font-semibold text-gray-800">Service Description</th>
+                      <th className="text-center py-3 font-semibold text-gray-800">Hours</th>
+                      <th className="text-right py-3 font-semibold text-gray-800">Rate</th>
+                      <th className="text-right py-3 font-semibold text-gray-800">Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {invoiceData.line_items.map((item, index) => (
+                      <tr key={index} className="border-b border-gray-200">
+                        <td className="py-4 text-gray-700 pr-4">
+                          {item.title && (
+                            <div className="font-semibold text-gray-800 mb-1">{item.title}</div>
+                          )}
+                          <div 
+                            className="text-sm"
+                            dangerouslySetInnerHTML={{ __html: formatTextWithBullets(item.description || 'Service Description') }}
+                          />
+                        </td>
+                        <td className="py-4 text-center text-gray-700">{item.quantity}</td>
+                        <td className="py-4 text-right text-gray-700">{currency(item.rate_cents)}</td>
+                        <td className="py-4 text-right text-gray-800 font-semibold">{currency(item.amount_cents)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards - visible on small screens */}
+              <div className="md:hidden space-y-4">
+                {invoiceData.line_items.map((item, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="space-y-3">
+                      {item.title && (
+                        <div className="font-semibold text-gray-800 text-base">{item.title}</div>
+                      )}
+                      <div 
+                        className="text-sm text-gray-700"
+                        dangerouslySetInnerHTML={{ __html: formatTextWithBullets(item.description || 'Service Description') }}
+                      />
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Hours</div>
+                          <div className="text-sm font-medium text-gray-700">{item.quantity}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">Rate</div>
+                          <div className="text-sm font-medium text-gray-700">{currency(item.rate_cents)}</div>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-gray-500 uppercase tracking-wide">Total Amount</span>
+                          <span className="text-lg font-semibold text-gray-800">{currency(item.amount_cents)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Totals */}
             <div className="border-t-2 border-gray-300 pt-4 mb-8">
               <div className="flex justify-end">
-                <div className="w-72 space-y-3">
-                  <div className="flex justify-between text-gray-700">
-                    <span>Subtotal ({invoiceData.line_items.reduce((sum, item) => sum + item.quantity, 0)} hours × {currency(invoiceData.line_items.length > 0 ? invoiceData.line_items[0].rate_cents : 0)}):</span>
-                    <span className="font-semibold">{currency(subtotal)}</span>
+                <div className="w-full max-w-md space-y-3">
+                  <div className="flex justify-between text-gray-700 text-sm sm:text-base">
+                    <span className="truncate pr-4">Subtotal ({invoiceData.line_items.reduce((sum, item) => sum + item.quantity, 0)} hours × {currency(invoiceData.line_items.length > 0 ? invoiceData.line_items[0].rate_cents : 0)}):</span>
+                    <span className="font-semibold whitespace-nowrap">{currency(subtotal)}</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>
+                    <div className="flex justify-between text-green-600 text-sm sm:text-base">
+                      <span className="truncate pr-4">
                         Project Discount ({invoiceData.discount_type === 'percentage' 
                           ? `${invoiceData.discount_value}%` 
                           : 'Fixed Amount'}):
                       </span>
-                      <span className="font-semibold">-{currency(discount)}</span>
+                      <span className="font-semibold whitespace-nowrap">-{currency(discount)}</span>
                     </div>
                   )}
                   <div className="border-t pt-3">
-                    <div className="text-xl font-bold text-gray-800 flex justify-between">
-                      <span>Total Project Cost:</span>
-                      <span>{currency(total)}</span>
+                    <div className="text-lg sm:text-xl font-bold text-gray-800 flex justify-between">
+                      <span className="truncate pr-4">Total Project Cost:</span>
+                      <span className="whitespace-nowrap">{currency(total)}</span>
                     </div>
                   </div>
                 </div>
@@ -304,10 +342,10 @@ export default function InvoiceBuilderPreview({
               <div className="mb-8">
                 <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Technology Stack</h3>
                 <p className="text-gray-700 mb-3">Your website will be built using modern, industry-standard technologies:</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {invoiceData.technology_stack.map((tech, index) => (
                     <div key={index} className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 flex-shrink-0"></span>
                       <span className="text-gray-700">{tech}</span>
                     </div>
                   ))}

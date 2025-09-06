@@ -43,13 +43,54 @@ export async function GET(_req: Request, ctx: Ctx) {
 
   const { data, error } = await gate.supabase
     .from("invoices")
-    .select("id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, invoice_number, description")
+    .select(`
+      id, 
+      client_id, 
+      status, 
+      amount_cents, 
+      issued_at, 
+      due_at, 
+      stripe_invoice_id, 
+      invoice_number, 
+      description,
+      invoice_payments (
+        id,
+        amount_cents,
+        paid_at,
+        payment_method,
+        stripe_payment_intent_id,
+        metadata
+      )
+    `)
     .eq("org_id", gate.orgId)
     .eq("client_id", clientId)
     .order("issued_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ invoices: data ?? [] });
+
+  // Calculate payment totals
+  let totalInvoiced = 0;
+  let totalPaid = 0;
+  
+  data?.forEach(invoice => {
+    if (invoice.status !== 'draft') {
+      totalInvoiced += invoice.amount_cents || 0;
+    }
+    invoice.invoice_payments?.forEach(payment => {
+      totalPaid += payment.amount_cents || 0;
+    });
+  });
+
+  const balanceDue = totalInvoiced - totalPaid;
+
+  return NextResponse.json({ 
+    invoices: data ?? [], 
+    financials: {
+      totalInvoiced,
+      totalPaid,
+      balanceDue
+    }
+  });
 }
 
 /** POST: create & send a Stripe invoice for this client, then mirror to DB */

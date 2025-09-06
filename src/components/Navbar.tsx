@@ -21,6 +21,16 @@ export default function Navbar() {
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  // Hide navbar on dashboard, admin, invoice, and other app routes
+  if (pathname?.startsWith('/dashboard') || 
+      pathname?.startsWith('/admin') || 
+      pathname?.startsWith('/invoice/') ||
+      pathname?.startsWith('/invoices/') ||
+      pathname?.startsWith('/test/') ||
+      pathname?.startsWith('/clients/')) {
+    return null;
+  }
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800/30 backdrop-blur-sm px-4 py-4 flex justify-between items-center">
       {/* Left: Logo */}
@@ -102,14 +112,14 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="absolute top-full left-0 w-full bg-blue backdrop-blur-md border-t border-offwhite/10 flex flex-col items-center gap-6 py-6 md:hidden text-yellow font-semibold text-xl z-40"
+            className="absolute top-full left-0 w-full bg-white bg-opacity-90 backdrop-blur-sm border-t border-gray-200 flex flex-col items-center gap-6 py-6 md:hidden text-gray-800 font-semibold text-xl z-40"
           >
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`hover:text-white transition ${
+                className={`hover:text-blue-600 transition ${
                   pathname === item.href ? "underline underline-offset-4" : ""
                 }`}
               >
@@ -120,7 +130,7 @@ export default function Navbar() {
             <Link
               href="/contact"
               onClick={() => setIsOpen(false)}
-              className="text-lg border border-yellow px-6 py-3 rounded-md hover:bg-yellow hover:text-blue transition"
+              className="text-lg border border-blue-600 text-blue-600 px-6 py-3 rounded-md hover:bg-blue-600 hover:text-white transition"
             >
               Let’s get building
             </Link>

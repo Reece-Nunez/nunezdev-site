@@ -39,7 +39,14 @@
       "Bash(node:*)",
       "Read(C:\\Users\\reece\\Downloads/**)",
       "Read(C:\\Users\\reece\\Downloads/**)",
-      "Read(C:\\Users\\reece\\Downloads/**)"
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Read(C:\\Users\\reece\\Downloads/**)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Read(/C:\\Users\\reece\\Downloads/**)",
+      "Bash(pkill:*)",
+      "Read(//c/Users/reece/Downloads/**)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": [],

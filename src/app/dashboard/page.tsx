@@ -113,9 +113,9 @@ export default async function DashboardHome() {
   const kpis = await getKpisDirect();
 
   return (
-    <div className="space-y-6 my-48">
+    <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold">Dashboard</h1>
         <div className="text-sm text-gray-500">Owner access</div>
       </div>
 

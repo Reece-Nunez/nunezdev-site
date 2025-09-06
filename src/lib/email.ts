@@ -42,27 +42,159 @@ export async function sendInvoiceEmail({
     <html>
     <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
-        .header { background: #ffc312; padding: 20px; text-align: center; color: #111; }
-        .content { padding: 20px; }
-        .invoice-details { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        /* Base Styles */
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; 
+          line-height: 1.6; 
+          color: #333; 
+          max-width: 600px; 
+          margin: 0 auto; 
+          padding: 0;
+          -webkit-text-size-adjust: 100%;
+          -ms-text-size-adjust: 100%;
+        }
+        
+        .header { 
+          background: #ffc312; 
+          padding: 20px; 
+          text-align: center; 
+          color: #111; 
+        }
+        
+        .content { 
+          padding: 20px; 
+        }
+        
+        .invoice-details { 
+          background: #f8f9fa; 
+          padding: 15px; 
+          border-radius: 5px; 
+          margin: 20px 0; 
+          border: 1px solid #e9ecef;
+        }
+        
         .button { 
           display: inline-block; 
-          padding: 12px 24px; 
+          padding: 16px 32px; 
           background: #5b7c99; 
-          color: white; 
+          color: white !important; 
           text-decoration: none; 
           border-radius: 5px; 
           margin: 20px 0; 
+          font-weight: 500;
+          text-align: center;
+          min-width: 200px;
+          box-sizing: border-box;
         }
-        .footer { font-size: 12px; color: #666; margin-top: 30px; }
-        .signature-warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        
+        .footer { 
+          font-size: 12px; 
+          color: #666; 
+          margin-top: 30px; 
+          padding-top: 20px;
+          border-top: 1px solid #e9ecef;
+        }
+        
+        .signature-warning { 
+          background: #fff3cd; 
+          border: 1px solid #ffeaa7; 
+          padding: 15px; 
+          border-radius: 5px; 
+          margin: 15px 0; 
+        }
+
+        .logo { 
+          width: 60px; 
+          height: 60px; 
+          margin-bottom: 10px; 
+          max-width: 100%;
+          height: auto;
+        }
+
+        /* Mobile Responsive Styles */
+        @media only screen and (max-width: 600px) {
+          body {
+            width: 100% !important;
+            min-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          .header {
+            padding: 15px 10px !important;
+          }
+          
+          .content {
+            padding: 15px 10px !important;
+          }
+          
+          .invoice-details {
+            margin: 15px 0 !important;
+            padding: 12px !important;
+          }
+          
+          .button {
+            width: 100% !important;
+            padding: 16px 20px !important;
+            margin: 15px 0 !important;
+            min-width: auto !important;
+            display: block !important;
+            text-align: center !important;
+            box-sizing: border-box !important;
+          }
+          
+          .signature-warning {
+            margin: 10px 0 !important;
+            padding: 12px !important;
+          }
+          
+          h1 {
+            font-size: 24px !important;
+            margin: 10px 0 !important;
+          }
+          
+          h2 {
+            font-size: 20px !important;
+            margin: 15px 0 10px 0 !important;
+          }
+          
+          h3 {
+            font-size: 18px !important;
+            margin: 10px 0 !important;
+          }
+          
+          p {
+            font-size: 16px !important;
+            margin: 10px 0 !important;
+          }
+          
+          .footer {
+            font-size: 11px !important;
+            margin-top: 20px !important;
+            padding-top: 15px !important;
+          }
+
+          .logo {
+            width: 50px !important;
+            height: 50px !important;
+          }
+        }
+
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+          .invoice-details {
+            background: #2d3748 !important;
+            color: #e2e8f0 !important;
+            border-color: #4a5568 !important;
+          }
+        }
       </style>
     </head>
     <body>
       <div class="header">
-        <img src="https://nunezdev.com/logo.png" alt="NunezDev Logo" style="width: 60px; height: 60px; margin-bottom: 10px;">
+        <img src="https://nunezdev.com/logo.png" alt="NunezDev Logo" class="logo">
         <h1>NunezDev</h1>
         <p>Professional Web Development Services</p>
       </div>

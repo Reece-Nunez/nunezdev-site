@@ -33,7 +33,7 @@ export default function SyncPaymentsPage() {
   };
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 max-w-2xl mx-auto py-36">
       <h1 className="text-2xl font-bold mb-6">Admin: Sync Payment Totals</h1>
       
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">

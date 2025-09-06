@@ -47,7 +47,7 @@ export default function NewInvoicePage() {
   };
 
   return (
-    <div className="p-6 my-36 max-w-5xl mx-auto">
+    <div className="px-3 py-4 sm:p-6 space-y-4 max-w-5xl mx-auto min-w-0">
       <div className="mb-6">
         <button
           onClick={handleCancel}
