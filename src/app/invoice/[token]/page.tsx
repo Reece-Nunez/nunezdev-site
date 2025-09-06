@@ -185,7 +185,22 @@ export default function PublicInvoiceView() {
         )}
         
         {/* Invoice Container */}
-        <div className="bg-white rounded-none sm:rounded-lg shadow-none sm:shadow-lg p-1 sm:p-4 lg:p-6 w-full max-w-none overflow-hidden">
+        <div className="bg-white rounded-none sm:rounded-lg shadow-none sm:shadow-lg p-1 sm:p-4 lg:p-6 w-full max-w-none overflow-hidden relative">
+          {/* PAID Stamp Overlay */}
+          {(invoice.status === 'paid' || paymentSuccess) && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div 
+                className="transform rotate-12 text-6xl sm:text-8xl lg:text-9xl font-black tracking-wider opacity-20"
+                style={{ 
+                  color: '#dc2626', 
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+                  fontFamily: 'Arial Black, sans-serif'
+                }}
+              >
+                PAID
+              </div>
+            </div>
+          )}
           {/* Header with Logo/Branding */}
           <div className="border-b-4 pb-2 sm:pb-4 lg:pb-6 mb-4 sm:mb-6" style={{ borderColor: invoice.brand_primary || '#ffc312' }}>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start sm:gap-4">
@@ -211,7 +226,7 @@ export default function PublicInvoiceView() {
                   });
                   return invoice.invoice_number || (invoice.id ? invoice.id.toString().split('-')[0] : 'N/A');
                 })()}</p>
-                {invoice.status === 'paid' && (
+                {(invoice.status === 'paid' || paymentSuccess) && (
                   <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                     PAID
                   </span>
@@ -505,7 +520,7 @@ export default function PublicInvoiceView() {
           ) : null}
 
           {/* Payment Button - Show if not paid and (no signature required OR already signed) */}
-          {invoice.status !== 'paid' && (!invoice.require_signature || invoice.signed_at) && (
+          {!paymentSuccess && invoice.status !== 'paid' && (!invoice.require_signature || invoice.signed_at) && (
             <div className="mt-8 text-center">
               {(invoice.stripe_hosted_invoice_url || (invoice as any).hosted_invoice_url) ? (
                 <a 
@@ -525,6 +540,18 @@ export default function PublicInvoiceView() {
                   <p className="text-sm text-gray-500">Please contact the sender for payment instructions.</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Payment Completed Message */}
+          {(invoice.status === 'paid' || paymentSuccess) && (
+            <div className="mt-8 text-center">
+              <div className="inline-flex items-center px-4 py-3 bg-green-100 border border-green-300 rounded-lg text-green-800">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">Payment Completed - Thank you!</span>
+              </div>
             </div>
           )}
         </div>
