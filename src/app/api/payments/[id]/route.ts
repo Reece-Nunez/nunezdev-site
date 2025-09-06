@@ -18,8 +18,8 @@ async function requireAuthedOrgId() {
   return { ok: true as const, supabase, orgId, user };
 }
 
-export async function GET(request: Request, context: { params: { id: string } }) {
-  const { params } = context;
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const gate = await requireAuthedOrgId();
   if (!gate.ok) return NextResponse.json(gate.json, { status: gate.status });
 
@@ -57,8 +57,8 @@ export async function GET(request: Request, context: { params: { id: string } })
   }
 }
 
-export async function DELETE(request: Request, context: { params: { id: string } }) {
-  const { params } = context;
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const gate = await requireAuthedOrgId();
   if (!gate.ok) return NextResponse.json(gate.json, { status: gate.status });
 
@@ -164,8 +164,8 @@ export async function DELETE(request: Request, context: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, context: { params: { id: string } }) {
-  const { params } = context;
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   const gate = await requireAuthedOrgId();
   if (!gate.ok) return NextResponse.json(gate.json, { status: gate.status });
 
