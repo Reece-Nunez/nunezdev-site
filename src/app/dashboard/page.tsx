@@ -1,5 +1,3 @@
-// app/dashboard/page.tsx (or wherever this file lives)
-
 import Cards from "@/components/dashboard/Cards";
 import DashboardCharts from "@/components/dashboard/DashboardCharts";
 import RecentActivity from "@/components/dashboard/RecentActivity";
@@ -8,97 +6,93 @@ import { supabaseServer } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 
-async function getKpisDirect() {
+async function getKpisData() {
   const guard = await requireOwner();
   if (!guard.ok) return null;
-
   const orgId = guard.orgId!;
   const supabase = await supabaseServer();
 
-  // Clients count
-  const { count: clientsCount, error: clientsErr } = await supabase
+  const { count: clientsCount } = await supabase
     .from("clients")
     .select("*", { count: "exact", head: true })
     .eq("org_id", orgId);
 
-  // Open deals (exclude closed deals)
-  const { data: openDeals, error: dealsErr } = await supabase
+  const { data: openDeals } = await supabase
     .from("deals")
     .select("value_cents")
     .eq("org_id", orgId)
     .not("stage", "in", '("Won","Lost","Abandoned")');
 
-  const pipelineValue = (openDeals ?? []).reduce(
-    (a, d) => a + (d?.value_cents ?? 0),
-    0
-  );
+  const pipelineValue = (openDeals ?? []).reduce((a, d) => a + (d.value_cents ?? 0), 0);
 
-  // Revenue this month - Use direct calculation with known invoice IDs
-  // Fix timezone issue by using UTC dates
-  const start = new Date();
-  start.setUTCDate(1);
-  start.setUTCHours(0, 0, 0, 0);
-
-  console.log("Dashboard revenue calculation:", {
-    currentDate: new Date().toISOString(),
-    startOfMonth: start.toISOString(),
-    orgId
-  });
-
-  // Get all payments for invoices that belong to this org
-  // Use a more direct approach since we know the invoice IDs
-  const knownInvoiceIds = [
-    "1a7d1c82-89e5-42dd-b559-21e75e532f40", // The Rapid Rescore
-    "724722c2-fd22-44d3-be97-b35a5b6d328b", // Custom Website
-    "7bf06f1b-7ca5-4f6c-93e0-6be5798506c0", // Website Updates
-    "8af7a0b8-bd10-40cc-8352-36c33cc805ea", // Payments Backfill
-    "af03574c-2c96-49f2-acca-80d1fde9500a", // Artisan Construction
-    "d2bdce7b-708e-4ff5-9739-6dbc9b1fecad", // Backfill payments
-    "d5adf9aa-88d3-455a-8e7b-e7d7218c92e9"  // Nooqbook updates
-  ];
-
-  const { data: paymentsThisMonth, error: revErr } = await supabase
+  const start = new Date(); start.setDate(1); start.setHours(0,0,0,0);
+  const { data: paymentsThisMonth } = await supabase
     .from("invoice_payments")
-    .select("amount_cents, paid_at, invoice_id")
-    .in("invoice_id", knownInvoiceIds)
+    .select("amount_cents, invoices!inner(org_id)")
+    .eq("invoices.org_id", orgId)
     .gte("paid_at", start.toISOString());
 
-  const revenueThisMonth = (paymentsThisMonth ?? []).reduce(
-    (a, p) => a + (p?.amount_cents ?? 0),
-    0
-  );
+  const revenueThisMonth = (paymentsThisMonth ?? []).reduce((a, r) => a + (r.amount_cents ?? 0), 0);
 
-  console.log("Revenue calculation result:", {
-    paymentsThisMonth: paymentsThisMonth?.length ?? 0,
-    totalRevenue: revenueThisMonth,
-    paymentsDetail: paymentsThisMonth?.map(p => ({
-      amount_cents: p.amount_cents,
-      paid_at: p.paid_at,
-      amount_usd: (p.amount_cents / 100).toFixed(2),
-      invoice_id: p.invoice_id
-    }))
-  });
-
-  // Outstanding balance (invoice amount minus payments)
-  const { data: invoiceBalances, error: outErr } = await supabase
+  const { data: outstandingInvoices } = await supabase
     .from("invoices")
     .select(`
-      id,
       amount_cents,
-      status,
       invoice_payments(amount_cents)
     `)
     .eq("org_id", orgId)
-    .not("status", "in", '("draft")'); // Exclude drafts
+    .in("status", ["sent","overdue"]);
 
-  const outstandingBalance = (invoiceBalances ?? []).reduce((total, invoice) => {
-    const totalPaid = (invoice.invoice_payments ?? []).reduce(
-      (sum: number, payment: any) => sum + (payment.amount_cents ?? 0),
-      0
-    );
-    const remaining = (invoice.amount_cents ?? 0) - totalPaid;
-    return total + Math.max(0, remaining); // Only positive balances
+  const outstandingBalance = (outstandingInvoices ?? []).reduce((a, invoice) => {
+    const totalPaid = (invoice.invoice_payments ?? []).reduce((sum, payment) => sum + (payment.amount_cents ?? 0), 0);
+    const remaining = Math.max(0, (invoice.amount_cents ?? 0) - totalPaid);
+    return a + remaining;
   }, 0);
+
+  // Additional KPIs for comprehensive dashboard
+  const { data: allDeals } = await supabase
+    .from("deals")
+    .select("stage, value_cents, created_at")
+    .eq("org_id", orgId);
+
+  const wonDeals = (allDeals ?? []).filter(d => d.stage === 'Won');
+  const totalWonValue = wonDeals.reduce((sum, d) => sum + (d.value_cents ?? 0), 0);
+  const conversionRate = allDeals?.length ? Math.round((wonDeals.length / allDeals.length) * 100) : 0;
+  const avgDealValue = allDeals?.length ? Math.round(allDeals.reduce((sum, d) => sum + (d.value_cents ?? 0), 0) / allDeals.length) : 0;
+
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const dealsClosedThisMonth = wonDeals.filter(d => new Date(d.created_at) >= monthStart).length;
+
+  const { data: allInvoices } = await supabase
+    .from("invoices")
+    .select("status, amount_cents, issued_at, due_at")
+    .eq("org_id", orgId);
+
+  const overdue = (allInvoices ?? []).filter(inv => 
+    inv.status === 'sent' && inv.due_at && new Date(inv.due_at) < new Date()
+  ).length;
+
+  const { data: allPayments } = await supabase
+    .from("invoice_payments")
+    .select("amount_cents, paid_at, invoices!inner(org_id)")
+    .eq("invoices.org_id", orgId);
+
+  const totalRevenue = (allPayments ?? []).reduce((sum, p) => sum + (p.amount_cents ?? 0), 0);
+
+  const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentPayments = (allPayments ?? []).filter(p => new Date(p.paid_at) >= thirtyDaysAgo);
+  const recentPaymentCount = recentPayments.length;
+
+  const paidInvoices = (allInvoices ?? []).filter(inv => inv.status === 'paid');
+  const avgPaymentTime = paidInvoices.length > 0 ? 
+    Math.round(paidInvoices.reduce((sum, inv) => {
+      if (inv.issued_at && inv.due_at) {
+        const issued = new Date(inv.issued_at);
+        const paid = new Date(inv.due_at); // Approximation
+        return sum + (paid.getTime() - issued.getTime()) / (1000 * 60 * 60 * 24);
+      }
+      return sum;
+    }, 0) / paidInvoices.length) : 0;
 
   return {
     clientsCount: clientsCount ?? 0,
@@ -106,11 +100,33 @@ async function getKpisDirect() {
     pipelineValue,
     revenueThisMonth,
     outstandingBalance,
+    totalDeals: allDeals?.length ?? 0,
+    wonDeals: wonDeals.length,
+    totalWonValue,
+    conversionRate,
+    avgDealValue,
+    dealsClosedThisMonth,
+    overdueInvoices: overdue,
+    avgPaymentTime,
+    totalRevenue,
+    recentPaymentCount
   };
 }
 
 export default async function DashboardHome() {
-  const kpis = await getKpisDirect();
+  // Check authorization first
+  const guard = await requireOwner();
+  if (!guard.ok) {
+    return (
+      <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
+        <div className="rounded-xl border bg-white p-4 text-sm text-red-600">
+          You do not have owner access to view this dashboard.
+        </div>
+      </div>
+    );
+  }
+
+  const kpis = await getKpisData();
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
