@@ -19,7 +19,7 @@ export default function DashboardCharts() {
   return (
     <div className="space-y-8">
       {/* Revenue and Pipeline Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-96">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[500px]">
         <div className="rounded-2xl border bg-white p-6 flex flex-col">
           <h3 className="text-lg font-semibold mb-4">Revenue by Month (YTD)</h3>
           <div className="flex-1">
@@ -68,7 +68,7 @@ export default function DashboardCharts() {
       </div>
 
       {/* Deal Performance and Payment Methods */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-96">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[500px]">
         <div className="rounded-2xl border bg-white p-6 flex flex-col">
           <h3 className="text-lg font-semibold mb-4">Deal Closure Rates (6 Months)</h3>
           <div className="flex-1">
@@ -122,14 +122,14 @@ export default function DashboardCharts() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   data={data.paymentMethods} 
-                  margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
+                  margin={{ top: 20, right: 10, left: 10, bottom: 45 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="method"
                     angle={-45}
                     textAnchor="end"
-                    height={100}
+                    height={5}
                     tick={{ fontSize: 12 }}
                     interval={0}
                   />
