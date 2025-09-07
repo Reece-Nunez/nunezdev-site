@@ -93,12 +93,6 @@ export async function GET() {
     .select("payment_method, amount_cents, stripe_payment_intent_id, invoices!inner(org_id)")
     .eq("invoices.org_id", orgId);
 
-  console.log("Payment methods raw data:", allPayments?.slice(0, 5).map(p => ({
-    payment_method: p.payment_method,
-    has_stripe: !!p.stripe_payment_intent_id,
-    amount_cents: p.amount_cents
-  })));
-
   const methodMap: Record<string, number> = {};
   (allPayments ?? []).forEach(payment => {
     // Better payment method classification
@@ -122,8 +116,6 @@ export async function GET() {
     methodMap[method] = (methodMap[method] || 0) + (payment.amount_cents || 0);
   });
 
-  console.log("Payment methods mapped:", methodMap);
-
   const paymentMethods = Object.entries(methodMap)
     .filter(([method, amount]) => amount > 0) // Only include methods with payments
     .map(([method, amount]) => ({
@@ -132,12 +124,8 @@ export async function GET() {
     }))
     .sort((a, b) => b.amount_cents - a.amount_cents); // Sort by amount descending
 
-  console.log("Final payment methods for chart:", paymentMethods);
-
   // If no payment methods found, provide fallback data
   if (paymentMethods.length === 0) {
-    console.log("No payment methods found, providing fallback");
-    // You can check if there are any payments at all to provide meaningful fallback
     const totalPayments = (allPayments ?? []).reduce((sum, p) => sum + (p.amount_cents || 0), 0);
     if (totalPayments > 0) {
       paymentMethods.push({

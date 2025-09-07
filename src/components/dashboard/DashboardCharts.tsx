@@ -17,12 +17,12 @@ export default function DashboardCharts() {
   const { data } = useSWR('/api/dashboard/charts', fetcher);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Revenue and Pipeline Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="rounded-2xl border bg-white p-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="rounded-2xl border bg-white p-6">
           <h3 className="text-lg font-semibold mb-4">Revenue by Month (YTD)</h3>
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data?.revenueByMonth ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -48,9 +48,9 @@ export default function DashboardCharts() {
           </div>
         </div>
         
-        <div className="rounded-2xl border bg-white p-4">
+        <div className="rounded-2xl border bg-white p-6">
           <h3 className="text-lg font-semibold mb-4">Pipeline by Stage</h3>
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data?.pipelineByStage ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -68,10 +68,10 @@ export default function DashboardCharts() {
       </div>
 
       {/* Deal Performance and Payment Methods */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="rounded-2xl border bg-white p-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="rounded-2xl border bg-white p-6">
           <h3 className="text-lg font-semibold mb-4">Deal Closure Rates (6 Months)</h3>
-          <div className="h-64">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={data?.closureRates ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -111,9 +111,9 @@ export default function DashboardCharts() {
           </div>
         </div>
         
-        <div className="rounded-2xl border bg-white p-4">
+        <div className="rounded-2xl border bg-white p-6">
           <h3 className="text-lg font-semibold mb-4">Payment Methods</h3>
-          <div className="h-64">
+          <div className="h-80">
             {!data?.paymentMethods || data.paymentMethods.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-500">
                 <p>No payment data available</p>
@@ -122,14 +122,14 @@ export default function DashboardCharts() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   data={data.paymentMethods} 
-                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="method"
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={80}
                     tick={{ fontSize: 12 }}
                   />
                   <YAxis 
@@ -148,13 +148,6 @@ export default function DashboardCharts() {
               </ResponsiveContainer>
             )}
           </div>
-          {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="text-xs text-gray-400 mt-2">
-              Debug: {data?.paymentMethods?.length || 0} payment methods loaded
-              {data?.paymentMethods?.map(pm => ` | ${pm.method}: ${fmtUSD(pm.amount_cents)}`)}
-            </div>
-          )}
         </div>
       </div>
     </div>
