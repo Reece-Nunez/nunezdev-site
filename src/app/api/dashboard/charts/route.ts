@@ -127,10 +127,25 @@ export async function GET() {
   const paymentMethods = Object.entries(methodMap)
     .filter(([method, amount]) => amount > 0) // Only include methods with payments
     .map(([method, amount]) => ({
-      method,
+      method: method || 'Unknown',
       amount_cents: amount
     }))
     .sort((a, b) => b.amount_cents - a.amount_cents); // Sort by amount descending
+
+  console.log("Final payment methods for chart:", paymentMethods);
+
+  // If no payment methods found, provide fallback data
+  if (paymentMethods.length === 0) {
+    console.log("No payment methods found, providing fallback");
+    // You can check if there are any payments at all to provide meaningful fallback
+    const totalPayments = (allPayments ?? []).reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+    if (totalPayments > 0) {
+      paymentMethods.push({
+        method: 'Unclassified',
+        amount_cents: totalPayments
+      });
+    }
+  }
 
   return NextResponse.json({ 
     pipelineByStage, 

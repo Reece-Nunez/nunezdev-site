@@ -114,37 +114,47 @@ export default function DashboardCharts() {
         <div className="rounded-2xl border bg-white p-4">
           <h3 className="text-lg font-semibold mb-4">Payment Methods</h3>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={data?.paymentMethods ?? []} 
-                layout="horizontal"
-                margin={{ top: 5, right: 20, left: 60, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  type="number"
-                  tickFormatter={(v) => fmtUSD(v).replace('.00', '')}
-                  domain={[0, 'dataMax']}
-                />
-                <YAxis 
-                  type="category"
-                  dataKey="method"
-                  width={100}
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip 
-                  formatter={(value: any) => [fmtUSD(value as number), 'Total Amount']}
-                  labelFormatter={(label) => `${label}`}
-                />
-                <Bar 
-                  dataKey="amount_cents" 
-                  fill="#8b5cf6"
-                  radius={[0, 4, 4, 0]}
-                  minPointSize={2}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {!data?.paymentMethods || data.paymentMethods.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p>No payment data available</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={data.paymentMethods} 
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="method"
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    tickFormatter={(v) => fmtUSD(v).replace('.00', '')}
+                  />
+                  <Tooltip 
+                    formatter={(value: any) => [fmtUSD(value as number), 'Total Amount']}
+                    labelFormatter={(label) => `Payment Method: ${label}`}
+                  />
+                  <Bar 
+                    dataKey="amount_cents" 
+                    fill="#8b5cf6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-gray-400 mt-2">
+              Debug: {data?.paymentMethods?.length || 0} payment methods loaded
+              {data?.paymentMethods?.map(pm => ` | ${pm.method}: ${fmtUSD(pm.amount_cents)}`)}
+            </div>
+          )}
         </div>
       </div>
     </div>
