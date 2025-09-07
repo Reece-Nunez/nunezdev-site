@@ -130,6 +130,22 @@ export async function POST(req: Request, ctx: Ctx) {
           type: 'deal_payment',
           created_at: new Date().toISOString()
         },
+        payment_intent_data: {
+          metadata: {
+            invoice_id: invoice.id,
+            deal_id: dealId,
+            client_id: (deal.client as any)?.id || '',
+            org_id: orgId,
+            invoice_number: invoice.invoice_number || '',
+            client_email: (deal.client as any)?.email || '',
+            client_name: (deal.client as any)?.name || '',
+            amount_cents: paymentAmount.toString(),
+            source: 'stripe_payment_link',
+            deal_title: deal.title,
+            type: 'deal_payment',
+            created_at: new Date().toISOString()
+          }
+        },
         after_completion: {
           type: "redirect",
           redirect: {
