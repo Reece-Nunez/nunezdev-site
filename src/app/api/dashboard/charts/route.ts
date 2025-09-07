@@ -13,58 +13,37 @@ export async function GET() {
   const { data: deals } = await supabase
     .from("deals")
     .select("stage, value_cents")
-    .eq("org_id", orgId);
+    .eq("org_id", orgId)
+    .not("stage", "in", '("Won","Lost","Abandoned")');
 
   const stages = ['Contacted','Negotiation','Contract Sent','Contract Signed'];
-  const pipelineMap: Record<string, number> = { 'Contacted':0, 'Negotiation':0, 'Contract Sent':0, 'Contract Signed':0 };
+  const pipelineMap: Record<string, number> = {};
+  stages.forEach(s => pipelineMap[s] = 0);
+  
   (deals ?? []).forEach(d => {
-    if (stages.includes(d.stage as string)) pipelineMap[d.stage as string] += d.value_cents ?? 0;
+    if (stages.includes(d.stage as string)) {
+      pipelineMap[d.stage as string] += d.value_cents ?? 0;
+    }
   });
   const pipelineByStage = stages.map(s => ({ stage: s, value_cents: pipelineMap[s] }));
 
-  // Revenue by month (YTD, from actual payments)
-  // Fix timezone issue by using UTC dates
+  // Revenue by month (YTD, from actual payments) - fix to use proper org filtering
   const start = new Date();
   start.setUTCMonth(0); 
   start.setUTCDate(1); 
   start.setUTCHours(0,0,0,0);
-  
-  console.log("Charts revenue calculation:", {
-    startOfYear: start.toISOString(),
-    orgId
-  });
-  
-  // Use direct approach with known invoice IDs
-  const knownInvoiceIds = [
-    "1a7d1c82-89e5-42dd-b559-21e75e532f40", // The Rapid Rescore
-    "724722c2-fd22-44d3-be97-b35a5b6d328b", // Custom Website
-    "7bf06f1b-7ca5-4f6c-93e0-6be5798506c0", // Website Updates
-    "8af7a0b8-bd10-40cc-8352-36c33cc805ea", // Payments Backfill
-    "af03574c-2c96-49f2-acca-80d1fde9500a", // Artisan Construction
-    "d2bdce7b-708e-4ff5-9739-6dbc9b1fecad", // Backfill payments
-    "d5adf9aa-88d3-455a-8e7b-e7d7218c92e9"  // Nooqbook updates
-  ];
 
-  const { data: finalPayments } = await supabase
+  const { data: payments } = await supabase
     .from("invoice_payments")
-    .select("amount_cents, paid_at, invoice_id")
-    .in("invoice_id", knownInvoiceIds)
+    .select("amount_cents, paid_at, invoices!inner(org_id)")
+    .eq("invoices.org_id", orgId)
     .gte("paid_at", start.toISOString());
 
-  console.log("Charts payments found:", finalPayments?.length || 0);
-  console.log("Payments detail:", finalPayments?.map(p => ({ 
-    amount: (p.amount_cents / 100).toFixed(2),
-    date: p.paid_at,
-    invoice: p.invoice_id.slice(-8)
-  })));
-
   const revMap: Record<string, number> = {};
-  (finalPayments ?? []).forEach(payment => {
+  (payments ?? []).forEach(payment => {
     const m = new Date(payment.paid_at).toISOString().slice(0,7); // YYYY-MM
     revMap[m] = (revMap[m] ?? 0) + (payment.amount_cents ?? 0);
   });
-  
-  console.log("Revenue by month mapping:", revMap);
   
   const months = Array.from({length: 12}, (_,k) => {
     const d = new Date(2025, k, 1);
@@ -72,7 +51,91 @@ export async function GET() {
   });
   const revenueByMonth = months.map(m => ({ month: m, cents: revMap[m] ?? 0 }));
 
-  console.log("Final revenue by month data:", revenueByMonth.filter(m => m.cents > 0));
+  // Deal closure rates over time (last 6 months)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  
+  const { data: recentDeals } = await supabase
+    .from("deals")
+    .select("stage, created_at, value_cents")
+    .eq("org_id", orgId)
+    .gte("created_at", sixMonthsAgo.toISOString());
 
-  return NextResponse.json({ pipelineByStage, revenueByMonth });
+  const dealsByMonth: Record<string, {created: number, won: number, lost: number}> = {};
+  const last6Months = Array.from({length: 6}, (_, k) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - k);
+    return d.toISOString().slice(0,7);
+  }).reverse();
+
+  last6Months.forEach(m => dealsByMonth[m] = {created: 0, won: 0, lost: 0});
+  
+  (recentDeals ?? []).forEach(deal => {
+    const m = new Date(deal.created_at).toISOString().slice(0,7);
+    if (dealsByMonth[m]) {
+      dealsByMonth[m].created++;
+      if (deal.stage === 'Won') dealsByMonth[m].won++;
+      else if (deal.stage === 'Lost') dealsByMonth[m].lost++;
+    }
+  });
+
+  const closureRates = last6Months.map(m => ({
+    month: m,
+    created: dealsByMonth[m].created,
+    won: dealsByMonth[m].won,
+    lost: dealsByMonth[m].lost,
+    winRate: dealsByMonth[m].created > 0 ? Math.round((dealsByMonth[m].won / dealsByMonth[m].created) * 100) : 0
+  }));
+
+  // Payment methods breakdown
+  const { data: allPayments } = await supabase
+    .from("invoice_payments")
+    .select("payment_method, amount_cents, stripe_payment_intent_id, invoices!inner(org_id)")
+    .eq("invoices.org_id", orgId);
+
+  console.log("Payment methods raw data:", allPayments?.slice(0, 5).map(p => ({
+    payment_method: p.payment_method,
+    has_stripe: !!p.stripe_payment_intent_id,
+    amount_cents: p.amount_cents
+  })));
+
+  const methodMap: Record<string, number> = {};
+  (allPayments ?? []).forEach(payment => {
+    // Better payment method classification
+    let method: string;
+    if (payment.stripe_payment_intent_id) {
+      method = 'Stripe';
+    } else if (payment.payment_method === 'card') {
+      method = 'Card';
+    } else if (payment.payment_method === 'bank_transfer') {
+      method = 'Bank Transfer';
+    } else if (payment.payment_method === 'check') {
+      method = 'Check';
+    } else if (payment.payment_method === 'cash') {
+      method = 'Cash';
+    } else if (payment.payment_method) {
+      method = String(payment.payment_method).charAt(0).toUpperCase() + String(payment.payment_method).slice(1);
+    } else {
+      method = 'Manual/Other';
+    }
+    
+    methodMap[method] = (methodMap[method] || 0) + (payment.amount_cents || 0);
+  });
+
+  console.log("Payment methods mapped:", methodMap);
+
+  const paymentMethods = Object.entries(methodMap)
+    .filter(([method, amount]) => amount > 0) // Only include methods with payments
+    .map(([method, amount]) => ({
+      method,
+      amount_cents: amount
+    }))
+    .sort((a, b) => b.amount_cents - a.amount_cents); // Sort by amount descending
+
+  return NextResponse.json({ 
+    pipelineByStage, 
+    revenueByMonth,
+    closureRates,
+    paymentMethods
+  });
 }
