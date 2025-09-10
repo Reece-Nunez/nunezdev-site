@@ -5,13 +5,14 @@ import Stripe from "stripe";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-07-30.basil',
-});
-
 // This endpoint will be called by a cron job or manually to process recurring invoices
 export async function POST(request: Request) {
   try {
+    // Initialize Stripe at runtime
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2025-07-30.basil',
+    });
+
     // Optional auth check - you might want to protect this with an API key
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
