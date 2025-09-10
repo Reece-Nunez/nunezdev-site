@@ -18,6 +18,12 @@ interface RecurringInvoice {
   day_of_month?: number;
   total_invoices_sent: number;
   last_invoice_sent_at?: string;
+  payment_terms: string | number;
+  require_signature: boolean;
+  send_reminder: boolean;
+  reminder_days_before: number;
+  brand_logo_url?: string;
+  brand_primary?: string;
   clients: {
     id: string;
     name: string;
@@ -824,7 +830,7 @@ function EditRecurringInvoiceModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
                 <select
                   name="payment_terms"
-                  defaultValue={(recurringInvoice as any).payment_terms || '30'}
+                  defaultValue={recurringInvoice.payment_terms || '30'}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="0">Due on receipt</option>
@@ -840,7 +846,7 @@ function EditRecurringInvoiceModal({
                 type="checkbox"
                 name="require_signature"
                 id="edit_require_signature"
-                defaultChecked={(recurringInvoice as any).require_signature}
+                defaultChecked={recurringInvoice.require_signature}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="edit_require_signature" className="ml-2 text-sm text-gray-700">
