@@ -167,8 +167,10 @@ export async function POST(request: Request) {
             }
 
             // Finalize and send the invoice
-            await stripe.invoices.finalizeInvoice(stripeInvoice.id);
-            await stripe.invoices.sendInvoice(stripeInvoice.id);
+            if (stripeInvoice.id) {
+              await stripe.invoices.finalizeInvoice(stripeInvoice.id);
+              await stripe.invoices.sendInvoice(stripeInvoice.id);
+            }
 
             stripeInvoiceId = stripeInvoice.id;
 
