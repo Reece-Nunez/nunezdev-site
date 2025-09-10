@@ -840,7 +840,7 @@ function EditRecurringInvoiceModal({
                 type="checkbox"
                 name="require_signature"
                 id="edit_require_signature"
-                defaultChecked={recurringInvoice.require_signature}
+                defaultChecked={(recurringInvoice as any).require_signature}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="edit_require_signature" className="ml-2 text-sm text-gray-700">
