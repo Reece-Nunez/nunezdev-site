@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-10-28.acacia',
+  apiVersion: '2025-07-30.basil',
 });
 
 // This endpoint will be called by a cron job or manually to process recurring invoices
