@@ -1,0 +1,12 @@
+{
+  "name": "deploy-lambda",
+  "version": "1.0.0",
+  "description": "Deploy Lambda function for recurring invoices",
+  "main": "deploy-lambda.js",
+  "scripts": {
+    "deploy": "node deploy-lambda.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1691.0"
+  }
+}

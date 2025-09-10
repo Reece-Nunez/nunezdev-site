@@ -1,0 +1,12 @@
+{
+  "name": "recurring-invoices-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda function to process recurring invoices daily",
+  "main": "process-recurring-invoices.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["aws", "lambda", "recurring", "invoices", "automation"],
+  "author": "NunezDev",
+  "license": "ISC"
+}

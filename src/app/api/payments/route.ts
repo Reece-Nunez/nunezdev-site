@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,52 +33,45 @@ export async function GET(request: Request) {
   const clientFilter = searchParams.get('client') || '';
 
   try {
-    // First, get all invoices with their payments and client info for this org
-    const { data: invoicesWithPayments, error } = await gate.supabase
-      .from('invoices')
+    // Query payments directly with joined invoice and client data
+    const { data: paymentsData, error } = await gate.supabase
+      .from('invoice_payments')
       .select(`
         id,
-        description,
-        invoice_number,
-        client_id,
-        clients!client_id (
+        amount_cents,
+        paid_at,
+        payment_method,
+        stripe_payment_intent_id,
+        metadata,
+        invoices!invoice_id (
           id,
-          name
-        ),
-        invoice_payments (
-          id,
-          amount_cents,
-          paid_at,
-          payment_method,
-          stripe_payment_intent_id,
-          metadata
+          description,
+          invoice_number,
+          client_id,
+          org_id,
+          clients!client_id (
+            id,
+            name
+          )
         )
       `)
-      .eq('org_id', gate.orgId)
-      .not('invoice_payments.id', 'is', null);
+      .eq('invoices.org_id', gate.orgId);
 
     if (error) {
-      console.error('Error fetching invoices with payments:', error);
+      console.error('Error fetching payments:', error);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Flatten the data structure to get individual payments
-    const allPayments: any[] = [];
-    invoicesWithPayments?.forEach(invoice => {
-      if (invoice.invoice_payments && invoice.clients) {
-        invoice.invoice_payments.forEach(payment => {
-          allPayments.push({
-            ...payment,
-            invoice: {
-              id: invoice.id,
-              description: invoice.description,
-              invoice_number: invoice.invoice_number,
-              client: Array.isArray(invoice.clients) ? invoice.clients[0] : invoice.clients
-            }
-          });
-        });
+    // Transform the data structure to match the expected format
+    const allPayments: any[] = paymentsData?.map(payment => ({
+      ...payment,
+      invoice: {
+        id: payment.invoices.id,
+        description: payment.invoices.description,
+        invoice_number: payment.invoices.invoice_number,
+        client: Array.isArray(payment.invoices.clients) ? payment.invoices.clients[0] : payment.invoices.clients
       }
-    });
+    })) || [];
 
     // Apply filters
     let filteredPayments = allPayments;
@@ -132,5 +126,125 @@ export async function GET(request: Request) {
     console.error("Failed to fetch payments:", error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  const gate = await requireAuthedOrgId();
+  if (!gate.ok) return NextResponse.json(gate.json, { status: gate.status });
+
+  // Use admin client for payment operations to bypass RLS
+  const adminSupabase = supabaseAdmin();
+
+  try {
+    const { 
+      invoice_id, 
+      amount_cents, 
+      payment_method, 
+      paid_at, 
+      notes,
+      manual 
+    } = await request.json();
+
+    console.log(`Creating manual payment: ${amount_cents} cents for invoice ${invoice_id}`);
+
+    // Validate required fields
+    if (!invoice_id || !amount_cents || !payment_method || !paid_at) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (amount_cents <= 0) {
+      return NextResponse.json({ error: 'Payment amount must be greater than 0' }, { status: 400 });
+    }
+
+    // Get the invoice details and verify it belongs to the user's org
+    const { data: invoice, error: invoiceError } = await adminSupabase
+      .from('invoices')
+      .select('id, invoice_number, amount_cents, status, client_id, total_paid_cents, remaining_balance_cents, clients(name, email)')
+      .eq('id', invoice_id)
+      .eq('org_id', gate.orgId)
+      .single();
+
+    if (invoiceError || !invoice) {
+      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+
+    // Create the payment record
+    const paymentData = {
+      invoice_id: invoice.id,
+      amount_cents: amount_cents,
+      paid_at: new Date(paid_at).toISOString(),
+      payment_method: payment_method,
+      metadata: {
+        source: 'manual_payment',
+        created_manually: true,
+        created_at: new Date().toISOString(),
+        invoice_number: invoice.invoice_number,
+        notes: notes || '',
+        note: 'Payment created manually via dashboard'
+      }
+    };
+
+    const { data: newPayment, error: paymentError } = await adminSupabase
+      .from('invoice_payments')
+      .insert(paymentData)
+      .select('*')
+      .single();
+
+    if (paymentError) {
+      console.error('Failed to create payment:', paymentError);
+      return NextResponse.json({ error: paymentError.message }, { status: 400 });
+    }
+
+    // Calculate new invoice totals
+    const { data: allPayments } = await adminSupabase
+      .from('invoice_payments')
+      .select('amount_cents')
+      .eq('invoice_id', invoice.id);
+
+    const totalPaidCents = (allPayments || []).reduce((sum, p) => sum + p.amount_cents, 0);
+    const remainingBalanceCents = Math.max(invoice.amount_cents - totalPaidCents, 0);
+    
+    // Determine new status based on payment totals
+    let newStatus = 'sent';
+    if (totalPaidCents >= invoice.amount_cents) {
+      newStatus = 'paid';
+    } else if (totalPaidCents > 0) {
+      newStatus = 'partially_paid';
+    }
+
+    // Update invoice totals to reflect the payment
+    const { data: updatedInvoice, error: updateError } = await adminSupabase
+      .from('invoices')
+      .update({
+        status: newStatus,
+        total_paid_cents: totalPaidCents,
+        remaining_balance_cents: remainingBalanceCents,
+        paid_at: newStatus === 'paid' ? paymentData.paid_at : null
+      })
+      .eq('id', invoice.id)
+      .select('*')
+      .single();
+
+    if (updateError) {
+      console.error('Failed to update invoice:', updateError);
+    }
+
+    const result = {
+      success: true,
+      message: `Manual payment of $${(amount_cents / 100).toFixed(2)} created for invoice ${invoice.invoice_number}`,
+      payment: newPayment,
+      invoice: updatedInvoice || invoice
+    };
+
+    console.log('Manual payment created:', result);
+    return NextResponse.json(result);
+
+  } catch (error) {
+    console.error('Manual payment creation error:', error);
+    return NextResponse.json({
+      error: 'Payment creation failed',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }

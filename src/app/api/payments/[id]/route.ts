@@ -173,7 +173,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
   try {
     const updateData = await request.json();
-    const { amount_cents, payment_method, notes } = updateData;
+    const { amount_cents, payment_method, notes, paid_at } = updateData;
 
     // First verify the payment exists and belongs to this org
     const { data: existingPayment, error: fetchError } = await gate.supabase
@@ -203,6 +203,10 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     
     if (payment_method !== undefined) {
       updatePayload.payment_method = payment_method;
+    }
+
+    if (paid_at !== undefined) {
+      updatePayload.paid_at = new Date(paid_at).toISOString();
     }
 
     if (notes !== undefined) {

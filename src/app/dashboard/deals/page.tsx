@@ -1,8 +1,10 @@
 'use client';
 
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import Link from 'next/link';
+import { useState } from 'react';
 import { stageToProgress, currency } from '@/lib/progress';
+import { useToast } from '@/components/ui/Toast';
 
 interface Deal {
   id: string;
@@ -47,6 +49,11 @@ function getStageColor(stage: string) {
 
 export default function DealsPage() {
   const { data, error, isLoading } = useSWR<DealsResponse>('/api/deals', fetcher);
+  const { mutate } = useSWRConfig();
+  const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [deletingDeal, setDeletingDeal] = useState<string | null>(null);
+  const { showToast, ToastContainer } = useToast();
 
   if (isLoading) return <div className="p-6">Loading deals…</div>;
   if (error || !data) return <div className="p-6 text-red-600">Failed to load deals</div>;
@@ -56,17 +63,121 @@ export default function DealsPage() {
   const openDeals = deals.filter(deal => !['Won', 'Lost', 'Abandoned'].includes(deal.stage));
   const wonDeals = deals.filter(deal => deal.stage === 'Won');
 
+  const handleDeleteDeal = async (dealId: string) => {
+    if (!confirm('Are you sure you want to delete this deal? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingDeal(dealId);
+    try {
+      const response = await fetch(`/api/deals/${dealId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete deal');
+      }
+
+      mutate('/api/deals');
+      showToast('Deal deleted successfully', 'success');
+    } catch (error) {
+      console.error('Error deleting deal:', error);
+      showToast(error instanceof Error ? error.message : 'Failed to delete deal', 'error');
+    } finally {
+      setDeletingDeal(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedDeals.size === 0) {
+      showToast('No deals selected', 'error');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedDeals.size} deal(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    setBulkDeleting(true);
+    try {
+      const deletePromises = Array.from(selectedDeals).map(dealId =>
+        fetch(`/api/deals/${dealId}`, { method: 'DELETE' })
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+      
+      const successful = results.filter(result => result.status === 'fulfilled').length;
+      const failed = results.filter(result => result.status === 'rejected').length;
+
+      setSelectedDeals(new Set());
+      mutate('/api/deals');
+      
+      if (successful > 0) {
+        showToast(`${successful} deal(s) deleted successfully`, 'success');
+      }
+      if (failed > 0) {
+        showToast(`${failed} deal(s) failed to delete`, 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting deals:', error);
+      showToast('Failed to delete deals', 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const toggleDealSelection = (dealId: string) => {
+    setSelectedDeals(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(dealId)) {
+        newSelection.delete(dealId);
+      } else {
+        newSelection.add(dealId);
+      }
+      return newSelection;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedDeals(prev => {
+      if (prev.size === deals.length) {
+        return new Set();
+      } else {
+        return new Set(deals.map(d => d.id));
+      }
+    });
+  };
+
   return (
-    <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
-      <div className="flex items-center justify-between gap-3 max-w-full">
-        <h1 className="text-xl sm:text-2xl font-semibold min-w-0 truncate">Deals</h1>
-        <Link
-          href="/deals/new"
-          className="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:opacity-90 text-sm whitespace-nowrap flex-shrink-0"
-        >
-          + New
-        </Link>
-      </div>
+    <>
+      <ToastContainer />
+      <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
+        <div className="flex items-center justify-between gap-3 max-w-full">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold min-w-0 truncate">Deals</h1>
+            {selectedDeals.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  {selectedDeals.size} selected
+                </span>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="rounded-lg border border-red-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-red-50 disabled:opacity-60 text-red-700 text-xs sm:text-sm whitespace-nowrap"
+                >
+                  {bulkDeleting ? 'Deleting…' : `Delete ${selectedDeals.size}`}
+                </button>
+              </div>
+            )}
+          </div>
+          <Link
+            href="/deals/new"
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:opacity-90 text-sm whitespace-nowrap flex-shrink-0"
+          >
+            + New
+          </Link>
+        </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
@@ -98,23 +209,38 @@ export default function DealsPage() {
           deals.map((deal) => (
             <div key={deal.id} className="bg-white rounded-xl border shadow-sm p-3 w-full min-w-0">
               <div className="flex items-start justify-between mb-2 gap-2 w-full min-w-0">
-                <div className="min-w-0 flex-1">
-                  <Link 
-                    href={`/deals/${deal.id}`}
-                    className="font-medium text-blue-600 hover:underline text-sm block truncate"
-                  >
-                    {deal.title}
-                  </Link>
-                  {deal.client && (
-                    <div className="text-xs text-gray-600 mt-1 truncate">
-                      {deal.client.name}
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedDeals.has(deal.id)}
+                    onChange={() => toggleDealSelection(deal.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <Link 
+                      href={`/deals/${deal.id}`}
+                      className="font-medium text-blue-600 hover:underline text-sm block truncate"
+                    >
+                      {deal.title}
+                    </Link>
+                    {deal.client && (
+                      <div className="text-xs text-gray-600 mt-1 truncate">
+                        {deal.client.name}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-shrink-0">
+                <div className="flex gap-2 items-center flex-shrink-0">
                   <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${getStageColor(deal.stage)}`}>
                     {deal.stage}
                   </span>
+                  <button
+                    onClick={() => handleDeleteDeal(deal.id)}
+                    disabled={deletingDeal === deal.id}
+                    className="px-2 py-1 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50"
+                  >
+                    {deletingDeal === deal.id ? '...' : 'Del'}
+                  </button>
                 </div>
               </div>
               
@@ -163,6 +289,14 @@ export default function DealsPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 text-left">
               <tr>
+                <th className="px-4 py-3 w-12">
+                  <input
+                    type="checkbox"
+                    checked={deals.length > 0 && selectedDeals.size === deals.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-4 py-3">Deal</th>
                 <th className="px-4 py-3">Client</th>
                 <th className="px-4 py-3">Stage</th>
@@ -172,18 +306,27 @@ export default function DealsPage() {
                 <th className="px-4 py-3">Expected Close</th>
                 <th className="px-4 py-3">Source</th>
                 <th className="px-4 py-3">Created</th>
+                <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {deals.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={11} className="px-4 py-8 text-center text-gray-500">
                     No deals found. Try syncing from HubSpot or create deals manually.
                   </td>
                 </tr>
               ) : (
                 deals.map((deal) => (
                   <tr key={deal.id} className="border-t hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedDeals.has(deal.id)}
+                        onChange={() => toggleDealSelection(deal.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <Link 
                         href={`/deals/${deal.id}`}
@@ -242,6 +385,25 @@ export default function DealsPage() {
                     <td className="px-4 py-3">
                       {formatDate(deal.created_at)}
                     </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2">
+                        <Link
+                          href={`/deals/${deal.id}`}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          title="Edit Deal"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteDeal(deal.id)}
+                          disabled={deletingDeal === deal.id}
+                          className="text-red-600 hover:text-red-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Delete Deal"
+                        >
+                          {deletingDeal === deal.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -249,6 +411,7 @@ export default function DealsPage() {
           </table>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

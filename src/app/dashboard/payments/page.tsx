@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
 import Link from 'next/link';
 import { currency, prettyDate } from '@/lib/ui';
@@ -45,6 +45,7 @@ export default function PaymentsPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
   const [actionLoading, setActionLoading] = useState<string>('');
 
   const { data, error, isLoading } = useSWR<PaymentsData>(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`, fetcher);
@@ -88,6 +89,7 @@ export default function PaymentsPage() {
     setShowEditModal(false);
     setShowDetailsModal(false);
     setShowAddNoteModal(false);
+    setShowAddPaymentModal(false);
   };
 
   const deletePayment = async (paymentId: string) => {
@@ -172,6 +174,15 @@ export default function PaymentsPage() {
           <h1 className="text-2xl font-semibold">Payments</h1>
           <p className="text-gray-600">Track all payments across clients and deals</p>
         </div>
+        <button
+          onClick={() => setShowAddPaymentModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Add Manual Payment
+        </button>
       </div>
 
       {/* Summary Cards */}
@@ -616,19 +627,65 @@ export default function PaymentsPage() {
                 </svg>
               </button>
             </div>
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
-              // TODO: Implement edit functionality
-              alert('Edit functionality to be implemented');
-              closeModals();
+              if (!selectedPayment) return;
+              
+              const formData = new FormData(e.target as HTMLFormElement);
+              const amount = parseFloat(formData.get('amount') as string);
+              const paymentMethod = formData.get('payment_method') as string;
+              const notes = formData.get('notes') as string;
+              const paidAt = formData.get('paid_at') as string;
+              
+              if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+              }
+              
+              setActionLoading(selectedPayment.id);
+              try {
+                const response = await fetch(`/api/payments/${selectedPayment.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    amount_cents: Math.round(amount * 100),
+                    payment_method: paymentMethod,
+                    notes: notes,
+                    paid_at: paidAt
+                  })
+                });
+                
+                if (!response.ok) throw new Error('Update failed');
+                
+                // Refresh data
+                mutate(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`);
+                closeModals();
+                alert('Payment updated successfully');
+              } catch (error) {
+                alert('Failed to update payment');
+              } finally {
+                setActionLoading('');
+              }
             }}>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
                   <input
+                    name="amount"
                     type="number"
                     step="0.01"
+                    min="0"
                     defaultValue={(selectedPayment.amount_cents / 100).toFixed(2)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                  <input
+                    name="paid_at"
+                    type="date"
+                    defaultValue={new Date(selectedPayment.paid_at).toISOString().split('T')[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -636,6 +693,7 @@ export default function PaymentsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
                   <select
+                    name="payment_method"
                     defaultValue={selectedPayment.payment_method || 'Manual'}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
@@ -649,9 +707,11 @@ export default function PaymentsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                   <textarea
+                    name="notes"
                     defaultValue={selectedPayment.metadata?.notes || selectedPayment.metadata?.description || ''}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     rows={3}
+                    placeholder="Add notes about this payment..."
                   />
                 </div>
               </div>
@@ -729,6 +789,284 @@ export default function PaymentsPage() {
           </div>
         </div>
       )}
+
+      {/* Add Manual Payment Modal */}
+      {showAddPaymentModal && (
+        <AddManualPaymentModal 
+          onClose={closeModals}
+          onSuccess={() => {
+            mutate(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`);
+            closeModals();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Add Manual Payment Modal Component
+function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [selectedClient, setSelectedClient] = useState('');
+  const [selectedInvoice, setSelectedInvoice] = useState('');
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+
+  // Fetch clients on modal open
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await fetch('/api/clients');
+        const data = await response.json();
+        setClients(data.clients || []);
+      } catch (error) {
+        console.error('Failed to fetch clients:', error);
+      }
+    };
+    fetchClients();
+  }, []);
+
+  // Fetch invoices when client is selected
+  useEffect(() => {
+    if (selectedClient) {
+      const fetchInvoices = async () => {
+        setLoadingInvoices(true);
+        try {
+          // Fetch all invoices for the client and filter on frontend
+          const response = await fetch(`/api/invoices?client_id=${selectedClient}`);
+          const data = await response.json();
+          
+          // Filter for unpaid invoices (sent, partially_paid, overdue, draft)
+          const unpaidInvoices = (data.invoices || []).filter((invoice: any) => 
+            ['sent', 'partially_paid', 'overdue', 'draft'].includes(invoice.status)
+          );
+          
+          setInvoices(unpaidInvoices);
+        } catch (error) {
+          console.error('Failed to fetch invoices:', error);
+          setInvoices([]);
+        } finally {
+          setLoadingInvoices(false);
+        }
+      };
+      fetchInvoices();
+    } else {
+      setInvoices([]);
+      setSelectedInvoice('');
+    }
+  }, [selectedClient]);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const amount = parseFloat(formData.get('amount') as string);
+    const paymentMethod = formData.get('payment_method') as string;
+    const paymentDate = formData.get('payment_date') as string;
+    const notes = formData.get('notes') as string;
+
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid payment amount');
+      setLoading(false);
+      return;
+    }
+
+    if (!selectedInvoice) {
+      alert('Please select an invoice');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invoice_id: selectedInvoice,
+          amount_cents: Math.round(amount * 100),
+          payment_method: paymentMethod,
+          paid_at: paymentDate,
+          notes: notes,
+          manual: true
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create payment');
+      }
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Payment creation failed:', error);
+      alert(`Failed to create payment: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedInvoiceData = invoices.find(inv => inv.id === selectedInvoice);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-start mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">Add Manual Payment</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            {/* Client Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Client <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a client...</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>
+                    {client.name} ({client.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Invoice Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Invoice <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedInvoice}
+                onChange={(e) => setSelectedInvoice(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+                disabled={!selectedClient || loadingInvoices}
+              >
+                <option value="">
+                  {!selectedClient ? 'Select a client first...' : 
+                   loadingInvoices ? 'Loading invoices...' : 
+                   'Select an invoice...'}
+                </option>
+                {invoices.map(invoice => (
+                  <option key={invoice.id} value={invoice.id}>
+                    {invoice.invoice_number} - ${((invoice.remaining_balance_cents || invoice.amount_cents) / 100).toFixed(2)} due
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Invoice Details */}
+            {selectedInvoiceData && (
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-900">
+                  <strong>Invoice:</strong> {selectedInvoiceData.invoice_number}<br/>
+                  <strong>Total Amount:</strong> ${(selectedInvoiceData.amount_cents / 100).toFixed(2)}<br/>
+                  <strong>Paid So Far:</strong> ${((selectedInvoiceData.total_paid_cents || 0) / 100).toFixed(2)}<br/>
+                  <strong>Remaining Balance:</strong> ${((selectedInvoiceData.remaining_balance_cents || selectedInvoiceData.amount_cents) / 100).toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Payment Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Amount <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  min="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+
+              {/* Payment Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="payment_date"
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Method <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="payment_method"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="CashApp">CashApp</option>
+                <option value="Venmo">Venmo</option>
+                <option value="Zelle">Zelle</option>
+                <option value="Cash">Cash</option>
+                <option value="Check">Check</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="PayPal">PayPal</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes (Optional)
+              </label>
+              <textarea
+                name="notes"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                placeholder="Add any notes about this payment (transaction ID, reference number, etc.)"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Creating Payment...' : 'Create Payment'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

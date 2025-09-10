@@ -46,7 +46,12 @@
       "Read(/C:\\Users\\reece\\Downloads/**)",
       "Bash(pkill:*)",
       "Read(//c/Users/reece/Downloads/**)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(git reset:*)",
+      "Bash(aws amplify list-apps:*)",
+      "Bash(amplify pull:*)",
+      "Bash(aws amplify update-app:*)",
+      "Bash(zip:*)"
     ],
     "deny": [],
     "ask": [],

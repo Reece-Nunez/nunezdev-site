@@ -4,12 +4,17 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { stageToProgress, currency } from '@/lib/progress';
+import { useToast } from '@/components/ui/Toast';
 import type { ClientOverview } from '@/types/clients';
 
 export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOverview[]; onClientDeleted?: () => void }) {
   const router = useRouter();
   const [deletingClient, setDeletingClient] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const { showToast, ToastContainer } = useToast();
   
   const totals = useMemo(() => {
     const t = { invoiced: 0, paid: 0, due: 0 };
@@ -59,10 +64,100 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedClients.size === 0) {
+      showToast('No clients selected', 'error');
+      return;
+    }
+    setBulkDeleteConfirm(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    setBulkDeleting(true);
+    setBulkDeleteConfirm(false);
+    
+    try {
+      const deletePromises = Array.from(selectedClients).map(clientId =>
+        fetch(`/api/clients/${clientId}`, { method: 'DELETE' })
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+      
+      const successful = results.filter(result => result.status === 'fulfilled').length;
+      const failed = results.filter(result => result.status === 'rejected').length;
+
+      setSelectedClients(new Set());
+      onClientDeleted?.();
+      
+      if (successful > 0) {
+        showToast(`${successful} client(s) deleted successfully`, 'success');
+      }
+      if (failed > 0) {
+        showToast(`${failed} client(s) failed to delete`, 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting clients:', error);
+      showToast('Failed to delete clients', 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const toggleClientSelection = (clientId: string) => {
+    setSelectedClients(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(clientId)) {
+        newSelection.delete(clientId);
+      } else {
+        newSelection.add(clientId);
+      }
+      return newSelection;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedClients(prev => {
+      if (prev.size === rows.length) {
+        return new Set();
+      } else {
+        return new Set(rows.map(r => r.id));
+      }
+    });
+  };
+
   return (
-    <div className="w-full min-w-0 space-y-3">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0">
+    <>
+      <ToastContainer />
+      <div className="w-full min-w-0 space-y-3">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 max-w-full">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 min-w-0 truncate">Clients</h1>
+            {selectedClients.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  {selectedClients.size} selected
+                </span>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="rounded-lg border border-red-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-red-50 disabled:opacity-60 text-red-700 text-xs sm:text-sm whitespace-nowrap"
+                >
+                  {bulkDeleting ? 'Deleting…' : `Delete ${selectedClients.size}`}
+                </button>
+              </div>
+            )}
+          </div>
+          <Link
+            href="/dashboard/clients/new"
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-white hover:opacity-90 text-sm whitespace-nowrap flex-shrink-0"
+          >
+            + New
+          </Link>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0">
         <div className="rounded-xl border bg-white p-3 shadow-sm min-w-0">
           <div className="text-xs text-gray-600">Total Invoiced</div>
           <div className="text-base font-bold text-blue-600 truncate">{currency(totals.invoiced)}</div>
@@ -82,12 +177,20 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
         {Array.isArray(rows) ? rows.map((r) => (
           <div key={r.id} className="bg-white rounded-xl border shadow-sm p-3 w-full min-w-0">
             <div className="flex items-start justify-between mb-2 gap-2 w-full min-w-0">
-              <div className="min-w-0 flex-1">
-                <Link href={`/clients/${r.id}`} className="font-medium text-blue-600 hover:underline text-sm block truncate">
-                  {r.name}
-                </Link>
-                <div className="text-xs text-gray-600 mt-1 truncate">
-                  {r.company ?? '—'}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <input
+                  type="checkbox"
+                  checked={selectedClients.has(r.id)}
+                  onChange={() => toggleClientSelection(r.id)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="min-w-0 flex-1">
+                  <Link href={`/clients/${r.id}`} className="font-medium text-blue-600 hover:underline text-sm block truncate">
+                    {r.name}
+                  </Link>
+                  <div className="text-xs text-gray-600 mt-1 truncate">
+                    {r.company ?? '—'}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-1 flex-shrink-0">
@@ -164,6 +267,14 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
+              <th className="px-3 py-2 w-12">
+                <input
+                  type="checkbox"
+                  checked={Array.isArray(rows) && rows.length > 0 && selectedClients.size === rows.length}
+                  onChange={toggleSelectAll}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </th>
               <th className="px-3 py-2">Client</th>
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Phone</th>
@@ -180,6 +291,14 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
           <tbody>
             {Array.isArray(rows) ? rows.map((r) => (
               <tr key={r.id} className="border-t">
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedClients.has(r.id)}
+                    onChange={() => toggleClientSelection(r.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </td>
                 <td className="px-3 py-2">
                   <Link href={`/clients/${r.id}`} className="font-medium text-blue-600 hover:underline">
                     {r.name}
@@ -222,7 +341,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
               </tr>
             )) : (
               <tr>
-                <td colSpan={11} className="px-3 py-8 text-center text-gray-500">
+                <td colSpan={12} className="px-3 py-8 text-center text-gray-500">
                   No clients found
                 </td>
               </tr>
@@ -272,6 +391,49 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
           </div>
         </div>
       )}
-    </div>
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6">
+            <h3 className="mb-4 text-lg font-semibold text-red-600">Delete Multiple Clients</h3>
+            <div className="mb-4">
+              <p className="text-gray-700 mb-2">
+                Are you sure you want to delete <strong>{selectedClients.size} client(s)</strong>?
+              </p>
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
+                <strong>Warning:</strong> This will permanently delete for ALL selected clients:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>All client information</li>
+                  <li>All deals associated with these clients</li>
+                  <li>All invoices and payments</li>
+                  <li>All notes and tasks</li>
+                </ul>
+                <p className="mt-2"><strong>This action cannot be undone!</strong></p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setBulkDeleteConfirm(false)}
+                disabled={bulkDeleting}
+                className="rounded border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDeleteConfirm}
+                disabled={bulkDeleting}
+                className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {bulkDeleting ? 'Deleting...' : `Delete ${selectedClients.size} Clients`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
   );
 }

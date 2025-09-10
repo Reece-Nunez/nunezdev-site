@@ -158,6 +158,8 @@ export default function DashboardInvoices() {
   const [to, setTo] = useState('');
   const [q, setQ] = useState('');
   const [deletingInvoice, setDeletingInvoice] = useState<string | null>(null);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const { showToast, ToastContainer } = useToast();
 
   const url = `/api/dashboard/invoices?status=${status}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(
@@ -196,6 +198,70 @@ export default function DashboardInvoices() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedInvoices.size === 0) {
+      showToast('No invoices selected', 'error');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedInvoices.size} invoice(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    setBulkDeleting(true);
+    try {
+      const deletePromises = Array.from(selectedInvoices).map(invoiceId =>
+        fetch(`/api/invoices/${invoiceId}`, { method: 'DELETE' })
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+      
+      const successful = results.filter(result => result.status === 'fulfilled').length;
+      const failed = results.filter(result => result.status === 'rejected').length;
+
+      // Clear selections
+      setSelectedInvoices(new Set());
+      
+      // Refresh the invoices list
+      mutate(url);
+      
+      // Show success/error messages
+      if (successful > 0) {
+        showToast(`${successful} invoice(s) deleted successfully`, 'success');
+      }
+      if (failed > 0) {
+        showToast(`${failed} invoice(s) failed to delete`, 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting invoices:', error);
+      showToast('Failed to delete invoices', 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const toggleInvoiceSelection = (invoiceId: string) => {
+    setSelectedInvoices(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(invoiceId)) {
+        newSelection.delete(invoiceId);
+      } else {
+        newSelection.add(invoiceId);
+      }
+      return newSelection;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedInvoices(prev => {
+      if (prev.size === rows.length) {
+        return new Set(); // Deselect all
+      } else {
+        return new Set(rows.map(r => r.id)); // Select all
+      }
+    });
+  };
+
   // Relink orphans summary state
   const [relinking, setRelinking] = useState(false);
   const [relinkSummary, setRelinkSummary] = useState<null | {
@@ -230,7 +296,23 @@ export default function DashboardInvoices() {
       <ToastContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
       <div className="flex items-center justify-between gap-3 max-w-full">
-        <h1 className="text-xl sm:text-2xl font-semibold min-w-0 truncate">Invoices</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-xl sm:text-2xl font-semibold min-w-0 truncate">Invoices</h1>
+          {selectedInvoices.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {selectedInvoices.size} selected
+              </span>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="rounded-lg border border-red-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-red-50 disabled:opacity-60 text-red-700 text-xs sm:text-sm whitespace-nowrap"
+              >
+                {bulkDeleting ? 'Deleting…' : `Delete ${selectedInvoices.size}`}
+              </button>
+            </div>
+          )}
+        </div>
         <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
           <a
             href="/dashboard/invoices/new"
@@ -307,6 +389,15 @@ export default function DashboardInvoices() {
         
         {/* Mobile admin buttons */}
         <div className="sm:hidden flex flex-wrap gap-2">
+          {selectedInvoices.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="rounded-lg border border-red-300 px-2 py-1.5 hover:bg-red-50 disabled:opacity-60 text-red-700 text-xs whitespace-nowrap"
+            >
+              {bulkDeleting ? 'Deleting…' : `Delete ${selectedInvoices.size}`}
+            </button>
+          )}
           <button
             onClick={relinkOrphans}
             disabled={relinking}
@@ -336,15 +427,23 @@ export default function DashboardInvoices() {
         {rows.map((r) => (
           <div key={r.id} className="bg-white rounded-xl border shadow-sm p-3 w-full min-w-0">
             <div className="flex items-start justify-between mb-2 gap-2 w-full min-w-0">
-              <div className="min-w-0 flex-1">
-                <div className="font-medium text-sm">
-                  {r.clients?.name ? (
-                    <a href={`/invoices/${r.id}`} className="text-blue-600 hover:underline truncate block">
-                      {r.clients.name}
-                    </a>
-                  ) : '—'}
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <input
+                  type="checkbox"
+                  checked={selectedInvoices.has(r.id)}
+                  onChange={() => toggleInvoiceSelection(r.id)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm">
+                    {r.clients?.name ? (
+                      <a href={`/invoices/${r.id}`} className="text-blue-600 hover:underline truncate block">
+                        {r.clients.name}
+                      </a>
+                    ) : '—'}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">{r.clients?.email ?? ''}</div>
                 </div>
-                <div className="text-xs text-gray-500 truncate">{r.clients?.email ?? ''}</div>
               </div>
               <div className="flex-shrink-0">
                 <InvoiceStatusBadge status={r.status} />
@@ -425,6 +524,14 @@ export default function DashboardInvoices() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
+              <th className="px-3 py-2 w-12">
+                <input
+                  type="checkbox"
+                  checked={rows.length > 0 && selectedInvoices.size === rows.length}
+                  onChange={toggleSelectAll}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+              </th>
               <th className="px-3 py-2">Client</th>
               <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2 text-right">Amount</th>
@@ -438,7 +545,7 @@ export default function DashboardInvoices() {
           <tbody>
             {isLoading && (
               <tr className="border-t">
-                <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
+                <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
                   Loading…
                 </td>
               </tr>
@@ -446,7 +553,7 @@ export default function DashboardInvoices() {
 
             {!isLoading && rows.length === 0 && (
               <tr className="border-t">
-                <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
+                <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
                   No invoices found.
                 </td>
               </tr>
@@ -454,6 +561,14 @@ export default function DashboardInvoices() {
 
             {rows.map((r) => (
               <tr key={r.id} className="border-t">
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedInvoices.has(r.id)}
+                    onChange={() => toggleInvoiceSelection(r.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </td>
                 <td className="px-3 py-2">
                   <div className="font-medium">
                     {r.clients?.name ? (

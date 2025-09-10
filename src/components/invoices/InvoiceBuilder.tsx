@@ -44,7 +44,7 @@ export default function InvoiceBuilder({
     description: initialData?.description || '',
     notes: initialData?.notes || '',
     line_items: initialData?.line_items || [
-      { title: '', description: '', quantity: 1, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
+      { title: '', description: '', quantity: 1.0, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
     ],
     payment_terms: initialData?.payment_terms || '30',
     require_signature: initialData?.require_signature ?? true,
@@ -143,7 +143,7 @@ export default function InvoiceBuilder({
       ...prev,
       line_items: [
         ...prev.line_items,
-        { title: '', description: '', quantity: 1, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
+        { title: '', description: '', quantity: 1.0, rate_cents: 7500, amount_cents: 7500 } // Default to $75.00
       ]
     }));
     
@@ -171,8 +171,8 @@ export default function InvoiceBuilder({
       if (!item.description) {
         newErrors[`line_item_${index}_description`] = 'Description is required';
       }
-      if (!Number.isInteger(item.quantity) || item.quantity < 1) {
-        newErrors[`line_item_${index}_quantity`] = 'Quantity must be a whole number (1 or greater)';
+      if (typeof item.quantity !== 'number' || item.quantity < 0.25) {
+        newErrors[`line_item_${index}_quantity`] = 'Hours must be 0.25 or greater';
       }
       if (item.rate_cents <= 0) {
         newErrors[`line_item_${index}_rate`] = 'Rate must be greater than 0';
@@ -335,10 +335,10 @@ export default function InvoiceBuilder({
                   <td className="px-3 py-2">
                     <input
                       type="number"
-                      min="1"
-                      step="1"
+                      min="0.25"
+                      step="0.25"
                       value={item.quantity}
-                      onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 1.0)}
                       className={`w-full rounded border px-2 py-1 text-sm text-center ${
                         errors[`line_item_${index}_quantity`] ? 'border-red-300' : 'border-gray-300'
                       }`}
@@ -435,10 +435,10 @@ export default function InvoiceBuilder({
                     <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
                     <input
                       type="number"
-                      min="1"
-                      step="1"
+                      min="0.25"
+                      step="0.25"
                       value={item.quantity}
-                      onChange={(e) => updateLineItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 1.0)}
                       className={`w-full rounded border px-3 py-2 text-sm text-center ${
                         errors[`line_item_${index}_quantity`] ? 'border-red-300' : 'border-gray-300'
                       }`}
