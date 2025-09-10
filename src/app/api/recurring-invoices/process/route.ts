@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 // This endpoint will be called by a cron job or manually to process recurring invoices
 export async function POST(request: Request) {
   try {
+    // Debug logging
+    console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
+    console.log('STRIPE_SECRET_KEY starts with sk_:', process.env.STRIPE_SECRET_KEY?.startsWith('sk_'));
+    
     // Initialize Stripe at runtime
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2025-07-30.basil',
