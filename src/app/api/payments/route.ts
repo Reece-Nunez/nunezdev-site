@@ -66,10 +66,10 @@ export async function GET(request: Request) {
     const allPayments: any[] = paymentsData?.map(payment => ({
       ...payment,
       invoice: {
-        id: payment.invoices.id,
-        description: payment.invoices.description,
-        invoice_number: payment.invoices.invoice_number,
-        client: Array.isArray(payment.invoices.clients) ? payment.invoices.clients[0] : payment.invoices.clients
+        id: (payment.invoices as any).id,
+        description: (payment.invoices as any).description,
+        invoice_number: (payment.invoices as any).invoice_number,
+        client: Array.isArray((payment.invoices as any).clients) ? (payment.invoices as any).clients[0] : (payment.invoices as any).clients
       }
     })) || [];
 
