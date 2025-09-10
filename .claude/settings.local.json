@@ -51,7 +51,8 @@
       "Bash(aws amplify list-apps:*)",
       "Bash(amplify pull:*)",
       "Bash(aws amplify update-app:*)",
-      "Bash(zip:*)"
+      "Bash(zip:*)",
+      "Bash(aws lambda invoke:*)"
     ],
     "deny": [],
     "ask": [],
