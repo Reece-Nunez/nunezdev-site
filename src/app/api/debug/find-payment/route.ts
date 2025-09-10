@@ -198,7 +198,7 @@ export async function GET(request: Request) {
       }
       
       // Check if Stripe customer email matches invoice client email
-      if (stripePayment.customer && invoice.clients?.email) {
+      if (stripePayment.customer && (invoice.clients as any)?.email) {
         // We'd need to fetch customer details from Stripe to compare emails
         // For now, just note this as a potential match
         matchReasons.push("stripe customer linked");
