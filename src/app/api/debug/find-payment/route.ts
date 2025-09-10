@@ -41,7 +41,7 @@ async function fetchStripePaymentDetails(paymentIntentId: string) {
         customer: paymentIntent.customer,
         description: paymentIntent.description,
         metadata: paymentIntent.metadata,
-        charges: paymentIntent.charges?.data || []
+        charges: (paymentIntent as any).charges?.data || []
       }
     };
   } catch (error: any) {
