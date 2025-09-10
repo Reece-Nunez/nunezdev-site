@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import ClientForm from '@/components/client-detail/ClientForm';
-import ClientNotes from '@/components/client-detail/ClientNotes';
-import ClientTasks from '@/components/client-detail/ClientTasks';
-import { ClientDeals, ClientInvoices } from '@/components/client-detail/Related';
-import AddPayment from '@/components/client-detail/AddPayment';
+import ClientForm from '../../../components/client-detail/ClientForm';
+import ClientNotes from '../../../components/client-detail/ClientNotes';
+import ClientTasks from '../../../components/client-detail/ClientTasks';
+import { ClientDeals, ClientInvoices } from '../../../components/client-detail/Related';
+import AddPayment from '../../../components/client-detail/AddPayment';
 
 export default function ClientDetailContent({ clientId }: { clientId: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
