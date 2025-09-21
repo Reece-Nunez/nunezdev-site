@@ -3,7 +3,10 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   env: {
-    // Only include public environment variables here
+    // NextAuth required environment variables
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    // Public environment variables
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL,
   },
   serverExternalPackages: ['@supabase/ssr'],
