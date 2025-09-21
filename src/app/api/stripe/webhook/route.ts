@@ -501,14 +501,54 @@ export async function POST(req: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
   const sig = req.headers.get("stripe-signature");
-  const body = await req.arrayBuffer();
-  const bodyBuffer = Buffer.from(body);
+
+  // AWS Amplify specific handling: get the raw body
+  let bodyBuffer: Buffer;
+
+  // Check if body is already parsed by AWS Amplify middleware
+  const contentType = req.headers.get('content-type');
+
+  try {
+    // For AWS Amplify, we need to handle the body more carefully
+    if (contentType?.includes('application/json')) {
+      // If content-type suggests JSON, try to get the raw bytes
+      const body = await req.arrayBuffer();
+      bodyBuffer = Buffer.from(body);
+    } else {
+      // Fallback to text for other content types
+      const bodyText = await req.text();
+      bodyBuffer = Buffer.from(bodyText, 'utf8');
+    }
+  } catch (error) {
+    // Final fallback
+    try {
+      const bodyText = await req.text();
+      bodyBuffer = Buffer.from(bodyText, 'utf8');
+    } catch (finalError) {
+      console.error('[stripe-webhook] Failed to read request body:', finalError);
+      return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+    }
+  }
+
+  // Add debug logging for AWS Amplify debugging
+  console.log('[stripe-webhook] Debug info:', {
+    hasSignature: !!sig,
+    bodyLength: bodyBuffer.length,
+    contentType,
+    isAmplify: process.env.AWS_REGION ? true : false
+  });
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(bodyBuffer, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error('[stripe-webhook] Signature verification failed:', {
+      error: message,
+      signatureHeader: sig,
+      bodyLength: bodyBuffer.length,
+      bodyPreview: bodyBuffer.toString().substring(0, 100)
+    });
     return NextResponse.json({ error: `Webhook signature failed: ${message}` }, { status: 400 });
   }
 
