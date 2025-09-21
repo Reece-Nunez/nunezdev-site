@@ -498,61 +498,93 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
 }
 
 export async function POST(req: Request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-  const sig = req.headers.get("stripe-signature");
-
-  // AWS Amplify specific handling: get the raw body
-  let bodyBuffer: Buffer;
-
-  // Check if body is already parsed by AWS Amplify middleware
-  const contentType = req.headers.get('content-type');
+  console.log('[stripe-webhook] === WEBHOOK REQUEST RECEIVED ===');
 
   try {
-    // For AWS Amplify, we need to handle the body more carefully
-    if (contentType?.includes('application/json')) {
-      // If content-type suggests JSON, try to get the raw bytes
-      const body = await req.arrayBuffer();
-      bodyBuffer = Buffer.from(body);
-    } else {
-      // Fallback to text for other content types
-      const bodyText = await req.text();
-      bodyBuffer = Buffer.from(bodyText, 'utf8');
+    // Initialize Stripe
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('[stripe-webhook] STRIPE_SECRET_KEY not found');
+      return NextResponse.json({ error: 'Missing Stripe configuration' }, { status: 500 });
     }
-  } catch (error) {
-    // Final fallback
+
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET not found');
+      return NextResponse.json({ error: 'Missing webhook secret' }, { status: 500 });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    console.log('[stripe-webhook] Stripe initialized successfully');
+
+    const sig = req.headers.get("stripe-signature");
+    console.log('[stripe-webhook] Signature header present:', !!sig);
+
+    // AWS Amplify specific handling: get the raw body
+    let bodyBuffer: Buffer;
+
+    // Check if body is already parsed by AWS Amplify middleware
+    const contentType = req.headers.get('content-type');
+    console.log('[stripe-webhook] Content-Type:', contentType);
+
     try {
-      const bodyText = await req.text();
-      bodyBuffer = Buffer.from(bodyText, 'utf8');
-    } catch (finalError) {
-      console.error('[stripe-webhook] Failed to read request body:', finalError);
-      return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+      // For AWS Amplify, we need to handle the body more carefully
+      if (contentType?.includes('application/json')) {
+        // If content-type suggests JSON, try to get the raw bytes
+        const body = await req.arrayBuffer();
+        bodyBuffer = Buffer.from(body);
+        console.log('[stripe-webhook] Got body via arrayBuffer, length:', bodyBuffer.length);
+      } else {
+        // Fallback to text for other content types
+        const bodyText = await req.text();
+        bodyBuffer = Buffer.from(bodyText, 'utf8');
+        console.log('[stripe-webhook] Got body via text, length:', bodyBuffer.length);
+      }
+    } catch (error) {
+      console.error('[stripe-webhook] Error reading body (first attempt):', error);
+      // Final fallback
+      try {
+        const bodyText = await req.text();
+        bodyBuffer = Buffer.from(bodyText, 'utf8');
+        console.log('[stripe-webhook] Got body via fallback text, length:', bodyBuffer.length);
+      } catch (finalError) {
+        console.error('[stripe-webhook] Failed to read request body (final):', finalError);
+        return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+      }
     }
-  }
 
-  // Add debug logging for AWS Amplify debugging
-  console.log('[stripe-webhook] Debug info:', {
-    hasSignature: !!sig,
-    bodyLength: bodyBuffer.length,
-    contentType,
-    isAmplify: process.env.AWS_REGION ? true : false
-  });
-
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(bodyBuffer, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('[stripe-webhook] Signature verification failed:', {
-      error: message,
-      signatureHeader: sig,
+    // Add debug logging for AWS Amplify debugging
+    console.log('[stripe-webhook] Debug info:', {
+      hasSignature: !!sig,
       bodyLength: bodyBuffer.length,
-      bodyPreview: bodyBuffer.toString().substring(0, 100)
+      contentType,
+      isAmplify: process.env.AWS_REGION ? true : false,
+      signaturePreview: sig?.substring(0, 50) + '...'
     });
-    return NextResponse.json({ error: `Webhook signature failed: ${message}` }, { status: 400 });
-  }
 
-  try {
+    if (!sig) {
+      console.error('[stripe-webhook] No stripe-signature header found');
+      return NextResponse.json({ error: 'Missing stripe-signature header' }, { status: 400 });
+    }
+
+    let event: Stripe.Event;
+    try {
+      console.log('[stripe-webhook] Attempting to construct event...');
+      event = stripe.webhooks.constructEvent(bodyBuffer, sig, process.env.STRIPE_WEBHOOK_SECRET);
+      console.log('[stripe-webhook] Event constructed successfully, type:', event.type);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[stripe-webhook] Signature verification failed:', {
+        error: message,
+        signatureHeader: sig,
+        bodyLength: bodyBuffer.length,
+        bodyPreview: bodyBuffer.toString().substring(0, 100),
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 10) + '...'
+      });
+      return NextResponse.json({ error: `Webhook signature failed: ${message}` }, { status: 400 });
+    }
+
+    // Process the webhook event
+    console.log('[stripe-webhook] Processing webhook event...');
+
     const interesting = new Set([
       "invoice.finalized",
       "invoice.updated",
@@ -569,37 +601,48 @@ export async function POST(req: Request) {
     ]);
 
     if (!interesting.has(event.type)) {
+      console.log('[stripe-webhook] Event type not interesting, ignoring:', event.type);
       return NextResponse.json({ ignored: event.type });
     }
 
-    console.log("[stripe-webhook] event", event.type);
+    console.log("[stripe-webhook] Processing event:", event.type);
 
     // Handle payment intents (for HubSpot quote payments)
     if (event.type === "payment_intent.succeeded") {
+      console.log('[stripe-webhook] Handling payment_intent.succeeded');
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       await handlePaymentIntentSucceeded(paymentIntent);
+      console.log('[stripe-webhook] payment_intent.succeeded handled successfully');
       return NextResponse.json({ ok: true });
     }
 
     if (event.type === "charge.succeeded") {
+      console.log('[stripe-webhook] Handling charge.succeeded');
       const charge = event.data.object as Stripe.Charge;
       await handleChargeSucceeded(charge);
+      console.log('[stripe-webhook] charge.succeeded handled successfully');
       return NextResponse.json({ ok: true });
     }
 
     if (event.type === "invoice.deleted") {
+      console.log('[stripe-webhook] Handling invoice.deleted');
       const inv = event.data.object as Stripe.Invoice;
       const supabase = supabaseAdmin();
       await supabase.from("invoices").delete().eq("stripe_invoice_id", inv.id);
+      console.log('[stripe-webhook] invoice.deleted handled successfully');
       return NextResponse.json({ ok: true });
     }
 
+    console.log('[stripe-webhook] Handling invoice event');
     const inv = event.data.object as Stripe.Invoice;
     await upsertInvoiceFromStripe(inv);
+    console.log('[stripe-webhook] Invoice event handled successfully');
 
     return NextResponse.json({ ok: true });
+
   } catch (e: unknown) {
-    console.error("[stripe-webhook] error", e);
+    console.error("[stripe-webhook] CRITICAL ERROR:", e);
+    console.error("[stripe-webhook] Error stack:", e instanceof Error ? e.stack : "No stack");
     const message = e instanceof Error ? e.message : "Webhook handler error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
