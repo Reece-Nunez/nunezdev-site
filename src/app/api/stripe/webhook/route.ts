@@ -499,13 +499,14 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
 
 export async function POST(req: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-  
+
   const sig = req.headers.get("stripe-signature");
-  const body = await req.text();
+  const body = await req.arrayBuffer();
+  const bodyBuffer = Buffer.from(body);
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(bodyBuffer, sig!, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: `Webhook signature failed: ${message}` }, { status: 400 });
