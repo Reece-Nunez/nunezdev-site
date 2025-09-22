@@ -64,7 +64,7 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             title="Revenue (This Month)"
             value={fmt(kpis.revenueThisMonth)}
             color="green"
-            details={kpis.thisMonthPayments}
+            details={kpis.thisMonthPayments || []}
             icon={
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -75,8 +75,8 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             title="Pipeline Value"
             value={fmt(kpis.pipelineValue)}
             color="purple"
-            details={kpis.openDeals}
-            subtitle={`${kpis.openDeals.length} open deals`}
+            details={kpis.openDeals || []}
+            subtitle={`${(kpis.openDeals || []).length} open deals`}
             icon={
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -87,8 +87,8 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             title="Outstanding Balance"
             value={fmt(kpis.outstandingBalance)}
             color="blue"
-            details={kpis.outstandingInvoices}
-            subtitle={kpis.outstandingInvoices.length > 0 ? `${kpis.outstandingInvoices.length} invoices` : 'All paid!'}
+            details={kpis.outstandingInvoices || []}
+            subtitle={(kpis.outstandingInvoices || []).length > 0 ? `${(kpis.outstandingInvoices || []).length} invoices` : 'All paid!'}
             icon={
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
@@ -99,7 +99,7 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             title="Total Revenue"
             value={fmt(kpis.totalRevenue)}
             color="green"
-            details={kpis.allPayments}
+            details={kpis.allPayments || []}
             subtitle="All-time revenue"
             icon={
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
