@@ -119,21 +119,21 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">Performance Insights</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard 
-            label="Avg Deal Value" 
-            value={fmt(kpis.avgDealValue)}
+          <MetricCard
+            label="Avg Deal Value"
+            value={fmt(kpis.avgDealValue || 0)}
           />
-          <MetricCard 
-            label="Deals Closed (Month)" 
-            value={kpis.dealsClosedThisMonth.toString()}
+          <MetricCard
+            label="Deals Closed (Month)"
+            value={(kpis.dealsClosedThisMonth || 0).toString()}
           />
-          <MetricCard 
-            label="Total Won Value" 
-            value={fmt(kpis.totalWonValue)}
+          <MetricCard
+            label="Total Won Value"
+            value={fmt(kpis.totalWonValue || 0)}
           />
-          <MetricCard 
-            label="Avg Payment Time" 
-            value={`${kpis.avgPaymentTime}d`}
+          <MetricCard
+            label="Avg Payment Time"
+            value={`${kpis.avgPaymentTime || 0}d`}
             subtext="Days to payment"
           />
         </div>
@@ -148,15 +148,15 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             value={fmt(kpis.totalRevenue)}
             subtext="All-time revenue"
           />
-          <MetricCard 
-            label="Recent Payments" 
-            value={kpis.recentPaymentCount.toString()}
+          <MetricCard
+            label="Recent Payments"
+            value={(kpis.recentPaymentCount || 0).toString()}
             subtext="Last 30 days"
           />
-          <MetricCard 
-            label="Total Deals" 
-            value={kpis.totalDeals.toString()}
-            subtext={`${kpis.wonDeals} won, ${kpis.totalDeals - kpis.wonDeals} other`}
+          <MetricCard
+            label="Total Deals"
+            value={(kpis.totalDeals || 0).toString()}
+            subtext={`${kpis.wonDeals || 0} won, ${(kpis.totalDeals || 0) - (kpis.wonDeals || 0)} other`}
           />
         </div>
       </div>
