@@ -166,7 +166,7 @@ export default function ClickableMetric({ title, value, icon, color, details, su
                 <div>
                   <p className="text-gray-500">Average</p>
                   <p className="font-semibold">
-                    {formatCurrency((details || []).reduce((sum, d) => sum + d.amount, 0) / (details || []).length)}
+                    {formatCurrency((details || []).length > 0 ? (details || []).reduce((sum, d) => sum + d.amount, 0) / (details || []).length : 0)}
                   </p>
                 </div>
                 <div>
