@@ -1,24 +1,23 @@
 version: 1
 frontend:
-  environment:
-    variables:
-      NODE_ENV: production
-      STRIPE_SECRET_KEY: $STRIPE_SECRET_KEY
-      STRIPE_WEBHOOK_SECRET: $STRIPE_WEBHOOK_SECRET
-      SUPABASE_SERVICE_ROLE_KEY: $SUPABASE_SERVICE_ROLE_KEY
-      HUBSPOT_PRIVATE_APP_TOKEN: $HUBSPOT_PRIVATE_APP_TOKEN
-      RESEND_API_KEY: $RESEND_API_KEY
-      JWT_SECRET: $JWT_SECRET
-      CRON_SECRET: $CRON_SECRET
-      NEXTAUTH_SECRET: $NEXTAUTH_SECRET
-      NEXTAUTH_URL: $NEXTAUTH_URL
-      NEXT_PUBLIC_BASE_URL: $NEXT_PUBLIC_BASE_URL
   phases:
     preBuild:
       commands:
         - npm ci --cache .npm --prefer-offline
     build:
       commands:
+        - echo "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" >> .env
+        - echo "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" >> .env
+        - echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" >> .env
+        - echo "HUBSPOT_PRIVATE_APP_TOKEN=$HUBSPOT_PRIVATE_APP_TOKEN" >> .env
+        - echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env
+        - echo "JWT_SECRET=$JWT_SECRET" >> .env
+        - echo "CRON_SECRET=$CRON_SECRET" >> .env
+        - echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .env
+        - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env
+        - echo "NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL" >> .env
+        - echo "NODE_ENV=production" >> .env
+        - cat .env
         - npm run build
   artifacts:
     baseDirectory: .next
