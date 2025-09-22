@@ -33,6 +33,41 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
   thisMonthStart.setHours(0, 0, 0, 0);
   console.log('[analytics] This month start:', thisMonthStart.toISOString());
 
+  // First, let's check if we have ANY payments for this org
+  const { data: allOrgPayments, error: allPaymentsError } = await supabase
+    .from("invoice_payments")
+    .select(`
+      id,
+      amount_cents,
+      paid_at,
+      invoices!inner(org_id)
+    `)
+    .eq("invoices.org_id", orgId);
+
+  console.log('[analytics] Total payments for org:', allOrgPayments?.length || 0, 'error:', allPaymentsError);
+
+  // Check if we have any invoices at all
+  const { data: allOrgInvoices, error: invoicesError } = await supabase
+    .from("invoices")
+    .select("id, org_id")
+    .eq("org_id", orgId);
+
+  console.log('[analytics] Total invoices for org:', allOrgInvoices?.length || 0, 'error:', invoicesError);
+
+  // Try a simpler query first
+  const { data: simpleThisMonthPayments, error: simpleError } = await supabase
+    .from("invoice_payments")
+    .select(`
+      id,
+      amount_cents,
+      paid_at,
+      payment_method,
+      invoice_id
+    `)
+    .gte("paid_at", thisMonthStart.toISOString());
+
+  console.log('[analytics] Simple this month payments:', simpleThisMonthPayments?.length || 0, 'error:', simpleError);
+
   // Get all payments this month with details
   const { data: thisMonthPayments, error: thisMonthError } = await supabase
     .from("invoice_payments")
@@ -52,7 +87,7 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     .gte("paid_at", thisMonthStart.toISOString())
     .order("paid_at", { ascending: false });
 
-  console.log('[analytics] This month payments:', thisMonthPayments?.length || 0, 'error:', thisMonthError);
+  console.log('[analytics] This month payments with joins:', thisMonthPayments?.length || 0, 'error:', thisMonthError);
 
   // Get all payments ever with details
   const { data: allPayments } = await supabase
