@@ -161,9 +161,9 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     outstandingBalance,
     pipelineValue,
     clientsCount: clientsCount ?? 0,
-    thisMonthPayments: formatPayments(thisMonthPayments),
-    allPayments: formatPayments(allPayments),
-    outstandingInvoices: formatInvoices(outstandingInvoices),
-    openDeals: formatDeals(openDeals)
+    thisMonthPayments: formatPayments(thisMonthPayments ?? []),
+    allPayments: formatPayments(allPayments ?? []),
+    outstandingInvoices: formatInvoices(outstandingInvoices ?? []),
+    openDeals: formatDeals(openDeals ?? [])
   };
 }
