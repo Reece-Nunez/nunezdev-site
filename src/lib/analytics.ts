@@ -25,51 +25,14 @@ export interface AnalyticsData {
 
 export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
   const supabase = await supabaseServer();
-  console.log('[analytics] Starting analytics query for orgId:', orgId);
 
-  // Get current month start
-  const thisMonthStart = new Date();
-  thisMonthStart.setDate(1);
-  thisMonthStart.setHours(0, 0, 0, 0);
-  console.log('[analytics] This month start:', thisMonthStart.toISOString());
+  // Get current month start - use UTC to avoid timezone issues
+  const now = new Date();
+  const thisMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
 
-  // First, let's check if we have ANY payments for this org
-  const { data: allOrgPayments, error: allPaymentsError } = await supabase
-    .from("invoice_payments")
-    .select(`
-      id,
-      amount_cents,
-      paid_at,
-      invoices!inner(org_id)
-    `)
-    .eq("invoices.org_id", orgId);
-
-  console.log('[analytics] Total payments for org:', allOrgPayments?.length || 0, 'error:', allPaymentsError);
-
-  // Check if we have any invoices at all
-  const { data: allOrgInvoices, error: invoicesError } = await supabase
-    .from("invoices")
-    .select("id, org_id")
-    .eq("org_id", orgId);
-
-  console.log('[analytics] Total invoices for org:', allOrgInvoices?.length || 0, 'error:', invoicesError);
-
-  // Try a simpler query first
-  const { data: simpleThisMonthPayments, error: simpleError } = await supabase
-    .from("invoice_payments")
-    .select(`
-      id,
-      amount_cents,
-      paid_at,
-      payment_method,
-      invoice_id
-    `)
-    .gte("paid_at", thisMonthStart.toISOString());
-
-  console.log('[analytics] Simple this month payments:', simpleThisMonthPayments?.length || 0, 'error:', simpleError);
 
   // Get all payments this month with details
-  const { data: thisMonthPayments, error: thisMonthError } = await supabase
+  const { data: thisMonthPayments } = await supabase
     .from("invoice_payments")
     .select(`
       id,
@@ -86,8 +49,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     .eq("invoices.org_id", orgId)
     .gte("paid_at", thisMonthStart.toISOString())
     .order("paid_at", { ascending: false });
-
-  console.log('[analytics] This month payments with joins:', thisMonthPayments?.length || 0, 'error:', thisMonthError);
 
   // Get all payments ever with details
   const { data: allPayments } = await supabase
@@ -158,8 +119,7 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
 
   // Format data for popups
   const formatPayments = (payments: any[]): MetricDetail[] => {
-    console.log('[analytics] Formatting payments:', payments?.length || 0);
-    const formatted = (payments ?? []).map(p => ({
+    return (payments ?? []).map(p => ({
       id: p.id,
       type: 'payment' as const,
       label: `${(p.invoices as any)?.clients?.name || 'Unknown'} - ${(p.invoices as any)?.invoice_number || 'INV'}`,
@@ -167,8 +127,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
       date: p.paid_at,
       description: `Payment via ${p.payment_method || 'card'}`
     }));
-    console.log('[analytics] Formatted payments result:', formatted);
-    return formatted;
   };
 
   const formatInvoices = (invoices: any[]): MetricDetail[] =>
@@ -197,7 +155,7 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
       description: `Stage: ${d.stage}`
     }));
 
-  const result = {
+  return {
     revenueThisMonth,
     totalRevenue,
     outstandingBalance,
@@ -208,18 +166,4 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     outstandingInvoices: formatInvoices(outstandingInvoices),
     openDeals: formatDeals(openDeals)
   };
-
-  console.log('[analytics] Final result structure:', {
-    revenueThisMonth,
-    totalRevenue,
-    outstandingBalance,
-    pipelineValue,
-    clientsCount: clientsCount ?? 0,
-    thisMonthPaymentsCount: result.thisMonthPayments.length,
-    allPaymentsCount: result.allPayments.length,
-    outstandingInvoicesCount: result.outstandingInvoices.length,
-    openDealsCount: result.openDeals.length
-  });
-
-  return result;
 }

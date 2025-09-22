@@ -24,8 +24,9 @@ interface InvoiceAnalyticsProps {
 export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
   const analytics = useMemo(() => {
     const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    // Use UTC dates to avoid timezone issues
+    const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+    const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1, 0, 0, 0, 0));
     
     // Helper function to calculate total payments for an invoice
     const getTotalPaid = (invoice: Invoice) => {

@@ -50,7 +50,6 @@ export default function ClickableMetric({ title, value, icon, color, details, su
   const [isOpen, setIsOpen] = useState(false);
   const colors = colorClasses[color];
 
-  console.log(`[ClickableMetric] ${title}: received ${details?.length || 0} details:`, details);
 
   const formatCurrency = (cents: number) =>
     (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
@@ -100,7 +99,7 @@ export default function ClickableMetric({ title, value, icon, color, details, su
           </div>
         </div>
         <div className="mt-2 text-xs text-gray-500">
-          Click to view {details.length} item{details.length !== 1 ? 's' : ''}
+          Click to view {(details || []).length} item{(details || []).length !== 1 ? 's' : ''}
         </div>
       </div>
 
@@ -118,10 +117,10 @@ export default function ClickableMetric({ title, value, icon, color, details, su
           </DialogHeader>
 
           <div className="space-y-1 max-h-96 overflow-y-auto">
-            {details.length === 0 ? (
+            {(details || []).length === 0 ? (
               <p className="text-gray-500 text-center py-8">No data available</p>
             ) : (
-              details.map((detail) => (
+              (details || []).map((detail) => (
                 <div key={detail.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{getTypeIcon(detail.type)}</span>
@@ -151,29 +150,29 @@ export default function ClickableMetric({ title, value, icon, color, details, su
             )}
           </div>
 
-          {details.length > 0 && (
+          {(details || []).length > 0 && (
             <div className="border-t pt-4 mt-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500">Total Items</p>
-                  <p className="font-semibold">{details.length}</p>
+                  <p className="font-semibold">{(details || []).length}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Total Amount</p>
                   <p className="font-semibold">
-                    {formatCurrency(details.reduce((sum, d) => sum + d.amount, 0))}
+                    {formatCurrency((details || []).reduce((sum, d) => sum + d.amount, 0))}
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-500">Average</p>
                   <p className="font-semibold">
-                    {formatCurrency(details.reduce((sum, d) => sum + d.amount, 0) / details.length)}
+                    {formatCurrency((details || []).reduce((sum, d) => sum + d.amount, 0) / (details || []).length)}
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-500">Latest</p>
                   <p className="font-semibold">
-                    {details.length > 0 ? formatDate(details[0].date) : 'N/A'}
+                    {(details || []).length > 0 ? formatDate((details || [])[0].date) : 'N/A'}
                   </p>
                 </div>
               </div>
