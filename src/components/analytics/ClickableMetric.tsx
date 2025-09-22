@@ -50,6 +50,8 @@ export default function ClickableMetric({ title, value, icon, color, details, su
   const [isOpen, setIsOpen] = useState(false);
   const colors = colorClasses[color];
 
+  console.log(`[ClickableMetric] ${title}: received ${details?.length || 0} details:`, details);
+
   const formatCurrency = (cents: number) =>
     (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 
