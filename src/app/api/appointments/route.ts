@@ -1,47 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { calendarService } from '@/lib/calendarService';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Google Calendar setup with Service Account - lazy loaded to avoid build issues
-const getGoogleCalendar = async () => {
-  const { google } = await import('googleapis');
-
-  const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
-  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-
-  let auth;
-
-  if (serviceAccountKey) {
-    // Use credentials from environment variable (production)
-    try {
-      const credentials = JSON.parse(serviceAccountKey);
-      auth = new google.auth.GoogleAuth({
-        credentials,
-        scopes: [
-          'https://www.googleapis.com/auth/calendar',
-          'https://www.googleapis.com/auth/calendar.events'
-        ],
-      });
-    } catch (error) {
-      throw new Error('Invalid Google service account credentials in environment variable');
-    }
-  } else if (keyFile) {
-    // Use key file (development)
-    auth = new google.auth.GoogleAuth({
-      keyFile: keyFile,
-      scopes: [
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/calendar.events'
-      ],
-    });
-  } else {
-    throw new Error('Google service account credentials not configured');
-  }
-
-  return google.calendar({ version: 'v3', auth });
-};
 
 export async function POST(request: NextRequest) {
   try {
@@ -99,10 +61,8 @@ export async function POST(request: NextRequest) {
 
     // Create Google Calendar event
     let googleEventId = null;
-    if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    if (calendarService.isAvailable()) {
       try {
-        const calendar = await getGoogleCalendar();
-
         // Create datetime in the specified timezone
         const startDateTime = new Date(`${scheduled_date}T${scheduled_time}:00`);
         const endDateTime = new Date(startDateTime.getTime() + (duration_minutes * 60000));
@@ -137,14 +97,12 @@ ${project_details || 'No details provided'}`,
 
         console.log('Attempting to create calendar event...');
 
-        const response = await calendar.events.insert({
-          calendarId: 'primary',
-          resource: event,
-          sendUpdates: 'none',
-        });
+        const calendarResponse = await calendarService.createEvent(event);
 
-        googleEventId = response.data.id;
-        console.log('Calendar event created successfully with ID:', googleEventId);
+        if (calendarResponse) {
+          googleEventId = calendarResponse.id;
+          console.log('Calendar event created successfully with ID:', googleEventId);
+        }
       } catch (calendarError) {
         console.error('Google Calendar error details:', {
           message: calendarError.message,
@@ -155,7 +113,7 @@ ${project_details || 'No details provided'}`,
         // Continue without calendar integration if it fails
       }
     } else {
-      console.log('Google Calendar integration disabled - service account key file not configured');
+      console.log('Google Calendar integration disabled - no credentials configured');
     }
 
     // Insert appointment into database

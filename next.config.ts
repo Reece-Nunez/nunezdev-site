@@ -11,19 +11,21 @@ const nextConfig: NextConfig = {
     // Google Calendar service account file path
     GOOGLE_SERVICE_ACCOUNT_KEY_FILE: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
   },
-  serverExternalPackages: ['@supabase/ssr'],
+  serverExternalPackages: ['@supabase/ssr', 'googleapis'],
   webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': path.resolve(__dirname, 'src'),
     };
 
-    // Reduce memory usage during build
-    if (!dev && isServer) {
-      config.optimization.splitChunks = {
-        ...config.optimization.splitChunks,
-        chunks: 'all',
-      };
+    // Handle googleapis as external for server builds to reduce memory usage
+    if (isServer) {
+      config.externals = config.externals || [];
+      if (Array.isArray(config.externals)) {
+        config.externals.push('googleapis');
+      } else {
+        config.externals = [config.externals, 'googleapis'];
+      }
     }
 
     return config;
