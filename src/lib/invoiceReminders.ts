@@ -15,7 +15,7 @@ interface RecurringInvoice {
     name: string;
     email: string;
     company?: string;
-  };
+  }[];
 }
 
 export class InvoiceReminderService {
@@ -101,7 +101,11 @@ export class InvoiceReminderService {
         return;
       }
 
-      const client = invoice.clients;
+      const client = invoice.clients[0];
+      if (!client) {
+        console.error(`No client found for invoice ${invoice.id}`);
+        return;
+      }
       const amount = (invoice.amount_cents / 100).toLocaleString('en-US', {
         style: 'currency',
         currency: 'USD'
