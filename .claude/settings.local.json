@@ -31,7 +31,9 @@
       "Bash(curl -X POST http://localhost:3002/api/appointments -H \"Content-Type: application/json\" -d '{\"\"meeting_type\"\": \"\"consultation\"\", \"\"scheduled_date\"\": \"\"2025-09-29\"\", \"\"scheduled_time\"\": \"\"20:00\"\", \"\"duration_minutes\"\": 60, \"\"client_name\"\": \"\"No Calendar Test\"\", \"\"client_email\"\": \"\"test@example.com\"\", \"\"client_phone\"\": \"\"555-9999\"\", \"\"meeting_platform\"\": \"\"google-meet\"\", \"\"project_details\"\": \"\"Testing without calendar integration\"\", \"\"timezone\"\": \"\"America/Chicago\"\"}' --max-time 30)",
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
-      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build)"
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build)",
+      "Bash(curl -X POST http://localhost:3000/api/contact -H \"Content-Type: application/json\" -d '{\"\"name\"\": \"\"Test Lead\"\", \"\"email\"\": \"\"test@example.com\"\", \"\"message\"\": \"\"I need a website for my business\"\", \"\"company\"\": \"\"Test Company\"\"}' --max-time 30)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": [],

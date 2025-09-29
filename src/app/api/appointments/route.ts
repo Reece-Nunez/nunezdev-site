@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { calendarService } from '@/lib/calendarService';
+import { leadNurtureService } from '@/lib/leadNurturing';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -248,6 +249,15 @@ ${project_details || 'No details provided'}`,
     } catch (emailError) {
       console.error('Email error:', emailError);
       // Continue even if email fails
+    }
+
+    // Create lead for nurturing sequence
+    try {
+      await leadNurtureService.createLeadFromAppointment(appointmentData);
+      console.log('Lead created successfully for appointment');
+    } catch (leadError: any) {
+      console.error('Error creating lead:', leadError);
+      // Continue even if lead creation fails
     }
 
     return NextResponse.json(
