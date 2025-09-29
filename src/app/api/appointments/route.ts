@@ -1,25 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { google } from 'googleapis';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Google Calendar setup with Service Account
-const getGoogleCalendar = () => {
+// Google Calendar setup with Service Account - lazy loaded to avoid build issues
+const getGoogleCalendar = async () => {
+  const { google } = await import('googleapis');
+
   const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
-  if (!keyFile) {
-    throw new Error('Google service account key file not specified');
+  let auth;
+
+  if (serviceAccountKey) {
+    // Use credentials from environment variable (production)
+    try {
+      const credentials = JSON.parse(serviceAccountKey);
+      auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: [
+          'https://www.googleapis.com/auth/calendar',
+          'https://www.googleapis.com/auth/calendar.events'
+        ],
+      });
+    } catch (error) {
+      throw new Error('Invalid Google service account credentials in environment variable');
+    }
+  } else if (keyFile) {
+    // Use key file (development)
+    auth = new google.auth.GoogleAuth({
+      keyFile: keyFile,
+      scopes: [
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+      ],
+    });
+  } else {
+    throw new Error('Google service account credentials not configured');
   }
-
-  const auth = new google.auth.GoogleAuth({
-    keyFile: keyFile,
-    scopes: [
-      'https://www.googleapis.com/auth/calendar',
-      'https://www.googleapis.com/auth/calendar.events'
-    ],
-  });
 
   return google.calendar({ version: 'v3', auth });
 };
@@ -80,9 +99,9 @@ export async function POST(request: NextRequest) {
 
     // Create Google Calendar event
     let googleEventId = null;
-    if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE) {
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
       try {
-        const calendar = getGoogleCalendar();
+        const calendar = await getGoogleCalendar();
 
         // Create datetime in the specified timezone
         const startDateTime = new Date(`${scheduled_date}T${scheduled_time}:00`);
