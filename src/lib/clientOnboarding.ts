@@ -411,11 +411,11 @@ export class ClientOnboardingService {
     if (!tasks) return;
 
     // Find tasks that can now be started
-    const completedTaskIds = tasks.filter(t => t.status === 'completed').map(t => t.task_id);
+    const completedTaskIds = tasks.filter((t: any) => t.status === 'completed').map((t: any) => t.task_id);
 
     for (const task of tasks) {
       if (task.status === 'pending' && task.depends_on) {
-        const dependenciesMet = task.depends_on.every(depId => completedTaskIds.includes(depId));
+        const dependenciesMet = task.depends_on.every((depId: string) => completedTaskIds.includes(depId));
 
         if (dependenciesMet) {
           await this.supabase
@@ -568,9 +568,9 @@ export class ClientOnboardingService {
 
     const tasks = project.onboarding_tasks || [];
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const availableTasks = tasks.filter(t => t.status === 'available').length;
-    const pendingTasks = tasks.filter(t => t.status === 'pending').length;
+    const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
+    const availableTasks = tasks.filter((t: any) => t.status === 'available').length;
+    const pendingTasks = tasks.filter((t: any) => t.status === 'pending').length;
 
     return {
       project: {
@@ -583,7 +583,7 @@ export class ClientOnboardingService {
           percent: Math.round((completedTasks / totalTasks) * 100)
         }
       },
-      tasks: tasks.sort((a, b) => a.order_index - b.order_index)
+      tasks: tasks.sort((a: any, b: any) => a.order_index - b.order_index)
     };
   }
 }

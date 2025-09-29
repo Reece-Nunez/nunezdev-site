@@ -244,14 +244,14 @@ export class LeadNurtureService {
           .eq('id', scheduledEmail.id);
 
       } catch (error) {
-        console.error('Error sending scheduled email:', error);
+        console.error('Error sending scheduled email:', (error as any).message);
 
         // Mark as failed
         await this.supabase
           .from('scheduled_emails')
           .update({
             status: 'failed',
-            error_message: error.message
+            error_message: (error as any).message
           })
           .eq('id', scheduledEmail.id);
       }
@@ -319,7 +319,7 @@ export class LeadNurtureService {
       `
     };
 
-    return templates[templateName] || `<p>Hi ${lead.name}, thanks for your interest!</p>`;
+    return (templates as any)[templateName] || `<p>Hi ${lead.name}, thanks for your interest!</p>`;
   }
 }
 

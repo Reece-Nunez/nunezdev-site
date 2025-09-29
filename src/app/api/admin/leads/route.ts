@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
       .from('leads')
       .select('status');
 
-    const statusCounts = allLeadsForCount?.reduce((acc, lead) => {
+    const statusCounts = allLeadsForCount?.reduce((acc: Record<string, number>, lead: any) => {
       acc[lead.status] = (acc[lead.status] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {} as Record<string, number>) || {};
 
     return NextResponse.json({
       leads,

@@ -87,7 +87,7 @@ export class InvoiceFollowupService {
       }
 
       for (const invoice of overdueInvoices) {
-        await this.processInvoiceFollowup(invoice as Invoice);
+        await this.processInvoiceFollowup(invoice as any);
       }
 
       console.log(`Processed ${overdueInvoices.length} overdue invoices`);
@@ -154,7 +154,7 @@ export class InvoiceFollowupService {
     amountDue: number
   ): Promise<void> {
     const invoiceNumber = invoice.stripe_invoice_id || `INV-${invoice.id.slice(-6).toUpperCase()}`;
-    const client = invoice.clients;
+    const client = (invoice as any).clients;
     const amountFormatted = (amountDue / 100).toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -306,7 +306,7 @@ export class InvoiceFollowupService {
       `
     };
 
-    return templates[templateName] || `<p>Payment reminder for invoice ${data.invoiceNumber}</p>`;
+    return (templates as any)[templateName] || `<p>Payment reminder for invoice ${data.invoiceNumber}</p>`;
   }
 
   // Manual follow-up for specific invoice
@@ -331,11 +331,11 @@ export class InvoiceFollowupService {
 
     await resend.emails.send({
       from: 'Reece at NunezDev <reece@nunezdev.com>',
-      to: [invoice.clients.email],
+      to: [(invoice as any).clients.email],
       subject: `Regarding Invoice ${invoiceNumber}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2>Hi ${invoice.clients.name},</h2>
+          <h2>Hi ${(invoice as any).clients.name},</h2>
           <div style="white-space: pre-wrap;">${message}</div>
 
           <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0;">
