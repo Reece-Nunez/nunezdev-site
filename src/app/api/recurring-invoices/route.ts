@@ -203,6 +203,8 @@ export async function PUT(request: Request) {
       amount_cents,
       frequency,
       day_of_month,
+      start_date,
+      next_invoice_date,
       end_date,
       status,
       payment_terms,
@@ -238,6 +240,8 @@ export async function PUT(request: Request) {
     if (amount_cents !== undefined) updateData.amount_cents = amount_cents;
     if (frequency !== undefined) updateData.frequency = frequency;
     if (day_of_month !== undefined) updateData.day_of_month = frequency === 'monthly' ? day_of_month : null;
+    if (start_date !== undefined) updateData.start_date = start_date ? new Date(start_date).toISOString().split('T')[0] : null;
+    if (next_invoice_date !== undefined) updateData.next_invoice_date = next_invoice_date ? new Date(next_invoice_date).toISOString().split('T')[0] : null;
     if (end_date !== undefined) updateData.end_date = end_date ? new Date(end_date).toISOString().split('T')[0] : null;
     if (status !== undefined) updateData.status = status;
     if (payment_terms !== undefined) updateData.payment_terms = payment_terms;

@@ -86,12 +86,21 @@ export default function RecurringInvoicesPage() {
       if (!response.ok) throw new Error(result.error || 'Processing failed');
 
       alert(`Processing complete! ${result.summary.successful} invoices sent successfully, ${result.summary.errors} errors.`);
-      
+
       // Refresh data
       mutate(`/api/recurring-invoices?status=${statusFilter}`);
     } catch (error) {
       console.error('Failed to process recurring invoices:', error);
       alert('Failed to process recurring invoices');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const refreshData = async () => {
+    setActionLoading('refresh');
+    try {
+      await mutate(`/api/recurring-invoices?status=${statusFilter}`);
     } finally {
       setActionLoading('');
     }
@@ -129,6 +138,16 @@ export default function RecurringInvoicesPage() {
           <p className="text-gray-600">Automate monthly hosting, maintenance, and subscription billing</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={refreshData}
+            disabled={actionLoading === 'refresh'}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {actionLoading === 'refresh' ? 'Refreshing...' : 'Refresh'}
+          </button>
           <button
             onClick={processRecurringInvoices}
             disabled={actionLoading === 'process-all'}
@@ -711,9 +730,12 @@ function EditRecurringInvoiceModal({
       description: formData.get('description'),
       frequency: formData.get('frequency'),
       day_of_month: formData.get('frequency') === 'monthly' ? parseInt(formData.get('day_of_month') as string) : null,
+      start_date: formData.get('start_date'),
+      next_invoice_date: formData.get('next_invoice_date'),
       end_date: formData.get('end_date') || null,
       status: formData.get('status'),
       payment_terms: formData.get('payment_terms'),
+      amount_cents: parseInt(formData.get('amount_cents') as string) * 100, // Convert dollars to cents
       require_signature: formData.get('require_signature') === 'on'
     };
 
@@ -816,9 +838,44 @@ function EditRecurringInvoiceModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
+              <input
+                type="number"
+                name="amount_cents"
+                step="0.01"
+                min="0"
+                defaultValue={(recurringInvoice.amount_cents / 100).toString()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  name="start_date"
+                  defaultValue={recurringInvoice.start_date}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Next Invoice Date</label>
+                <input
+                  type="date"
+                  name="next_invoice_date"
+                  defaultValue={recurringInvoice.next_invoice_date}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date (Optional)</label>
                 <input
                   type="date"
                   name="end_date"
@@ -826,19 +883,20 @@ function EditRecurringInvoiceModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
-                <select
-                  name="payment_terms"
-                  defaultValue={recurringInvoice.payment_terms || '30'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="0">Due on receipt</option>
-                  <option value="7">Net 7</option>
-                  <option value="14">Net 14</option>
-                  <option value="30">Net 30</option>
-                </select>
-              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Terms</label>
+              <select
+                name="payment_terms"
+                defaultValue={recurringInvoice.payment_terms || '30'}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="0">Due on receipt</option>
+                <option value="7">Net 7</option>
+                <option value="14">Net 14</option>
+                <option value="30">Net 30</option>
+              </select>
             </div>
 
             <div className="flex items-center">
