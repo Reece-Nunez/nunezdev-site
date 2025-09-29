@@ -49,6 +49,9 @@ export class CalendarService {
       // Temporarily disabled to resolve build issues
       throw new Error('Google Calendar integration temporarily disabled during deployment');
 
+      /* TODO: Re-enable when build issues are resolved
+      const { google } = await import('googleapis');
+
       let auth;
 
       if (serviceAccountKey) {
@@ -73,12 +76,13 @@ export class CalendarService {
       }
 
       this.googleCalendar = google.calendar({ version: 'v3', auth });
+      */
       this.isInitialized = true;
 
       console.log('Google Calendar integration initialized successfully');
       return this.googleCalendar;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to initialize Google Calendar:', error.message);
       return null;
     }
@@ -106,7 +110,7 @@ export class CalendarService {
         htmlLink: response.data.htmlLink
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create calendar event:', error.message);
       return null;
     }

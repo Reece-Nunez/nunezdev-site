@@ -23,7 +23,15 @@
       "Bash(curl -X POST http://localhost:3002/api/appointments -H \"Content-Type: application/json\" -d '{\"\"meeting_type\"\": \"\"consultation\"\", \"\"scheduled_date\"\": \"\"2025-09-29\"\", \"\"scheduled_time\"\": \"\"16:00\"\", \"\"duration_minutes\"\": 60, \"\"client_name\"\": \"\"Calendar Test Fix\"\", \"\"client_email\"\": \"\"test@example.com\"\", \"\"client_phone\"\": \"\"555-9999\"\", \"\"meeting_platform\"\": \"\"google-meet\"\", \"\"project_details\"\": \"\"Testing fixed calendar integration\"\", \"\"timezone\"\": \"\"America/Chicago\"\"}' --max-time 30)",
       "Bash(curl -X POST http://localhost:3002/api/appointments -H \"Content-Type: application/json\" -d '{\"\"meeting_type\"\": \"\"consultation\"\", \"\"scheduled_date\"\": \"\"2025-09-29\"\", \"\"scheduled_time\"\": \"\"17:00\"\", \"\"duration_minutes\"\": 60, \"\"client_name\"\": \"\"Calendar Success Test\"\", \"\"client_email\"\": \"\"test@example.com\"\", \"\"client_phone\"\": \"\"555-9999\"\", \"\"meeting_platform\"\": \"\"google-meet\"\", \"\"project_details\"\": \"\"Testing successful calendar integration\"\", \"\"timezone\"\": \"\"America/Chicago\"\"}' --max-time 30)",
       "Bash(curl -X POST http://localhost:3002/api/appointments -H \"Content-Type: application/json\" -d '{\"\"meeting_type\"\": \"\"consultation\"\", \"\"scheduled_date\"\": \"\"2025-09-29\"\", \"\"scheduled_time\"\": \"\"18:00\"\", \"\"duration_minutes\"\": 60, \"\"client_name\"\": \"\"Calendar Revert Test\"\", \"\"client_email\"\": \"\"test@example.com\"\", \"\"client_phone\"\": \"\"555-9999\"\", \"\"meeting_platform\"\": \"\"google-meet\"\", \"\"project_details\"\": \"\"Testing service account calendar\"\", \"\"timezone\"\": \"\"America/Chicago\"\"}' --max-time 30)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(curl -X POST http://localhost:3002/api/appointments -H \"Content-Type: application/json\" -d '{\"\"meeting_type\"\": \"\"consultation\"\", \"\"scheduled_date\"\": \"\"2025-09-29\"\", \"\"scheduled_time\"\": \"\"19:00\"\", \"\"duration_minutes\"\": 60, \"\"client_name\"\": \"\"Build Test\"\", \"\"client_email\"\": \"\"test@example.com\"\", \"\"client_phone\"\": \"\"555-9999\"\", \"\"meeting_platform\"\": \"\"google-meet\"\", \"\"project_details\"\": \"\"Testing new calendar service\"\", \"\"timezone\"\": \"\"America/Chicago\"\"}' --max-time 30)",
+      "Bash(curl -X POST http://localhost:3002/api/appointments -H \"Content-Type: application/json\" -d '{\"\"meeting_type\"\": \"\"consultation\"\", \"\"scheduled_date\"\": \"\"2025-09-29\"\", \"\"scheduled_time\"\": \"\"20:00\"\", \"\"duration_minutes\"\": 60, \"\"client_name\"\": \"\"No Calendar Test\"\", \"\"client_email\"\": \"\"test@example.com\"\", \"\"client_phone\"\": \"\"555-9999\"\", \"\"meeting_platform\"\": \"\"google-meet\"\", \"\"project_details\"\": \"\"Testing without calendar integration\"\", \"\"timezone\"\": \"\"America/Chicago\"\"}' --max-time 30)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build)"
     ],
     "deny": [],
     "ask": [],

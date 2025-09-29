@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         });
 
         const event = {
-          summary: `${meeting_type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} - ${client_name}`,
+          summary: `${meeting_type.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} - ${client_name}`,
           description: `Meeting with ${client_name}${company_name ? ` from ${company_name}` : ''}
 
 Platform: ${meeting_platform}
@@ -103,7 +103,7 @@ ${project_details || 'No details provided'}`,
           googleEventId = calendarResponse.id;
           console.log('Calendar event created successfully with ID:', googleEventId);
         }
-      } catch (calendarError) {
+      } catch (calendarError: any) {
         console.error('Google Calendar error details:', {
           message: calendarError.message,
           code: calendarError.code,
@@ -164,7 +164,7 @@ ${project_details || 'No details provided'}`,
       await resend.emails.send({
         from: 'Reece at NunezDev <reece@nunezdev.com>',
         to: [client_email],
-        subject: `Meeting Confirmed: ${meeting_type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+        subject: `Meeting Confirmed: ${meeting_type.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
             <div style="background-color: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -174,11 +174,11 @@ ${project_details || 'No details provided'}`,
               </div>
 
               <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0;">
-                <h2 style="color: #333; margin: 0 0 15px 0; font-size: 20px;">${meeting_type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+                <h2 style="color: #333; margin: 0 0 15px 0; font-size: 20px;">${meeting_type.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</h2>
                 <p style="margin: 5px 0; color: #666;"><strong>Date:</strong> ${formattedDate}</p>
                 <p style="margin: 5px 0; color: #666;"><strong>Time:</strong> ${formattedTime} (Central Time)</p>
                 <p style="margin: 5px 0; color: #666;"><strong>Duration:</strong> ${duration_minutes} minutes</p>
-                <p style="margin: 5px 0; color: #666;"><strong>Platform:</strong> ${meeting_platform.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Platform:</strong> ${meeting_platform.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
               </div>
 
               ${project_details ? `
@@ -217,7 +217,7 @@ ${project_details || 'No details provided'}`,
             <h1 style="color: #ffc312;">New Appointment Booked</h1>
 
             <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0;">
-              <h2 style="margin: 0 0 15px 0;">${meeting_type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+              <h2 style="margin: 0 0 15px 0;">${meeting_type.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</h2>
               <p><strong>Client:</strong> ${client_name}</p>
               <p><strong>Email:</strong> ${client_email}</p>
               <p><strong>Phone:</strong> ${client_phone || 'Not provided'}</p>

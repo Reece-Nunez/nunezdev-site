@@ -199,7 +199,7 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
       const result = await response.json();
       success('Meeting scheduled successfully! You\'ll receive a confirmation email shortly.');
       setStep('success');
-    } catch (catchError) {
+    } catch (catchError: any) {
       console.error('Booking error:', catchError);
       if (catchError.message.includes('409') || catchError.message.includes('conflict')) {
         error('Sorry, this time slot has already been booked. Please select a different time.');
