@@ -15,7 +15,7 @@ jobs:
       - name: Process Email Sequences
         run: |
           curl -X POST "https://www.nunezdev.com/api/cron/process-email-sequences" \
-            -H "Authorization: Bearer e9cb95b03a35b837a8437d21c133272d2d0f32abda366a90c8614fbcd342b677" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 30 \
             --retry 3
@@ -26,7 +26,7 @@ jobs:
       - name: Process Invoice Follow-ups
         run: |
           curl -X POST "https://www.nunezdev.com/api/cron/process-invoice-followups" \
-            -H "Authorization: Bearer e9cb95b03a35b837a8437d21c133272d2d0f32abda366a90c8614fbcd342b677" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 30 \
             --retry 3
