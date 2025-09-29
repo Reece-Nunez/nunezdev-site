@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import Stripe from "stripe";
 
 export const runtime = "nodejs";
@@ -14,11 +16,26 @@ export async function POST(request: Request) {
       apiVersion: '2025-07-30.basil',
     });
 
-    // Optional auth check - you might want to protect this with an API key
+    // Auth check - allow either CRON_SECRET or authenticated admin user
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+
+    // Check for CRON_SECRET first
+    const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+    // If not a cron request, check for user session
+    let isAuthorized = isCronRequest;
+    if (!isCronRequest) {
+      try {
+        const session = await getServerSession(authOptions);
+        isAuthorized = !!session?.user; // Allow any authenticated user for now
+      } catch (error) {
+        console.error('Error getting session:', error);
+        isAuthorized = false;
+      }
+    }
+
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

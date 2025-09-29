@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     if (frequency === 'monthly' && day_of_month) {
       nextInvoiceDate.setDate(day_of_month);
       // If the day has already passed this month, move to next month
-      if (nextInvoiceDate <= startDate) {
+      if (nextInvoiceDate < startDate) {
         nextInvoiceDate.setMonth(nextInvoiceDate.getMonth() + 1);
       }
     }
