@@ -100,7 +100,21 @@ export default function RecurringInvoicesPage() {
   const refreshData = async () => {
     setActionLoading('refresh');
     try {
-      await mutate(`/api/recurring-invoices?status=${statusFilter}`);
+      // Force refresh by fetching fresh data with cache busting
+      const timestamp = Date.now();
+      const freshUrl = `/api/recurring-invoices?status=${statusFilter}&t=${timestamp}`;
+
+      // Fetch fresh data and update cache
+      await mutate(`/api/recurring-invoices?status=${statusFilter}`,
+        fetch(freshUrl).then(r => r.json()),
+        { revalidate: false }
+      );
+
+      // Show success message
+      alert('Data refreshed successfully!');
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+      alert('Failed to refresh data. Please try again or reload the page.');
     } finally {
       setActionLoading('');
     }
