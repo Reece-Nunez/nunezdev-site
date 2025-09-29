@@ -6,6 +6,8 @@ on:
     - cron: '0 14 * * *'  # 14:00 UTC = 9:00 AM EST
     # Run invoice follow-ups at 8 AM EST daily
     - cron: '0 13 * * *'  # 13:00 UTC = 8:00 AM EST
+    # Run recurring invoices at 7 AM EST daily
+    - cron: '0 12 * * *'  # 12:00 UTC = 7:00 AM EST
   workflow_dispatch: # Allow manual triggers
 
 jobs:
@@ -29,4 +31,15 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
             --max-time 30 \
+            --retry 3
+
+  recurring-invoices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Recurring Invoices
+        run: |
+          curl -X GET "https://www.nunezdev.com/api/cron/process-recurring-invoices" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
             --retry 3
