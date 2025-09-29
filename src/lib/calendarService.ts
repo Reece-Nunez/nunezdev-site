@@ -46,8 +46,8 @@ export class CalendarService {
         return null;
       }
 
-      // Dynamic import to avoid build issues
-      const { google } = await import('googleapis');
+      // Temporarily disabled to resolve build issues
+      throw new Error('Google Calendar integration temporarily disabled during deployment');
 
       let auth;
 
