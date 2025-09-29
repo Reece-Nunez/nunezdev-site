@@ -8,11 +8,6 @@ export const dynamic = "force-dynamic";
 // This endpoint will be called by a cron job or manually to process recurring invoices
 export async function POST(request: Request) {
   try {
-    // Debug logging - check if Next.js config env is working
-    console.log('All env vars available:', Object.keys(process.env));
-    console.log('STRIPE_SECRET_KEY exists:', !!process.env.STRIPE_SECRET_KEY);
-    console.log('STRIPE_SECRET_KEY value (first 10 chars):', process.env.STRIPE_SECRET_KEY?.substring(0, 10));
-    console.log('SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
     // Initialize Stripe at runtime
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {

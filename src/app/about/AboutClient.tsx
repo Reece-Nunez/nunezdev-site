@@ -78,7 +78,7 @@ export default function AboutClient() {
           variants={fadeInUp}
           className="space-y-10 text-base sm:text-lg leading-relaxed w-full"
         >
-          <section className="space-y-4">
+          <section className="space-y-4 text-white">
             <p>
               Hey! I’m Reece — a husband, dad of four, and full-time software
               problem solver. I started{" "}
@@ -88,7 +88,7 @@ export default function AboutClient() {
             </p>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-4 text-white">
             <h2 className="text-lg sm:text-xl font-bold text-yellow">
               A Bit About Me
             </h2>
@@ -106,7 +106,7 @@ export default function AboutClient() {
             </p>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-4 text-white">
             <h2 className="text-lg sm:text-xl font-bold text-yellow">
               What I Love to Build
             </h2>
@@ -123,7 +123,7 @@ export default function AboutClient() {
             </p>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-4 text-white">
             <h2 className="text-lg sm:text-xl font-bold text-yellow">
               Who I Work With
             </h2>
@@ -135,7 +135,7 @@ export default function AboutClient() {
             </p>
           </section>
 
-          <section className="space-y-4">
+          <section className="space-y-4 text-white">
             <p>
               I’m also a country-living builder at heart. Whether I&#39;m
               writing code, hiking Oklahoma trails, or coaching my kids&#39;
