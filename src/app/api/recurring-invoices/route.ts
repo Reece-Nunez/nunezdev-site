@@ -63,9 +63,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    // Add debug info temporarily
+    console.log('Main API returning data:', JSON.stringify(recurringInvoices?.map(inv => ({
+      id: inv.id,
+      title: inv.title,
+      client: inv.clients?.name,
+      start_date: inv.start_date,
+      next_invoice_date: inv.next_invoice_date
+    })), null, 2));
+
     return NextResponse.json({
       recurring_invoices: recurringInvoices || [],
-      count: (recurringInvoices || []).length
+      count: (recurringInvoices || []).length,
+      debug_timestamp: new Date().toISOString() // Add timestamp to verify fresh data
     });
 
   } catch (error) {
