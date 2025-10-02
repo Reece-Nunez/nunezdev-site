@@ -436,10 +436,11 @@ export default function PublicInvoiceView() {
           )}
 
           {/* Payment Plan */}
-          <PaymentPlanDisplay 
-            invoiceId={invoice.id} 
+          <PaymentPlanDisplay
+            invoiceId={invoice.id}
             isPublic={true}
             accessToken={token}
+            token={token}
             className="mb-8"
             requireSignature={invoice.require_signature || false}
             isSigned={!!invoice.signed_at}
@@ -522,24 +523,15 @@ export default function PublicInvoiceView() {
           {/* Payment Button - Show if not paid and (no signature required OR already signed) */}
           {!paymentSuccess && invoice.status !== 'paid' && (!invoice.require_signature || invoice.signed_at) && (
             <div className="mt-8 text-center">
-              {(invoice.stripe_hosted_invoice_url || (invoice as any).hosted_invoice_url) ? (
-                <a 
-                  href={invoice.stripe_hosted_invoice_url || (invoice as any).hosted_invoice_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base text-white font-medium rounded-lg transition-colors"
-                  style={{ backgroundColor: '#5b7c99' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a6780'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5b7c99'}
-                >
-                  Pay Invoice
-                </a>
-              ) : (
-                <div className="text-center">
-                  <p className="text-gray-600 mb-4">Payment processing is being set up for this invoice.</p>
-                  <p className="text-sm text-gray-500">Please contact the sender for payment instructions.</p>
-                </div>
-              )}
+              <a
+                href={`/pay/${token}`}
+                className="inline-block px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base text-white font-medium rounded-lg transition-colors"
+                style={{ backgroundColor: '#5b7c99' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a6780'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5b7c99'}
+              >
+                Pay Invoice
+              </a>
             </div>
           )}
 

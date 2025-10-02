@@ -22,16 +22,18 @@ interface PaymentPlanDisplayProps {
   className?: string;
   requireSignature?: boolean; // Whether the invoice requires signature
   isSigned?: boolean; // Whether the invoice has been signed
+  token?: string; // Invoice token for building payment URLs
 }
 
-export default function PaymentPlanDisplay({ 
-  invoiceId, 
+export default function PaymentPlanDisplay({
+  invoiceId,
   isPublic = false,
   accessToken,
   onPaymentClick,
   className = "",
   requireSignature = false,
-  isSigned = false
+  isSigned = false,
+  token
 }: PaymentPlanDisplayProps) {
   const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -218,15 +220,13 @@ export default function PaymentPlanDisplay({
                 {canShowPaymentButton(installment) && (
                   <div className="flex space-x-2">
                     <a
-                      href={installment.stripe_payment_link_url!}
+                      href={token ? `/pay/${token}?installment=${installment.id}` : installment.stripe_payment_link_url!}
                       onClick={() => onPaymentClick?.(installment)}
                       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                         isOverdue(installment)
                           ? 'bg-red-600 text-white hover:bg-red-700'
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
-                      target="_blank"
-                      rel="noopener noreferrer"
                     >
                       {isOverdue(installment) ? 'Pay Now (Overdue)' : 'Pay Now'}
                     </a>
