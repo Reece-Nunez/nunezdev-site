@@ -12,6 +12,8 @@ interface Invoice {
   due_at: string;
   stripe_invoice_id?: string;
   hosted_invoice_url?: string;
+  access_token?: string;
+  invoice_number?: string;
   clients: {
     name: string;
     email: string;
@@ -68,7 +70,7 @@ export class InvoiceFollowupService {
       const { data: overdueInvoices, error } = await this.supabase
         .from('invoices')
         .select(`
-          id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, hosted_invoice_url,
+          id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, hosted_invoice_url, access_token, invoice_number,
           clients(name, email),
           invoice_payments(amount_cents, paid_at)
         `)
@@ -153,12 +155,17 @@ export class InvoiceFollowupService {
     daysOverdue: number,
     amountDue: number
   ): Promise<void> {
-    const invoiceNumber = invoice.stripe_invoice_id || `INV-${invoice.id.slice(-6).toUpperCase()}`;
+    const invoiceNumber = invoice.invoice_number || invoice.stripe_invoice_id || `INV-${invoice.id.slice(-6).toUpperCase()}`;
     const client = (invoice as any).clients;
     const amountFormatted = (amountDue / 100).toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD'
     });
+
+    // Use public invoice URL with access token instead of protected dashboard URL
+    const paymentUrl = invoice.access_token
+      ? `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${invoice.access_token}`
+      : invoice.hosted_invoice_url;
 
     const subject = rule.subject.replace('[INVOICE_NUMBER]', invoiceNumber);
     const emailContent = this.getEmailTemplate(rule.template, {
@@ -167,7 +174,7 @@ export class InvoiceFollowupService {
       amountDue: amountFormatted,
       daysOverdue,
       dueDate: new Date(invoice.due_at).toLocaleDateString('en-US'),
-      paymentUrl: invoice.hosted_invoice_url,
+      paymentUrl: paymentUrl,
       urgency: rule.urgency
     });
 
@@ -314,7 +321,7 @@ export class InvoiceFollowupService {
     const { data: invoice } = await this.supabase
       .from('invoices')
       .select(`
-        id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, hosted_invoice_url,
+        id, client_id, status, amount_cents, issued_at, due_at, stripe_invoice_id, hosted_invoice_url, access_token, invoice_number,
         clients(name, email),
         invoice_payments(amount_cents, paid_at)
       `)
@@ -325,9 +332,14 @@ export class InvoiceFollowupService {
       throw new Error('Invoice not found');
     }
 
-    const invoiceNumber = invoice.stripe_invoice_id || `INV-${invoice.id.slice(-6).toUpperCase()}`;
+    const invoiceNumber = invoice.invoice_number || invoice.stripe_invoice_id || `INV-${invoice.id.slice(-6).toUpperCase()}`;
     const totalPaid = invoice.invoice_payments?.reduce((sum, payment) => sum + payment.amount_cents, 0) || 0;
     const amountDue = invoice.amount_cents - totalPaid;
+
+    // Use public invoice URL with access token instead of protected dashboard URL
+    const paymentUrl = invoice.access_token
+      ? `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${invoice.access_token}`
+      : invoice.hosted_invoice_url;
 
     await resend.emails.send({
       from: 'Reece at NunezDev <reece@nunezdev.com>',
@@ -341,7 +353,7 @@ export class InvoiceFollowupService {
           <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0;">
             <p><strong>Invoice:</strong> ${invoiceNumber}</p>
             <p><strong>Amount Due:</strong> ${(amountDue / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
-            ${invoice.hosted_invoice_url ? `<p><a href="${invoice.hosted_invoice_url}" style="color: #ffc312;">View Invoice</a></p>` : ''}
+            ${paymentUrl ? `<p><a href="${paymentUrl}" style="color: #ffc312;">View Invoice</a></p>` : ''}
           </div>
 
           <p>Best regards,<br>Reece Nunez<br>NunezDev</p>
