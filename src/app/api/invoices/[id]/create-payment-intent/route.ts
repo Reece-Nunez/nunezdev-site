@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -14,7 +14,11 @@ export async function POST(
     const { id: invoiceId } = await params;
     const { installment_id } = await request.json();
 
-    const supabase = await supabaseServer();
+    // Use service role client for public access (no auth required)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Fetch invoice details
     const { data: invoice, error: invoiceError } = await supabase

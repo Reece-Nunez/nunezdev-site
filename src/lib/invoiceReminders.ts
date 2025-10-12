@@ -106,6 +106,17 @@ export class InvoiceReminderService {
         console.error(`No client found for invoice ${invoice.id}`);
         return;
       }
+
+      // Find the most recent sent invoice for this recurring invoice to get the access token
+      const { data: lastInvoice } = await this.supabase
+        .from('invoices')
+        .select('id, access_token, invoice_number')
+        .eq('recurring_invoice_id', invoice.id)
+        .eq('status', 'sent')
+        .order('issued_at', { ascending: false })
+        .limit(1)
+        .single();
+
       const amount = (invoice.amount_cents / 100).toLocaleString('en-US', {
         style: 'currency',
         currency: 'USD'
@@ -125,7 +136,10 @@ export class InvoiceReminderService {
         amount,
         nextInvoiceDate,
         description: invoice.description,
-        reminderDays: invoice.reminder_days_before
+        reminderDays: invoice.reminder_days_before,
+        invoiceUrl: lastInvoice?.access_token
+          ? `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoice/${lastInvoice.access_token}`
+          : undefined
       });
 
       await resend.emails.send({
@@ -158,6 +172,7 @@ export class InvoiceReminderService {
     nextInvoiceDate: string;
     description: string;
     reminderDays: number;
+    invoiceUrl?: string;
   }): string {
     return `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -172,6 +187,12 @@ export class InvoiceReminderService {
           <p style="margin: 5px 0;"><strong>Invoice Date:</strong> ${data.nextInvoiceDate}</p>
           ${data.description ? `<p style="margin: 5px 0;"><strong>Description:</strong> ${data.description}</p>` : ''}
         </div>
+
+        ${data.invoiceUrl ? `
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.invoiceUrl}" style="display: inline-block; padding: 16px 32px; background-color: #5b7c99; color: white; text-decoration: none; border-radius: 5px; font-weight: 500;">View & Pay Invoice</a>
+        </div>
+        ` : ''}
 
         <p>The invoice will be sent automatically via Stripe, and you'll receive an email with a secure payment link.</p>
 
