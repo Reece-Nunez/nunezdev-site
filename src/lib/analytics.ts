@@ -2,7 +2,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 
 export interface MetricDetail {
   id: string;
-  type: 'payment' | 'invoice' | 'deal';
+  type: 'payment' | 'invoice';
   label: string;
   amount: number;
   date: string;
@@ -14,13 +14,11 @@ export interface AnalyticsData {
   revenueThisMonth: number;
   totalRevenue: number;
   outstandingBalance: number;
-  pipelineValue: number;
   clientsCount: number;
   // Detailed breakdowns for popups
   thisMonthPayments: MetricDetail[];
   allPayments: MetricDetail[];
   outstandingInvoices: MetricDetail[];
-  openDeals: MetricDetail[];
 }
 
 export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
@@ -84,21 +82,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     .in("status", ["sent", "overdue"])
     .order("due_at", { ascending: true });
 
-  // Get open deals
-  const { data: openDeals } = await supabase
-    .from("deals")
-    .select(`
-      id,
-      title,
-      value_cents,
-      stage,
-      created_at,
-      clients!inner(name)
-    `)
-    .eq("org_id", orgId)
-    .not("stage", "in", '("Won","Lost","Abandoned")')
-    .order("value_cents", { ascending: false });
-
   // Get client count
   const { count: clientsCount } = await supabase
     .from("clients")
@@ -108,7 +91,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
   // Calculate metrics
   const revenueThisMonth = (thisMonthPayments ?? []).reduce((sum, p) => sum + (p.amount_cents ?? 0), 0);
   const totalRevenue = (allPayments ?? []).reduce((sum, p) => sum + (p.amount_cents ?? 0), 0);
-  const pipelineValue = (openDeals ?? []).reduce((sum, d) => sum + (d.value_cents ?? 0), 0);
 
   // Calculate outstanding balance (invoice amount minus payments)
   const outstandingBalance = (outstandingInvoices ?? []).reduce((sum, inv) => {
@@ -144,26 +126,13 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
       };
     }).filter(inv => inv.amount > 0);
 
-  const formatDeals = (deals: any[]): MetricDetail[] =>
-    (deals ?? []).map(d => ({
-      id: d.id,
-      type: 'deal' as const,
-      label: `${(d.clients as any)?.name || 'Unknown'} - ${d.title || 'Untitled Deal'}`,
-      amount: d.value_cents,
-      date: d.created_at,
-      status: d.stage,
-      description: `Stage: ${d.stage}`
-    }));
-
   return {
     revenueThisMonth,
     totalRevenue,
     outstandingBalance,
-    pipelineValue,
     clientsCount: clientsCount ?? 0,
     thisMonthPayments: formatPayments(thisMonthPayments ?? []),
     allPayments: formatPayments(allPayments ?? []),
-    outstandingInvoices: formatInvoices(outstandingInvoices ?? []),
-    openDeals: formatDeals(openDeals ?? [])
+    outstandingInvoices: formatInvoices(outstandingInvoices ?? [])
   };
 }

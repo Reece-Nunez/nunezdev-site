@@ -3,94 +3,6 @@ import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendBusinessNotification } from "@/lib/notifications";
 
-async function autoUpdateDealStage(supabase: any, dealId?: string, clientId?: string, orgId?: string) {
-  try {
-    // If we have a specific deal ID, update that deal
-    if (dealId && orgId) {
-      const { data: deal } = await supabase
-        .from("deals")
-        .select(`
-          id,
-          value_cents,
-          stage,
-          client_id,
-          invoices:invoices!client_id (
-            amount_cents,
-            status,
-            invoice_payments (
-              amount_cents
-            )
-          )
-        `)
-        .eq("id", dealId)
-        .eq("org_id", orgId)
-        .single();
-
-      if (deal) {
-        await checkAndUpdateDealStage(supabase, deal);
-      }
-    }
-    // If we only have client ID, update all their open deals
-    else if (clientId && orgId) {
-      const { data: deals } = await supabase
-        .from("deals")
-        .select(`
-          id,
-          value_cents,
-          stage,
-          client_id,
-          invoices:invoices!client_id (
-            amount_cents,
-            status,
-            invoice_payments (
-              amount_cents
-            )
-          )
-        `)
-        .eq("client_id", clientId)
-        .eq("org_id", orgId)
-        .not("stage", "in", '("Won","Lost","Abandoned")');
-
-      if (deals) {
-        for (const deal of deals) {
-          await checkAndUpdateDealStage(supabase, deal);
-        }
-      }
-    }
-  } catch (error) {
-    console.error("[stripe-webhook] Error in autoUpdateDealStage:", error);
-  }
-}
-
-async function checkAndUpdateDealStage(supabase: any, deal: any) {
-  // Calculate total paid vs deal value
-  let totalPaid = 0;
-  
-  deal.invoices?.forEach((invoice: any) => {
-    invoice.invoice_payments?.forEach((payment: any) => {
-      totalPaid += payment.amount_cents || 0;
-    });
-  });
-
-  // Auto-update stage if fully paid and not already Won/Lost/Abandoned
-  const shouldMarkWon = totalPaid >= deal.value_cents && 
-                       !['Won', 'Lost', 'Abandoned'].includes(deal.stage);
-  
-  if (shouldMarkWon) {
-    const { error } = await supabase
-      .from("deals")
-      .update({ 
-        stage: "Won",
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", deal.id);
-      
-    if (!error) {
-      console.log(`[stripe-webhook] Auto-updated deal ${deal.id} to Won stage (paid: ${totalPaid}, value: ${deal.value_cents})`);
-    }
-  }
-}
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -187,7 +99,6 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   const metadata = paymentIntent.metadata || {};
   let invoiceId = metadata.invoice_id || metadata.hubspot_quote_id;
   const installmentId = metadata.installment_id; // For payment plan installments
-  const dealId = metadata.deal_id;
   const clientId = metadata.client_id;
   const orgId = metadata.org_id;
 
@@ -233,8 +144,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       
       console.log('[stripe-webhook] Trying email variations:', emailVariations);
       
-      // First try to match against deal payments (stripe_payment_link source)
-      const { data: dealInvoices, error: dealError } = await supabase
+      // First try to match against stripe_payment_link invoices
+      const { data: stripeInvoices, error: stripeError } = await supabase
         .from('invoices')
         .select(`
           id,
@@ -248,9 +159,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         .in('status', ['sent', 'draft'])
         .eq('source', 'stripe_payment_link');
 
-      console.log('[stripe-webhook] Deal invoice query result:', {
-        dealInvoices,
-        dealError,
+      console.log('[stripe-webhook] Stripe invoice query result:', {
+        stripeInvoices,
+        stripeError,
         queryParams: {
           amount_cents: paymentIntent.amount,
           customerEmail,
@@ -259,9 +170,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         }
       });
 
-      if (dealInvoices?.length === 1) {
-        invoiceId = dealInvoices[0].id;
-        console.log(`[stripe-webhook] matched payment intent to deal invoice by email/amount: ${invoiceId}`);
+      if (stripeInvoices?.length === 1) {
+        invoiceId = stripeInvoices[0].id;
+        console.log(`[stripe-webhook] matched payment intent to stripe invoice by email/amount: ${invoiceId}`);
       } else {
         // Fallback to hubspot invoices
         const { data: hubspotInvoices, error: hubspotError } = await supabase
@@ -326,9 +237,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       }
     }
     
-    // Final fallback: if we have deal metadata but still no invoice, try finding by deal and amount
-    if (!invoiceId && dealId && clientId && orgId) {
-      const { data: dealInvoicesByAmount } = await supabase
+    // Final fallback: try finding by client and amount
+    if (!invoiceId && clientId && orgId) {
+      const { data: invoicesByAmount } = await supabase
         .from('invoices')
         .select('id')
         .eq('amount_cents', paymentIntent.amount)
@@ -337,10 +248,10 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         .in('status', ['sent', 'draft'])
         .order('created_at', { ascending: false })
         .limit(1);
-        
-      if (dealInvoicesByAmount?.length === 1) {
-        invoiceId = dealInvoicesByAmount[0].id;
-        console.log(`[stripe-webhook] matched payment intent to invoice by deal metadata and amount: ${invoiceId}`);
+
+      if (invoicesByAmount?.length === 1) {
+        invoiceId = invoicesByAmount[0].id;
+        console.log(`[stripe-webhook] matched payment intent to invoice by client metadata and amount: ${invoiceId}`);
       }
     }
   }
@@ -448,11 +359,6 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
             installment_id: installmentId || null
           }
         });
-      
-      // Check if we should auto-update deal stage
-      if (dealId || clientId) {
-        await autoUpdateDealStage(supabase, dealId, clientId, orgId);
-      }
       
       // The trigger will automatically update the invoice status based on total payments
     } else {

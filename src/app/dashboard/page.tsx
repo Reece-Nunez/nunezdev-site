@@ -14,31 +14,14 @@ async function getKpisData() {
   try {
     const analytics = await getAnalytics(orgId);
 
-    // Add legacy KPI calculations for the secondary metrics
-    // These are for the metrics that aren't part of the main clickable analytics
-    const avgDealValue = analytics.openDeals.length > 0
-      ? analytics.openDeals.reduce((sum, d) => sum + d.amount, 0) / analytics.openDeals.length
-      : 0;
-
-    const dealsClosedThisMonth = 0; // TODO: Add this to analytics service
-    const totalWonValue = 0; // TODO: Add this to analytics service
     const avgPaymentTime = 30; // TODO: Add this to analytics service
     const recentPaymentCount = analytics.thisMonthPayments.length;
-    const totalDeals = analytics.openDeals.length; // This is just open deals for now
-    const wonDeals = 0; // TODO: Add this to analytics service
     const overdueInvoices = analytics.outstandingInvoices.filter(inv => inv.status === 'overdue').length;
 
     return {
       ...analytics,
-      // Legacy props for secondary metrics
-      openDealsCount: analytics.openDeals.length,
-      avgDealValue,
-      dealsClosedThisMonth,
-      totalWonValue,
       avgPaymentTime,
       recentPaymentCount,
-      totalDeals,
-      wonDeals,
       overdueInvoices
     };
   } catch (error) {

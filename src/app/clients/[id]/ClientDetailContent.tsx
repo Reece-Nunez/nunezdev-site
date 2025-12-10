@@ -5,7 +5,7 @@ import { useState } from 'react';
 import ClientForm from '../../../components/client-detail/ClientForm';
 import ClientNotes from '../../../components/client-detail/ClientNotes';
 import ClientTasks from '../../../components/client-detail/ClientTasks';
-import { ClientDeals, ClientInvoices } from '../../../components/client-detail/Related';
+import { ClientInvoices } from '../../../components/client-detail/Related';
 import AddPayment from '../../../components/client-detail/AddPayment';
 
 export default function ClientDetailContent({ clientId }: { clientId: string }) {
@@ -21,25 +21,6 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
       </div>
 
       <ClientForm clientId={clientId} />
-
-      {/* Deals */}
-      <section className="rounded-lg border p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Deals</h2>
-          <Link
-            href={`/dashboard/deals/new?clientId=${clientId}`}
-            className="rounded-lg px-4 py-2 text-white text-sm font-medium transition-colors"
-            style={{ backgroundColor: '#ffc312' }}
-            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#e6ad0f'}
-            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#ffc312'}
-          >
-            + New Deal
-          </Link>
-        </div>
-        <div>
-          <ClientDeals key={`deals-${refreshKey}`} clientId={clientId} />
-        </div>
-      </section>
 
       {/* Invoices & Payments */}
       <section className="rounded-lg border p-4">

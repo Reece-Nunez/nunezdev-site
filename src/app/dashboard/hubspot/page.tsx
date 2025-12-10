@@ -169,8 +169,7 @@ export default function HubSpotSyncPage() {
       const endpoints = [
         { name: 'Contacts', url: '/api/hubspot/backfill/contacts?limit=100&dry=0' },
         { name: 'Quotes', url: '/api/hubspot/backfill/quotes?limit=100&dry=0' },
-        { name: 'Invoices', url: '/api/hubspot/backfill/invoices?limit=100&dry=0' },
-        { name: 'Deals', url: '/api/hubspot/backfill/deals?limit=100&dry=0' }
+        { name: 'Invoices', url: '/api/hubspot/backfill/invoices?limit=100&dry=0' }
       ];
       
       const results = [];
@@ -252,12 +251,6 @@ export default function HubSpotSyncPage() {
             <div className="text-xs text-gray-500">Select which invoices to import</div>
           </div>
         </div>
-        
-        <SyncButton
-          label="Sync Deals"
-          endpoint="/api/hubspot/backfill/deals?limit=100&dry=0"
-          onComplete={refreshData}
-        />
       </div>
 
       {/* Invoice Preview Section */}
@@ -287,7 +280,6 @@ export default function HubSpotSyncPage() {
           <p><strong>Contacts:</strong> Creates/updates clients based on HubSpot contacts with email addresses</p>
           <p><strong>Quotes:</strong> Imports HubSpot quotes as invoices, linking to clients by email</p>
           <p><strong>HubSpot Invoices:</strong> Preview and selectively import actual HubSpot invoices with payment status</p>
-          <p><strong>Deals:</strong> Imports HubSpot deals, creating clients if needed and linking by contact email</p>
         </div>
       </div>
 

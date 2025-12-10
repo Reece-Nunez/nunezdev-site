@@ -8,7 +8,6 @@ import LogoutButton from '../LogOutButton';
 const items = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/clients', label: 'Clients' },
-  { href: '/dashboard/deals', label: 'Deals' },
   { href: '/dashboard/invoices', label: 'Invoices' },
   { href: '/dashboard/payments', label: 'Payments' },
 ];
@@ -23,6 +22,7 @@ const adminTools = [
 
 export default function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const [adminToolsOpen, setAdminToolsOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href;
 
@@ -108,26 +108,41 @@ export default function MobileNavigation() {
                 ))}
               </nav>
 
-              {/* Admin Tools */}
-              <nav className="px-4 pb-4 space-y-2">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                  Admin Tools
-                </div>
-                {adminTools.map((tool) => (
-                  <Link
-                    key={tool.href}
-                    href={tool.href}
-                    onClick={closeMenu}
-                    className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
-                      isActive(tool.href)
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+              {/* Admin Tools - Collapsible */}
+              <div className="px-4 pb-4">
+                <button
+                  onClick={() => setAdminToolsOpen(!adminToolsOpen)}
+                  className="w-full flex items-center justify-between py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-700 transition-colors"
+                >
+                  <span>Admin Tools</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${adminToolsOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    {tool.label}
-                  </Link>
-                ))}
-              </nav>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {adminToolsOpen && (
+                  <nav className="space-y-2 mt-2">
+                    {adminTools.map((tool) => (
+                      <Link
+                        key={tool.href}
+                        href={tool.href}
+                        onClick={closeMenu}
+                        className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                          isActive(tool.href)
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {tool.label}
+                      </Link>
+                    ))}
+                  </nav>
+                )}
+              </div>
             </div>
 
             {/* Actions */}

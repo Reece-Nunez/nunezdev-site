@@ -19,12 +19,6 @@ export async function GET() {
       .select('id, name, status, created_at')
       .eq('org_id', orgId);
 
-    // Check deals
-    const { data: deals, error: dealsErr } = await supabase
-      .from('deals')
-      .select('id, title, stage, value_cents, created_at')
-      .eq('org_id', orgId);
-
     // Check invoices
     const { data: invoices, error: invoicesErr } = await supabase
       .from('invoices')
@@ -38,11 +32,6 @@ export async function GET() {
         data: clients,
         error: clientsErr?.message
       },
-      deals: {
-        count: deals?.length ?? 0,
-        data: deals,
-        error: dealsErr?.message
-      },
       invoices: {
         count: invoices?.length ?? 0,
         data: invoices,
@@ -52,7 +41,7 @@ export async function GET() {
 
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to fetch data', details: error }, 
+      { error: 'Failed to fetch data', details: error },
       { status: 500 }
     );
   }

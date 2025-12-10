@@ -110,14 +110,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
       .eq("client_id", id)
       .eq("org_id", orgId);
 
-    // 4. Delete deals
-    await supabase
-      .from("deals")
-      .delete()
-      .eq("client_id", id)
-      .eq("org_id", orgId);
-
-    // 5. Delete notes
+    // 4. Delete notes
     await supabase
       .from("notes")
       .delete()
@@ -125,7 +118,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
       .eq("relates_id", id)
       .eq("org_id", orgId);
 
-    // 6. Delete tasks
+    // 5. Delete tasks
     await supabase
       .from("tasks")
       .delete()
@@ -133,7 +126,7 @@ export async function DELETE(_req: Request, ctx: Ctx) {
       .eq("relates_id", id)
       .eq("org_id", orgId);
 
-    // 7. Finally delete the client
+    // 6. Finally delete the client
     const { error: deleteError } = await supabase
       .from("clients")
       .delete()

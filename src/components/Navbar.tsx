@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,9 +17,14 @@ const navItems = [
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogoDoubleClick = () => {
+    router.push('/dashboard');
+  };
 
   // Hide navbar on dashboard, admin, invoice, and other app routes
   if (pathname?.startsWith('/dashboard') || 
@@ -33,8 +38,8 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800/30 backdrop-blur-sm px-4 py-4 flex justify-between items-center">
-      {/* Left: Logo */}
-      <Link href="/" className="flex items-center gap-2">
+      {/* Left: Logo - double-click for admin access */}
+      <Link href="/" className="flex items-center gap-2" onDoubleClick={handleLogoDoubleClick}>
         <Image
           src="/logo.svg"
           alt="NunezDev Logo"

@@ -33,7 +33,9 @@
       "Bash(npm run build:*)",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build)",
       "Bash(curl -X POST http://localhost:3000/api/contact -H \"Content-Type: application/json\" -d '{\"\"name\"\": \"\"Test Lead\"\", \"\"email\"\": \"\"test@example.com\"\", \"\"message\"\": \"\"I need a website for my business\"\", \"\"company\"\": \"\"Test Company\"\"}' --max-time 30)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": [],

@@ -363,7 +363,6 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                 <strong>Warning:</strong> This will permanently delete:
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>All client information</li>
-                  <li>All deals associated with this client</li>
                   <li>All invoices and payments</li>
                   <li>All notes and tasks</li>
                 </ul>
@@ -405,7 +404,6 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                 <strong>Warning:</strong> This will permanently delete for ALL selected clients:
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>All client information</li>
-                  <li>All deals associated with these clients</li>
                   <li>All invoices and payments</li>
                   <li>All notes and tasks</li>
                 </ul>

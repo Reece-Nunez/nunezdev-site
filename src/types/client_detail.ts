@@ -21,7 +21,7 @@ export type ClientOverview = Client & {
 export type Note = {
   id: string;
   org_id: string;
-  relates_to: 'client' | 'deal';
+  relates_to: 'client';
   relates_id: string;
   body: string;
   created_by: string | null;
@@ -32,19 +32,11 @@ export type Task = {
   id: string;
   org_id: string;
   assignee: string | null;
-  relates_to: 'client' | 'deal';
+  relates_to: 'client';
   relates_id: string;
   title: string;
   due_at: string | null;
   done: boolean;
-  created_at: string;
-};
-
-export type DealLite = {
-  id: string;
-  title: string;
-  stage: 'Contacted' | 'Negotiation' | 'Contract Sent' | 'Contract Signed' | 'Won' | 'Lost' | 'Abandoned';
-  value_cents: number;
   created_at: string;
 };
 

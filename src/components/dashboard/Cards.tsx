@@ -14,21 +14,14 @@ function Card({ label, value }: { label: string; value: string }) {
 
 interface KPIData extends AnalyticsData {
   // Legacy props for backward compatibility
-  openDealsCount?: number;
-  totalDeals?: number;
-  wonDeals?: number;
-  totalWonValue?: number;
-  conversionRate?: number;
-  avgDealValue?: number;
-  dealsClosedThisMonth?: number;
   overdueInvoices?: number;
   avgPaymentTime?: number;
   recentPaymentCount?: number;
 }
 
-function MetricCard({ label, value, subtext, trend }: { 
-  label: string; 
-  value: string; 
+function MetricCard({ label, value, subtext, trend }: {
+  label: string;
+  value: string;
   subtext?: string;
   trend?: { value: number; label: string };
 }) {
@@ -59,7 +52,7 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
       {/* Primary KPIs - Now Clickable */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">Key Metrics</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <ClickableMetric
             title="Revenue (This Month)"
             value={fmt(kpis.revenueThisMonth)}
@@ -68,18 +61,6 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             icon={
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-            }
-          />
-          <ClickableMetric
-            title="Pipeline Value"
-            value={fmt(kpis.pipelineValue)}
-            color="purple"
-            details={kpis.openDeals || []}
-            subtitle={`${(kpis.openDeals || []).length} open deals`}
-            icon={
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             }
           />
@@ -115,36 +96,12 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
         </div>
       </div>
 
-      {/* Secondary KPIs */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">Performance Insights</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            label="Avg Deal Value"
-            value={fmt(kpis.avgDealValue || 0)}
-          />
-          <MetricCard
-            label="Deals Closed (Month)"
-            value={(kpis.dealsClosedThisMonth || 0).toString()}
-          />
-          <MetricCard
-            label="Total Won Value"
-            value={fmt(kpis.totalWonValue || 0)}
-          />
-          <MetricCard
-            label="Avg Payment Time"
-            value={`${kpis.avgPaymentTime || 0}d`}
-            subtext="Days to payment"
-          />
-        </div>
-      </div>
-
       {/* Business Overview */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">Business Overview</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <MetricCard 
-            label="Total Revenue" 
+          <MetricCard
+            label="Total Revenue"
             value={fmt(kpis.totalRevenue)}
             subtext="All-time revenue"
           />
@@ -154,9 +111,9 @@ export default function Cards({ kpis }: { kpis: KPIData }) {
             subtext="Last 30 days"
           />
           <MetricCard
-            label="Total Deals"
-            value={(kpis.totalDeals || 0).toString()}
-            subtext={`${kpis.wonDeals || 0} won, ${(kpis.totalDeals || 0) - (kpis.wonDeals || 0)} other`}
+            label="Avg Payment Time"
+            value={`${kpis.avgPaymentTime || 0}d`}
+            subtext="Days to payment"
           />
         </div>
       </div>

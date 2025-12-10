@@ -198,7 +198,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
                 <strong>Warning:</strong> This will permanently delete:
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>All client information</li>
-                  <li>All deals associated with this client</li>
                   <li>All invoices and payments</li>
                   <li>All notes and tasks</li>
                 </ul>

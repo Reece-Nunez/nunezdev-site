@@ -13,51 +13,16 @@ export async function POST() {
   const supabase = await supabaseServer();
 
   try {
-    // Get a client ID to link deals and invoices to
+    // Get a client ID to link invoices to
     const { data: clients } = await supabase
       .from('clients')
       .select('id')
       .eq('org_id', orgId)
       .limit(1);
-    
+
     const clientId = clients?.[0]?.id;
     if (!clientId) {
       return NextResponse.json({ error: 'No clients found. Add a client first.' }, { status: 400 });
-    }
-
-    // Add some sample deals
-    const { data: dealsData, error: dealsError } = await supabase
-      .from('deals')
-      .insert([
-        {
-          org_id: orgId,
-          client_id: clientId,
-          title: 'Website Development',
-          stage: 'Contract Sent',
-          value_cents: 500000, // $5,000
-          probability: 75
-        },
-        {
-          org_id: orgId,
-          client_id: clientId,
-          title: 'Mobile App Development',
-          stage: 'Negotiation', 
-          value_cents: 1200000, // $12,000
-          probability: 60
-        },
-        {
-          org_id: orgId,
-          client_id: clientId,
-          title: 'E-commerce Platform',
-          stage: 'Contacted',
-          value_cents: 800000, // $8,000
-          probability: 40
-        }
-      ])
-      .select();
-
-    if (dealsError) {
-      return NextResponse.json({ error: 'Failed to create deals: ' + dealsError.message }, { status: 400 });
     }
 
     // Add some sample invoices
@@ -95,16 +60,15 @@ export async function POST() {
       return NextResponse.json({ error: 'Failed to create invoices: ' + invoicesError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      deals: dealsData,
       invoices: invoicesData,
       message: 'Sample data created successfully!'
     });
 
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to seed data', details: error }, 
+      { error: 'Failed to seed data', details: error },
       { status: 500 }
     );
   }

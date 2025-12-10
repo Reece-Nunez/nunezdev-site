@@ -1,11 +1,10 @@
 'use client';
 
 type ActivityItem = {
-  type: 'note' | 'deal' | 'invoice' | 'task';
+  type: 'note' | 'invoice' | 'task';
   data: {
     body?: string;
     title?: string;
-    stage?: string;
     status?: string;
     amount_cents?: number;
     done?: boolean;
@@ -14,7 +13,6 @@ type ActivityItem = {
 };
 
 function pretty(ts: string) {
-  // Dummy implementation, replace with your own
   return new Date(ts).toLocaleString();
 }
 
@@ -31,7 +29,6 @@ export default function RecentActivity() {
             <div className="flex-1">
               <div className="text-gray-800">
                 {it.type === 'note' && <>Note added: <span className="text-gray-600">{it.data.body?.slice(0,80)}</span></>}
-                {it.type === 'deal' && <>Deal created: <strong>{it.data.title}</strong> <span className="text-gray-500">({it.data.stage})</span></>}
                 {it.type === 'invoice' && <>Invoice {it.data.status}: <strong>${((it.data.amount_cents ?? 0)/100).toLocaleString()}</strong></>}
                 {it.type === 'task' && <>Task {it.data.done ? 'completed' : 'created'}: <strong>{it.data.title}</strong></>}
               </div>

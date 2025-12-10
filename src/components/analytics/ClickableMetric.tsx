@@ -69,8 +69,6 @@ export default function ClickableMetric({ title, value, icon, color, details, su
         return '💳';
       case 'invoice':
         return '📄';
-      case 'deal':
-        return '🤝';
       default:
         return '📊';
     }

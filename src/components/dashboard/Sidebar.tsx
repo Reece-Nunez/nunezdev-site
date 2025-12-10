@@ -8,7 +8,6 @@ import LogoutButton from '../LogOutButton';
 const items = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/clients', label: 'Clients' },
-  { href: '/dashboard/deals', label: 'Deals' },
   { href: '/dashboard/invoices', label: 'Invoices' },
   { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices' },
   { href: '/dashboard/payments', label: 'Payments' },
@@ -25,6 +24,7 @@ const adminTools = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [adminToolsOpen, setAdminToolsOpen] = useState(false);
   const isActive = (href: string) => pathname === href;
 
   return (
@@ -62,7 +62,7 @@ export default function Sidebar() {
       {/* Main Navigation */}
       <nav className="p-2 space-y-1">
         {items.map((it, index) => {
-          const icons = ['📊', '👥', '🤝', '📄', '🔄', '💰']; // Icons for each nav item
+          const icons = ['📊', '👥', '📄', '🔄', '💰']; // Icons for each nav item
           return (
             <Link
               key={it.href}
@@ -86,30 +86,41 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Admin Tools Section */}
+      {/* Admin Tools Section - Collapsible */}
       {!isCollapsed && (
         <div className="px-2 pt-4">
-          <div className="px-3 pb-2">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Admin Tools
-            </h3>
-          </div>
-          <nav className="space-y-1">
-            {adminTools.map((tool) => (
-              <Link
-                key={tool.href}
-                href={tool.href}
-                className={
-                  'block rounded-lg px-3 py-2 text-sm ' +
-                  (isActive(tool.href)
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                    : 'hover:bg-gray-50 text-gray-600')
-                }
-              >
-                {tool.label}
-              </Link>
-            ))}
-          </nav>
+          <button
+            onClick={() => setAdminToolsOpen(!adminToolsOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <span>Admin Tools</span>
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${adminToolsOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {adminToolsOpen && (
+            <nav className="space-y-1 mt-1">
+              {adminTools.map((tool) => (
+                <Link
+                  key={tool.href}
+                  href={tool.href}
+                  className={
+                    'block rounded-lg px-3 py-2 text-sm ' +
+                    (isActive(tool.href)
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'hover:bg-gray-50 text-gray-600')
+                  }
+                >
+                  {tool.label}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       )}
 
