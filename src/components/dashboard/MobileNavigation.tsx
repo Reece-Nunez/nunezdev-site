@@ -9,6 +9,9 @@ const items = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/clients', label: 'Clients' },
   { href: '/dashboard/invoices', label: 'Invoices' },
+  { href: '/dashboard/proposals', label: 'Proposals' },
+  { href: '/dashboard/time', label: 'Time' },
+  { href: '/dashboard/recurring-invoices', label: 'Recurring' },
   { href: '/dashboard/payments', label: 'Payments' },
 ];
 

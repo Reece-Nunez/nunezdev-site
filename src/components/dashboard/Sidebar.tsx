@@ -9,6 +9,8 @@ const items = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/clients', label: 'Clients' },
   { href: '/dashboard/invoices', label: 'Invoices' },
+  { href: '/dashboard/proposals', label: 'Proposals' },
+  { href: '/dashboard/time', label: 'Time Tracking' },
   { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices' },
   { href: '/dashboard/payments', label: 'Payments' },
 ];
@@ -34,7 +36,7 @@ export default function Sidebar() {
           <img 
             src="https://nunezdev.com/logo.png" 
             alt="NunezDev Logo" 
-            className="w-16 h-16 object-contain"
+            className="w-38 h-16 object-contain"
           />
         ) : (
           <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -62,7 +64,7 @@ export default function Sidebar() {
       {/* Main Navigation */}
       <nav className="p-2 space-y-1">
         {items.map((it, index) => {
-          const icons = ['📊', '👥', '📄', '🔄', '💰']; // Icons for each nav item
+          const icons = ['📊', '👥', '📄', '📋', '⏱️', '🔄', '💰']; // Icons for each nav item
           return (
             <Link
               key={it.href}

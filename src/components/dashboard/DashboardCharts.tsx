@@ -1,93 +1,82 @@
 'use client';
 
 import useSWR from 'swr';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid } from 'recharts';
+import Link from 'next/link';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 const fmtUSD = (cents: number) => (cents/100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 
-// Format month from YYYY-MM to readable format
 const formatMonth = (monthStr: string) => {
   const [year, month] = monthStr.split('-');
   const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 };
 
 export default function DashboardCharts() {
-  const { data } = useSWR('/api/dashboard/charts', fetcher);
+  const { data, isLoading } = useSWR('/api/dashboard/charts', fetcher);
+
+  const revenueByMonth = (data?.revenueByMonth ?? []).filter((m: any) => m.cents > 0);
+  const totalRevenue = revenueByMonth.reduce((sum: number, m: any) => sum + (m.cents || 0), 0);
 
   return (
-    <div className="space-y-8">
-      {/* Revenue Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[500px]">
-        <div className="rounded-2xl border bg-white p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4">Revenue by Month (YTD)</h3>
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data?.revenueByMonth ?? []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="month"
-                  tickFormatter={formatMonth}
-                  interval="preserveStartEnd"
-                />
-                <YAxis tickFormatter={(v) => fmtUSD(v).replace('.00', '')} />
-                <Tooltip
-                  formatter={(value: any) => [fmtUSD(value as number), 'Revenue']}
-                  labelFormatter={(label) => formatMonth(label as string)}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cents"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border bg-white p-6 flex flex-col">
-          <h3 className="text-lg font-semibold mb-4">Payment Methods</h3>
-          <div className="flex-1">
-            {!data?.paymentMethods || data.paymentMethods.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                <p>No payment data available</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.paymentMethods}
-                  margin={{ top: 20, right: 10, left: 10, bottom: 45 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="method"
-                    angle={-45}
-                    textAnchor="end"
-                    height={5}
-                    tick={{ fontSize: 12 }}
-                    interval={0}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => fmtUSD(v).replace('.00', '')}
-                  />
-                  <Tooltip
-                    formatter={(value: any) => [fmtUSD(value as number), 'Total Amount']}
-                    labelFormatter={(label) => `Payment Method: ${label}`}
-                  />
-                  <Bar
-                    dataKey="amount_cents"
-                    fill="#8b5cf6"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+    <div className="rounded-xl border bg-white">
+      <div className="p-4 border-b flex items-center justify-between">
+        <h3 className="font-semibold text-gray-800">Monthly Revenue</h3>
+        <Link href="/dashboard/payments" className="text-sm text-emerald-600 hover:text-emerald-800">
+          View all payments
+        </Link>
       </div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-gray-500">Loading...</div>
+      ) : revenueByMonth.length === 0 ? (
+        <div className="p-8 text-center text-gray-500">No revenue data yet</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3">Month</th>
+                <th className="px-4 py-3 text-right">Revenue</th>
+                <th className="px-4 py-3 text-right hidden sm:table-cell">% of Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {revenueByMonth.map((month: any, idx: number) => {
+                const pct = totalRevenue > 0 ? ((month.cents / totalRevenue) * 100).toFixed(1) : '0';
+                return (
+                  <tr key={month.month} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      {formatMonth(month.month)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">
+                      {fmtUSD(month.cents)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-500 hidden sm:table-cell">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className="bg-emerald-500 h-1.5 rounded-full"
+                            style={{ width: `${Math.min(100, parseFloat(pct))}%` }}
+                          />
+                        </div>
+                        <span className="w-12 text-right">{pct}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-gray-100 font-semibold">
+                <td className="px-4 py-3 text-sm text-gray-900">Total</td>
+                <td className="px-4 py-3 text-sm text-right text-gray-900">{fmtUSD(totalRevenue)}</td>
+                <td className="px-4 py-3 text-sm text-right text-gray-500 hidden sm:table-cell">100%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
