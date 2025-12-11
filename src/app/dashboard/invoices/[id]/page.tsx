@@ -98,8 +98,9 @@ interface Invoice extends InvoiceLite {
   invoice_payment_plans?: Array<{
     id: string;
     installment_number: number;
+    installment_label?: string;
     amount_cents: number;
-    due_at: string;
+    due_date: string;
     status: string;
     paid_at?: string;
   }>;
@@ -444,9 +445,9 @@ export default function InvoiceDetailPage() {
                       {plan.installment_number}
                     </div>
                     <div>
-                      <div className="font-medium">Installment {plan.installment_number}</div>
+                      <div className="font-medium">{plan.installment_label || `Installment ${plan.installment_number}`}</div>
                       <div className="text-sm text-gray-600">
-                        Due: {new Date(plan.due_at).toLocaleDateString()}
+                        {plan.due_date ? `Due: ${new Date(plan.due_date).toLocaleDateString()}` : 'Due date TBD'}
                         {plan.paid_at && (
                           <span className="text-green-600 ml-2">
                             (Paid: {new Date(plan.paid_at).toLocaleDateString()})

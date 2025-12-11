@@ -40,8 +40,9 @@ export async function GET(
         invoice_payment_plans(
           id,
           installment_number,
+          installment_label,
           amount_cents,
-          due_at,
+          due_date,
           status,
           paid_at
         )
