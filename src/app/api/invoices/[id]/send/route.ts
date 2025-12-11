@@ -50,9 +50,12 @@ export async function POST(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    if (invoice.status !== 'draft') {
-      return NextResponse.json({ error: "Only draft invoices can be sent" }, { status: 400 });
+    // Allow sending/resending for any status except 'paid'
+    if (invoice.status === 'paid') {
+      return NextResponse.json({ error: "Cannot resend a fully paid invoice" }, { status: 400 });
     }
+
+    const isResend = invoice.status !== 'draft';
 
     if (!(invoice.clients as any).email) {
       return NextResponse.json({ error: "Client must have an email address to send invoice" }, { status: 400 });
@@ -234,13 +237,17 @@ export async function POST(
       agreementUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com'}/invoices/${invoiceId}/agreement`;
     }
 
-    // Update invoice status
-    const updatePayload = {
-      status: 'sent',
-      issued_at: new Date().toISOString(),
-      due_at: dueDate.toISOString(),
+    // Update invoice - only change status/dates if first send (not resend)
+    const updatePayload: Record<string, unknown> = {
       hosted_invoice_url: agreementUrl || stripeInvoiceUrl || null,
     };
+
+    if (!isResend) {
+      // First time sending - set status and dates
+      updatePayload.status = 'sent';
+      updatePayload.issued_at = new Date().toISOString();
+      updatePayload.due_at = dueDate.toISOString();
+    }
 
     const { error: updateError } = await supabase
       .from("invoices")
@@ -274,11 +281,12 @@ export async function POST(
       // Don't fail the request - invoice is still sent
     }
 
+    const action = isResend ? "resent" : "sent";
     return NextResponse.json({
       success: true,
-      message: process.env.RESEND_API_KEY 
-        ? "Invoice sent successfully! Email has been sent to the (client as any)." 
-        : `Invoice sent successfully! Share this link with your client: ${secureInvoiceUrl}`,
+      message: process.env.RESEND_API_KEY
+        ? `Invoice ${action} successfully! Email has been sent to the client.`
+        : `Invoice ${action} successfully! Share this link with your client: ${secureInvoiceUrl}`,
       stripe_invoice_url: stripeInvoiceUrl,
       agreement_url: agreementUrl,
       hosted_url: secureInvoiceUrl,
