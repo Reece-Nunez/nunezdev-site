@@ -37,6 +37,16 @@ function getPaymentTermsDescription(terms: string): string {
   }
 }
 
+function getPaymentPlanTypeDisplay(type: string): string {
+  switch (type) {
+    case 'full': return 'Full Payment';
+    case '50_50': return '50/50 Split';
+    case '40_30_30': return '40/30/30 Split';
+    case 'custom': return 'Custom Plan';
+    default: return type;
+  }
+}
+
 interface Invoice extends InvoiceLite {
   client_id: string;
   signed_at?: string;
@@ -49,6 +59,7 @@ interface Invoice extends InvoiceLite {
   notes?: string;
   require_signature?: boolean;
   line_items?: Array<{
+    title?: string;
     description: string;
     quantity: number;
     rate_cents: number;
@@ -66,6 +77,11 @@ interface Invoice extends InvoiceLite {
   discount_value?: number;
   technology_stack?: string[];
   terms_conditions?: string;
+  // Payment plan fields
+  payment_plan_enabled?: boolean;
+  payment_plan_type?: string;
+  total_paid_cents?: number;
+  remaining_balance_cents?: number;
   clients?: {
     id: string;
     name: string;
@@ -78,6 +94,14 @@ interface Invoice extends InvoiceLite {
     amount_cents: number;
     payment_method: string;
     paid_at: string;
+  }>;
+  invoice_payment_plans?: Array<{
+    id: string;
+    installment_number: number;
+    amount_cents: number;
+    due_at: string;
+    status: string;
+    paid_at?: string;
   }>;
 }
 
@@ -246,9 +270,31 @@ export default function InvoiceDetailPage() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-600">Amount</label>
+              <label className="text-sm font-medium text-gray-600">Total Amount</label>
               <div className="text-2xl font-bold text-green-600">{currency(invoice.amount_cents)}</div>
             </div>
+            {(invoice.total_paid_cents !== undefined && invoice.total_paid_cents > 0) && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Amount Paid</label>
+                <div className="text-lg font-semibold text-blue-600">{currency(invoice.total_paid_cents)}</div>
+              </div>
+            )}
+            {(invoice.remaining_balance_cents !== undefined && invoice.remaining_balance_cents > 0) && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Remaining Balance</label>
+                <div className="text-lg font-semibold text-amber-600">{currency(invoice.remaining_balance_cents)}</div>
+              </div>
+            )}
+            {invoice.payment_plan_enabled && invoice.payment_plan_type && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Payment Plan</label>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full">
+                    {getPaymentPlanTypeDisplay(invoice.payment_plan_type)}
+                  </span>
+                </div>
+              </div>
+            )}
             {invoice.issued_at && (
               <div>
                 <label className="text-sm font-medium text-gray-600">Issued</label>
@@ -259,6 +305,12 @@ export default function InvoiceDetailPage() {
               <div>
                 <label className="text-sm font-medium text-gray-600">Due</label>
                 <div>{new Date(invoice.due_at).toLocaleDateString()}</div>
+              </div>
+            )}
+            {invoice.payment_terms && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Payment Terms</label>
+                <div className="text-sm">{getPaymentTermsDisplay(invoice.payment_terms)}</div>
               </div>
             )}
             {invoice.description && (
@@ -290,7 +342,10 @@ export default function InvoiceDetailPage() {
               <tbody>
                 {invoice.line_items.map((item, index) => (
                   <tr key={index} className="border-t">
-                    <td className="px-3 py-2">{item.description}</td>
+                    <td className="px-3 py-2">
+                      {item.title && <div className="font-medium">{item.title}</div>}
+                      <div className={item.title ? 'text-gray-600 text-sm' : ''}>{item.description}</div>
+                    </td>
                     <td className="px-3 py-2 text-center">{item.quantity}</td>
                     <td className="px-3 py-2 text-right">{currency(item.rate_cents)}</td>
                     <td className="px-3 py-2 text-right font-medium">{currency(item.amount_cents)}</td>
@@ -305,7 +360,8 @@ export default function InvoiceDetailPage() {
             {invoice.line_items.map((item, index) => (
               <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <div className="space-y-3">
-                  <div className="font-medium text-gray-800">{item.description}</div>
+                  {item.title && <div className="font-semibold text-gray-900">{item.title}</div>}
+                  <div className={`${item.title ? 'text-sm text-gray-600' : 'font-medium text-gray-800'}`}>{item.description}</div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-xs text-gray-500 uppercase tracking-wide">Quantity</div>
@@ -356,6 +412,113 @@ export default function InvoiceDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Payment Plan Schedule */}
+      {invoice.invoice_payment_plans && invoice.invoice_payment_plans.length > 0 && (
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Payment Schedule</h2>
+          <div className="space-y-3">
+            {invoice.invoice_payment_plans
+              .sort((a, b) => a.installment_number - b.installment_number)
+              .map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border ${
+                    plan.status === 'paid'
+                      ? 'bg-green-50 border-green-200'
+                      : plan.status === 'overdue'
+                      ? 'bg-red-50 border-red-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                      plan.status === 'paid'
+                        ? 'bg-green-500 text-white'
+                        : plan.status === 'overdue'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-300 text-gray-700'
+                    }`}>
+                      {plan.installment_number}
+                    </div>
+                    <div>
+                      <div className="font-medium">Installment {plan.installment_number}</div>
+                      <div className="text-sm text-gray-600">
+                        Due: {new Date(plan.due_at).toLocaleDateString()}
+                        {plan.paid_at && (
+                          <span className="text-green-600 ml-2">
+                            (Paid: {new Date(plan.paid_at).toLocaleDateString()})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2 sm:mt-0">
+                    <span className="text-lg font-semibold">{currency(plan.amount_cents)}</span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      plan.status === 'paid'
+                        ? 'bg-green-100 text-green-700'
+                        : plan.status === 'overdue'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Project Details */}
+      {(invoice.project_overview || invoice.project_start_date || invoice.delivery_date || (invoice.technology_stack && invoice.technology_stack.length > 0)) && (
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Project Details</h2>
+          <div className="space-y-4">
+            {invoice.project_overview && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Project Overview</label>
+                <div className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{invoice.project_overview}</div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {invoice.project_start_date && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Project Start Date</label>
+                  <div>{new Date(invoice.project_start_date).toLocaleDateString()}</div>
+                </div>
+              )}
+              {invoice.delivery_date && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Delivery Date</label>
+                  <div>{new Date(invoice.delivery_date).toLocaleDateString()}</div>
+                </div>
+              )}
+            </div>
+            {invoice.technology_stack && invoice.technology_stack.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Technology Stack</label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {invoice.technology_stack.map((tech, idx) => (
+                    <span key={idx} className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Terms & Conditions */}
+      {invoice.terms_conditions && (
+        <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Terms & Conditions</h2>
+          <div className="text-sm text-gray-700 whitespace-pre-wrap">{invoice.terms_conditions}</div>
         </div>
       )}
 

@@ -14,7 +14,7 @@ export async function GET(
   const supabase = await supabaseServer();
 
   try {
-    // Fetch invoice with client details and payments
+    // Fetch invoice with client details, payments, and payment plans
     const { data: invoice, error } = await supabase
       .from("invoices")
       .select(`
@@ -30,6 +30,14 @@ export async function GET(
           id,
           amount_cents,
           payment_method,
+          paid_at
+        ),
+        invoice_payment_plans(
+          id,
+          installment_number,
+          amount_cents,
+          due_at,
+          status,
           paid_at
         )
       `)
