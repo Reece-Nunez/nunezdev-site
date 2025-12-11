@@ -21,7 +21,8 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
   const { data: clientsData } = useSWR('/api/clients', fetcher);
   const clients = clientsData?.clients || [];
 
-  const invoice = invoiceData?.invoice;
+  // API returns invoice directly, not wrapped in { invoice: ... }
+  const invoice = invoiceData;
 
   const handleSaveInvoice = async (invoiceData: CreateInvoiceData) => {
     setSaving(true);
