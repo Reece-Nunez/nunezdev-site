@@ -47,8 +47,7 @@ export async function POST(
         signed_at: new Date().toISOString(),
         signer_name: signerName,
         signer_email: signerEmail,
-        // Store signature data in a separate field if needed
-        // signature_data: signatureData
+        signature_svg: signatureData,
       })
       .eq("access_token", token);
 
