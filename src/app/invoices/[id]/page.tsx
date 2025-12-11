@@ -42,6 +42,7 @@ interface Invoice extends InvoiceLite {
   signed_at?: string;
   signer_name?: string;
   signer_email?: string;
+  signature_svg?: string;
   hosted_invoice_url?: string;
   invoice_number?: string;
   title?: string;
@@ -371,12 +372,23 @@ export default function InvoiceDetailPage() {
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Signature Status</h2>
           {invoice.signed_at ? (
-            <div className="flex items-center gap-2 text-green-600">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              <span className="font-medium">Signed on {new Date(invoice.signed_at).toLocaleDateString()}</span>
-              {invoice.signer_name && <span>by {invoice.signer_name}</span>}
+            <div>
+              <div className="flex items-center gap-2 text-green-600 mb-3">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">Signed on {new Date(invoice.signed_at).toLocaleDateString()}</span>
+                {invoice.signer_name && <span>by {invoice.signer_name}</span>}
+              </div>
+              {invoice.signature_svg && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 inline-block">
+                  <img
+                    src={invoice.signature_svg}
+                    alt="Client signature"
+                    className="max-h-20 w-auto"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -765,7 +777,7 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-2">Digital Signature</h3>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center text-green-800">
+            <div className="flex items-center text-green-800 mb-3">
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
@@ -773,6 +785,15 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
                 Signed by {invoice.signer_name || invoice.clients?.name} on {new Date(invoice.signed_at).toLocaleDateString()}
               </span>
             </div>
+            {invoice.signature_svg && (
+              <div className="bg-white border border-gray-200 rounded p-2 inline-block">
+                <img
+                  src={invoice.signature_svg}
+                  alt="Client signature"
+                  className="max-h-24 w-auto"
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
