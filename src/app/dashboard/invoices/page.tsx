@@ -437,7 +437,7 @@ export default function DashboardInvoices() {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-sm">
                     {r.clients?.name ? (
-                      <a href={`/invoices/${r.id}`} className="text-blue-600 hover:underline truncate block">
+                      <a href={`/dashboard/invoices/${r.id}`} className="text-blue-600 hover:underline truncate block">
                         {r.clients.name}
                       </a>
                     ) : '—'}
@@ -572,7 +572,7 @@ export default function DashboardInvoices() {
                 <td className="px-3 py-2">
                   <div className="font-medium">
                     {r.clients?.name ? (
-                      <a href={`/invoices/${r.id}`} className="text-blue-600 hover:underline">
+                      <a href={`/dashboard/invoices/${r.id}`} className="text-blue-600 hover:underline">
                         {r.clients.name}
                       </a>
                     ) : '—'}
