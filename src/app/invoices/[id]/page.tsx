@@ -169,15 +169,12 @@ export default function InvoiceDetailPage() {
           {invoice.title && <p className="text-gray-600 text-sm mt-1">{invoice.title}</p>}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setShowEdit(true)}
-            className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors"
-            style={{ backgroundColor: '#5b7c99' }}
-            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#4a6780'}
-            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#5b7c99'}
+          <Link
+            href={`/dashboard/invoices/${invoice.id}/edit`}
+            className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors bg-blue-600 hover:bg-blue-700"
           >
-            Edit
-          </button>
+            Edit Invoice
+          </Link>
           <button
             onClick={() => setShowPreview(true)}
             className="px-3 py-2 sm:px-4 text-sm sm:text-base bg-gray-600 text-white rounded-lg hover:bg-gray-700"
@@ -194,6 +191,15 @@ export default function InvoiceDetailPage() {
               onMouseLeave={(e) => ((e.target as HTMLElement).style.backgroundColor = '#ffc312')}
             >
               {sending ? 'Sending...' : 'Send Invoice'}
+            </button>
+          )}
+          {['sent', 'overdue', 'partially_paid'].includes(invoice.status) && (
+            <button
+              onClick={handleSendInvoice}
+              disabled={sending}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg disabled:opacity-50 transition-colors bg-emerald-600 hover:bg-emerald-700"
+            >
+              {sending ? 'Sending...' : 'Resend Invoice'}
             </button>
           )}
         </div>

@@ -484,7 +484,7 @@ export default function DashboardInvoices() {
             <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
               <div className="flex gap-2">
                 <a
-                  href={`/invoices/${r.id}`}
+                  href={`/dashboard/invoices/${r.id}/edit`}
                   className="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
                 >
                   Edit
@@ -628,7 +628,7 @@ export default function DashboardInvoices() {
                 <td className="px-3 py-2">
                   <div className="flex items-center justify-center gap-2">
                     <a
-                      href={`/invoices/${r.id}`}
+                      href={`/dashboard/invoices/${r.id}/edit`}
                       className="text-blue-600 hover:text-blue-800 text-sm"
                       title="Edit Invoice"
                     >

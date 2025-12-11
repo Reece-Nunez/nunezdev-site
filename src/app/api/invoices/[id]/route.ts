@@ -5,40 +5,48 @@ import Stripe from "stripe";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+interface LineItem {
+  title?: string;
+  description?: string;
+  quantity: number;
+  rate_cents: number;
+  amount_cents: number;
+}
+
+function calculateInvoiceTotals(line_items: LineItem[], discount_type?: string, discount_value?: number) {
+  const subtotal_cents = line_items.reduce((sum, item) => sum + item.amount_cents, 0);
+
+  let discount_cents = 0;
+  if (discount_value && discount_value > 0) {
+    if (discount_type === 'percentage') {
+      discount_cents = Math.round(subtotal_cents * (discount_value / 100));
+    } else if (discount_type === 'fixed') {
+      discount_cents = Math.round(discount_value * 100);
+    }
+  }
+
+  const tax_cents = 0;
+  const total_cents = subtotal_cents + tax_cents - discount_cents;
+
+  return { subtotal_cents, tax_cents, discount_cents, total_cents };
+}
+
 export async function PATCH(req: Request, ctx: Ctx) {
   const guard = await requireOwner();
   if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const orgId = guard.orgId!;
-  
-  const { id: invoiceId } = await ctx.params;
-  const { 
-    amount_cents, 
-    description, 
-    status, 
-    issued_at, 
-    due_at,
-    project_overview,
-    project_start_date,
-    delivery_date,
-    discount_type,
-    discount_value,
-    technology_stack,
-    terms_conditions,
-    require_signature
-  } = await req.json();
 
-  if (!amount_cents || amount_cents <= 0) {
-    return NextResponse.json({ error: "Amount is required and must be positive" }, { status: 400 });
-  }
+  const { id: invoiceId } = await ctx.params;
+  const body = await req.json();
 
   const supabase = await supabaseServer();
 
   try {
-    // Verify invoice belongs to org
+    // Verify invoice belongs to org and get current data
     const { data: invoice, error: lookupError } = await supabase
       .from("invoices")
-      .select("id, org_id, client_id, status")
-      .eq("id", invoiceId)  
+      .select("id, org_id, client_id, status, line_items, discount_type, discount_value")
+      .eq("id", invoiceId)
       .eq("org_id", orgId)
       .single();
 
@@ -46,38 +54,77 @@ export async function PATCH(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    // Prepare update payload
-    const updatePayload: any = {
-      amount_cents,
-      description,
-      status,
+    // Build update payload - allow editing ALL fields
+    const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
-    // Add enhanced fields if provided
-    if (project_overview !== undefined) updatePayload.project_overview = project_overview;
-    if (project_start_date !== undefined) updatePayload.project_start_date = project_start_date;
-    if (delivery_date !== undefined) updatePayload.delivery_date = delivery_date;
-    if (discount_type !== undefined) updatePayload.discount_type = discount_type;
-    if (discount_value !== undefined) updatePayload.discount_value = discount_value;
-    if (technology_stack !== undefined) updatePayload.technology_stack = technology_stack;
-    if (terms_conditions !== undefined) updatePayload.terms_conditions = terms_conditions;
-    if (require_signature !== undefined) updatePayload.require_signature = require_signature;
+    // Core fields
+    if (body.client_id !== undefined) updatePayload.client_id = body.client_id;
+    if (body.title !== undefined) updatePayload.title = body.title;
+    if (body.description !== undefined) updatePayload.description = body.description;
+    if (body.notes !== undefined) updatePayload.notes = body.notes;
+    if (body.status !== undefined) updatePayload.status = body.status;
+    if (body.payment_terms !== undefined) updatePayload.payment_terms = body.payment_terms;
 
-    // Only update dates if they are provided
-    if (issued_at) {
-      updatePayload.issued_at = issued_at;
-    }
-    if (due_at) {
-      updatePayload.due_at = due_at;
+    // Line items - recalculate totals if provided
+    if (body.line_items !== undefined) {
+      updatePayload.line_items = body.line_items;
+      const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
+        body.line_items,
+        body.discount_type ?? invoice.discount_type,
+        body.discount_value ?? invoice.discount_value
+      );
+      updatePayload.subtotal_cents = subtotal_cents;
+      updatePayload.tax_cents = tax_cents;
+      updatePayload.discount_cents = discount_cents;
+      updatePayload.amount_cents = total_cents;
+    } else if (body.amount_cents !== undefined) {
+      // Direct amount update (legacy support)
+      updatePayload.amount_cents = body.amount_cents;
     }
 
-    // If changing status to paid, set paid_at timestamp
-    if (status === 'paid' && invoice.status !== 'paid') {
+    // Discount fields - recalculate if changed
+    if (body.discount_type !== undefined) updatePayload.discount_type = body.discount_type;
+    if (body.discount_value !== undefined) {
+      updatePayload.discount_value = body.discount_value;
+      // Recalculate totals if we have line items
+      if (body.line_items || invoice.line_items) {
+        const items = body.line_items || invoice.line_items;
+        const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
+          items,
+          body.discount_type ?? invoice.discount_type,
+          body.discount_value
+        );
+        updatePayload.subtotal_cents = subtotal_cents;
+        updatePayload.tax_cents = tax_cents;
+        updatePayload.discount_cents = discount_cents;
+        updatePayload.amount_cents = total_cents;
+      }
+    }
+
+    // Dates
+    if (body.issued_at !== undefined) updatePayload.issued_at = body.issued_at;
+    if (body.due_at !== undefined) updatePayload.due_at = body.due_at;
+
+    // Project fields
+    if (body.project_overview !== undefined) updatePayload.project_overview = body.project_overview;
+    if (body.project_start_date !== undefined) updatePayload.project_start_date = body.project_start_date;
+    if (body.delivery_date !== undefined) updatePayload.delivery_date = body.delivery_date;
+    if (body.technology_stack !== undefined) updatePayload.technology_stack = body.technology_stack;
+    if (body.terms_conditions !== undefined) updatePayload.terms_conditions = body.terms_conditions;
+
+    // Signature
+    if (body.require_signature !== undefined) updatePayload.require_signature = body.require_signature;
+
+    // Branding
+    if (body.brand_logo_url !== undefined) updatePayload.brand_logo_url = body.brand_logo_url;
+    if (body.brand_primary !== undefined) updatePayload.brand_primary = body.brand_primary;
+
+    // Handle status changes
+    if (body.status === 'paid' && invoice.status !== 'paid') {
       updatePayload.paid_at = new Date().toISOString();
-    }
-    // If changing away from paid, clear paid_at
-    else if (status !== 'paid' && invoice.status === 'paid') {
+    } else if (body.status && body.status !== 'paid' && invoice.status === 'paid') {
       updatePayload.paid_at = null;
     }
 
