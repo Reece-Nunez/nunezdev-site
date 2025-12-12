@@ -11,6 +11,7 @@ const items = [
   { href: '/dashboard/invoices', label: 'Invoices' },
   { href: '/dashboard/proposals', label: 'Proposals' },
   { href: '/dashboard/time', label: 'Time' },
+  { href: '/dashboard/expenses', label: 'Expenses' },
   { href: '/dashboard/recurring-invoices', label: 'Recurring' },
   { href: '/dashboard/payments', label: 'Payments' },
 ];
