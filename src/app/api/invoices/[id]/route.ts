@@ -31,6 +31,154 @@ function calculateInvoiceTotals(line_items: LineItem[], discount_type?: string, 
   return { subtotal_cents, tax_cents, discount_cents, total_cents };
 }
 
+// Calculate installment amounts based on plan type
+function calculateInstallmentAmounts(totalCents: number, planType: string, installmentCount: number): number[] {
+  switch (planType) {
+    case '50_50':
+      const half = Math.round(totalCents / 2);
+      return [half, totalCents - half]; // Ensure they sum to exact total
+    case '40_30_30':
+      const first = Math.round(totalCents * 0.4);
+      const second = Math.round(totalCents * 0.3);
+      const third = totalCents - first - second; // Remainder to ensure exact sum
+      return [first, second, third];
+    case 'custom':
+      // For custom plans, distribute evenly
+      const perInstallment = Math.round(totalCents / installmentCount);
+      const amounts = Array(installmentCount).fill(perInstallment);
+      // Adjust last installment for rounding
+      amounts[amounts.length - 1] = totalCents - (perInstallment * (installmentCount - 1));
+      return amounts;
+    default:
+      return [totalCents];
+  }
+}
+
+// Recalculate payment plan installments when invoice total changes
+async function recalculatePaymentPlanInstallments(
+  supabase: any,
+  invoiceId: string,
+  newTotalCents: number,
+  planType: string,
+  orgId: string
+) {
+  try {
+    // Get existing installments
+    const { data: installments, error: fetchError } = await supabase
+      .from("invoice_payment_plans")
+      .select("*")
+      .eq("invoice_id", invoiceId)
+      .order("installment_number");
+
+    if (fetchError || !installments || installments.length === 0) {
+      console.log("No payment plan installments to update");
+      return;
+    }
+
+    // Calculate new amounts
+    const newAmounts = calculateInstallmentAmounts(newTotalCents, planType, installments.length);
+
+    // Initialize Stripe
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+    // Get invoice details for creating new payment links
+    const { data: invoice } = await supabase
+      .from("invoices")
+      .select(`
+        invoice_number, access_token, client_id,
+        clients!inner(name, email)
+      `)
+      .eq("id", invoiceId)
+      .single();
+
+    // Update each installment
+    for (let i = 0; i < installments.length; i++) {
+      const installment = installments[i];
+      const newAmount = newAmounts[i];
+
+      // Only update if amount actually changed
+      if (installment.amount_cents === newAmount) {
+        continue;
+      }
+
+      // Archive old Stripe payment link if exists
+      if (installment.stripe_payment_link_id) {
+        try {
+          await stripe.paymentLinks.update(installment.stripe_payment_link_id, {
+            active: false
+          });
+        } catch (stripeErr) {
+          console.error(`Failed to archive payment link ${installment.stripe_payment_link_id}:`, stripeErr);
+        }
+      }
+
+      // Create new Stripe payment link with updated amount
+      let newPaymentLinkId = null;
+      let newPaymentLinkUrl = null;
+
+      if (invoice) {
+        try {
+          const paymentLink = await stripe.paymentLinks.create({
+            line_items: [
+              {
+                price_data: {
+                  currency: 'usd',
+                  product_data: {
+                    name: `${invoice.invoice_number} - ${installment.installment_label}`,
+                    description: `Payment for ${(invoice.clients as any)?.name || 'client'}`
+                  },
+                  unit_amount: newAmount,
+                },
+                quantity: 1,
+              },
+            ],
+            metadata: {
+              invoice_id: invoiceId,
+              installment_id: installment.id,
+              client_id: invoice.client_id,
+              org_id: orgId,
+              invoice_number: invoice.invoice_number || '',
+              client_email: (invoice.clients as any)?.email || '',
+              client_name: (invoice.clients as any)?.name || '',
+              amount_cents: newAmount.toString(),
+              source: 'stripe_payment_link',
+              installment_label: installment.installment_label,
+              installment_number: installment.installment_number.toString(),
+              updated_at: new Date().toISOString()
+            },
+            after_completion: {
+              type: 'redirect',
+              redirect: {
+                url: `${process.env.NEXT_PUBLIC_BASE_URL}/invoice/${invoice.access_token}?payment=success`
+              }
+            }
+          });
+
+          newPaymentLinkId = paymentLink.id;
+          newPaymentLinkUrl = paymentLink.url;
+        } catch (stripeErr) {
+          console.error(`Failed to create new payment link for installment ${installment.id}:`, stripeErr);
+        }
+      }
+
+      // Update installment in database
+      await supabase
+        .from("invoice_payment_plans")
+        .update({
+          amount_cents: newAmount,
+          stripe_payment_link_id: newPaymentLinkId,
+          stripe_payment_link_url: newPaymentLinkUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", installment.id);
+    }
+
+    console.log(`Payment plan installments recalculated for invoice ${invoiceId}`);
+  } catch (error) {
+    console.error("Error recalculating payment plan installments:", error);
+  }
+}
+
 export async function PATCH(req: Request, ctx: Ctx) {
   const guard = await requireOwner();
   if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -45,7 +193,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     // Verify invoice belongs to org and get current data
     const { data: invoice, error: lookupError } = await supabase
       .from("invoices")
-      .select("id, org_id, client_id, status, line_items, discount_type, discount_value")
+      .select("id, org_id, client_id, status, line_items, discount_type, discount_value, amount_cents, payment_plan_enabled, payment_plan_type")
       .eq("id", invoiceId)
       .eq("org_id", orgId)
       .single();
@@ -140,6 +288,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (updateError) {
       console.error("Error updating invoice:", updateError);
       return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 });
+    }
+
+    // Check if total changed and payment plan exists - recalculate installments
+    const newTotal = updatePayload.amount_cents as number | undefined;
+    if (newTotal && newTotal !== invoice.amount_cents && invoice.payment_plan_enabled) {
+      await recalculatePaymentPlanInstallments(
+        supabase,
+        invoiceId,
+        newTotal,
+        invoice.payment_plan_type,
+        orgId
+      );
     }
 
     return NextResponse.json({ success: true, invoice: updatedInvoice });
