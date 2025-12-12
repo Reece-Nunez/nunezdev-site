@@ -197,6 +197,13 @@ export async function DELETE(req: Request, ctx: Ctx) {
   }
 
   if (hard) {
+    // Clear last_invoice_id references in recurring_invoices before deleting
+    await supabase
+      .from("recurring_invoices")
+      .update({ last_invoice_id: null })
+      .eq("last_invoice_id", id)
+      .eq("org_id", orgId);
+
     const { error } = await supabase.from("invoices").delete().eq("id", id).eq("org_id", orgId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ ok: true, deleted: true });
