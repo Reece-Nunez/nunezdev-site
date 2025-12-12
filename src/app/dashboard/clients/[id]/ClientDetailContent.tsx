@@ -2,18 +2,18 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import ClientForm from '../../../components/client-detail/ClientForm';
-import ClientNotes from '../../../components/client-detail/ClientNotes';
-import ClientTasks from '../../../components/client-detail/ClientTasks';
-import { ClientInvoices } from '../../../components/client-detail/Related';
-import AddPayment from '../../../components/client-detail/AddPayment';
+import ClientForm from '@/components/client-detail/ClientForm';
+import ClientNotes from '@/components/client-detail/ClientNotes';
+import ClientTasks from '@/components/client-detail/ClientTasks';
+import { ClientInvoices } from '@/components/client-detail/Related';
+import AddPayment from '@/components/client-detail/AddPayment';
 
 export default function ClientDetailContent({ clientId }: { clientId: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const bump = () => setRefreshKey((k) => k + 1);
 
   return (
-    <div className="p-6 my-36 space-y-6">
+    <div className="px-3 py-4 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <Link href="/dashboard/clients" className="text-sm text-blue-600 hover:underline">
           ← Back to clients

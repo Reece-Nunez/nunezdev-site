@@ -26,13 +26,10 @@ export default function Navbar() {
     router.push('/dashboard');
   };
 
-  // Hide navbar on dashboard, admin, invoice, and other app routes
-  if (pathname?.startsWith('/dashboard') || 
-      pathname?.startsWith('/admin') || 
+  // Hide navbar on dashboard and invoice routes
+  if (pathname?.startsWith('/dashboard') ||
       pathname?.startsWith('/invoice/') ||
-      pathname?.startsWith('/invoices/') ||
-      pathname?.startsWith('/test/') ||
-      pathname?.startsWith('/clients/')) {
+      pathname?.startsWith('/invoices/')) {
     return null;
   }
 

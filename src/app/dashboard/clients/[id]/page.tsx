@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import ClientDetailContent from './ClientDetailContent';
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {

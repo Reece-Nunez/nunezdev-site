@@ -18,10 +18,9 @@ const items = [
 
 const adminTools = [
   { href: '/dashboard/hubspot', label: 'HubSpot Sync' },
-  { href: '/admin/fix-stripe-payment', label: 'Fix Stripe Payment' },
-  { href: '/admin/sync-payments', label: 'Sync Payments' },
-  { href: '/admin/debug-apis', label: 'Debug APIs' },
-  { href: '/test/automation', label: 'Test Automation' },
+  { href: '/dashboard/admin/fix-stripe-payment', label: 'Fix Stripe Payment' },
+  { href: '/dashboard/admin/sync-payments', label: 'Sync Payments' },
+  { href: '/dashboard/admin/debug-apis', label: 'Debug APIs' },
 ];
 
 export default function MobileNavigation() {

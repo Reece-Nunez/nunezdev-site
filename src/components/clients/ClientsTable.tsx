@@ -30,7 +30,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
   }, [rows]);
 
   const handleEdit = (clientId: string) => {
-    router.push(`/clients/${clientId}`);
+    router.push(`/dashboard/clients/${clientId}`);
   };
 
   const handleDeleteClick = (client: ClientOverview) => {
@@ -185,7 +185,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <div className="min-w-0 flex-1">
-                  <Link href={`/clients/${r.id}`} className="font-medium text-blue-600 hover:underline text-sm block truncate">
+                  <Link href={`/dashboard/clients/${r.id}`} className="font-medium text-blue-600 hover:underline text-sm block truncate">
                     {r.name}
                   </Link>
                   <div className="text-xs text-gray-600 mt-1 truncate">
@@ -300,7 +300,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                   />
                 </td>
                 <td className="px-3 py-2">
-                  <Link href={`/clients/${r.id}`} className="font-medium text-blue-600 hover:underline">
+                  <Link href={`/dashboard/clients/${r.id}`} className="font-medium text-blue-600 hover:underline">
                     {r.name}
                   </Link>
                 </td>

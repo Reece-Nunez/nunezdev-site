@@ -43,7 +43,7 @@ export function ClientInvoices({ clientId }: { clientId: string }) {
       <div className="rounded-xl border bg-white p-4 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Invoices & Payments</h2>
-          <a href="/invoices" className="text-sm text-blue-600 hover:underline">Open invoices</a>
+          <a href="/dashboard/invoices" className="text-sm text-blue-600 hover:underline">Open invoices</a>
         </div>
         
         {/* Financial Summary */}

@@ -284,9 +284,8 @@ export default function HubSpotSyncPage() {
       </div>
 
       <div className="rounded-lg border bg-blue-50 p-4">
-        <h3 className="font-medium text-blue-800 mb-2">🔗 Navigation</h3>
-          <Link href="/clients" className="text-blue-600 hover:underline mx-4">View Clients</Link>
-          <Link href="/clients" className="text-blue-600 hover:underline mx-4">View Clients</Link>
+        <h3 className="font-medium text-blue-800 mb-2">Navigation</h3>
+          <Link href="/dashboard/clients" className="text-blue-600 hover:underline mx-4">View Clients</Link>
           <Link href="/dashboard/invoices" className="text-blue-600 hover:underline mx-4">View Invoices</Link>
           <Link href="/dashboard" className="text-blue-600 hover:underline mx-4">Dashboard</Link>
         </div>
