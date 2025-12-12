@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface PaymentInstallment {
   id: string;
@@ -38,6 +39,7 @@ export default function PaymentPlanDisplay({
   const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recalculating, setRecalculating] = useState(false);
 
   useEffect(() => {
     fetchPaymentPlan();
@@ -176,8 +178,21 @@ export default function PaymentPlanDisplay({
 
   return (
     <div className={className}>
-      <h3 className="text-lg font-semibold mb-4">Payment Plan</h3>
-      
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">Payment Plan</h3>
+        {!isPublic && (
+          <button
+            onClick={recalculatePaymentPlan}
+            disabled={recalculating}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+            title="Recalculate payment amounts based on current invoice total"
+          >
+            <ArrowPathIcon className={`w-4 h-4 ${recalculating ? 'animate-spin' : ''}`} />
+            {recalculating ? 'Recalculating...' : 'Recalculate'}
+          </button>
+        )}
+      </div>
+
       <div className="space-y-3">
         {installments.map((installment, index) => (
           <div 
@@ -309,7 +324,7 @@ export default function PaymentPlanDisplay({
       console.warn('Cannot generate payment links from public view');
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/invoices/${invoiceId}/payment-plans`, {
         method: 'POST'
@@ -319,6 +334,32 @@ export default function PaymentPlanDisplay({
       }
     } catch (err) {
       console.error('Error generating payment links:', err);
+    }
+  }
+
+  async function recalculatePaymentPlan() {
+    if (isPublic) return;
+
+    setRecalculating(true);
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}/payment-plans`, {
+        method: 'PATCH'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Payment plan recalculated:', data);
+        fetchPaymentPlan(); // Refresh the data
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to recalculate payment plan:', errorData);
+        alert(`Failed to recalculate: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error recalculating payment plan:', err);
+      alert('Error recalculating payment plan');
+    } finally {
+      setRecalculating(false);
     }
   }
 }
