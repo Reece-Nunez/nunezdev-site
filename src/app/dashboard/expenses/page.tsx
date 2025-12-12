@@ -137,7 +137,8 @@ export default function ExpensesPage() {
     fetcher
   );
 
-  const { data: clients } = useSWR<Client[]>("/api/clients", fetcher);
+  const { data: clientsData } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
+  const clients = clientsData?.clients || [];
 
   const { data: summary } = useSWR(
     `/api/expenses/summary?year=${filterYear}`,
