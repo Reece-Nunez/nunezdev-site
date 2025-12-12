@@ -62,7 +62,7 @@ const FREQUENCIES = [
   { value: "annually", label: "Annually" },
 ];
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { value: "software", label: "Software & Subscriptions" },
   { value: "hardware", label: "Hardware & Equipment" },
   { value: "hosting", label: "Hosting & Infrastructure" },
@@ -75,6 +75,8 @@ const CATEGORIES = [
   { value: "utilities", label: "Utilities" },
   { value: "other", label: "Other" },
 ];
+
+const DEFAULT_CATEGORY_VALUES = DEFAULT_CATEGORIES.map(c => c.value);
 
 const PAYMENT_METHODS = [
   { value: "card", label: "Credit/Debit Card" },
@@ -107,6 +109,7 @@ export default function ExpensesPage() {
   const [amountDollars, setAmountDollars] = useState("");
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
   const [category, setCategory] = useState("other");
+  const [customCategory, setCustomCategory] = useState("");
   const [clientId, setClientId] = useState("");
   const [isBillable, setIsBillable] = useState(false);
   const [isTaxDeductible, setIsTaxDeductible] = useState(true);
@@ -150,11 +153,31 @@ export default function ExpensesPage() {
     fetcher
   );
 
+  // Build categories list: default + custom from existing expenses
+  const customCategoriesFromExpenses = (expenses || [])
+    .map(e => e.category)
+    .filter(c => !DEFAULT_CATEGORY_VALUES.includes(c))
+    .filter((c, i, arr) => arr.indexOf(c) === i); // unique
+
+  const customCategoriesFromRecurring = (recurringExpenses || [])
+    .map(r => r.category)
+    .filter(c => !DEFAULT_CATEGORY_VALUES.includes(c))
+    .filter((c, i, arr) => arr.indexOf(c) === i);
+
+  const allCustomCategories = [...new Set([...customCategoriesFromExpenses, ...customCategoriesFromRecurring])].sort();
+
+  const CATEGORIES = [
+    ...DEFAULT_CATEGORIES.slice(0, -1), // all except "other"
+    ...allCustomCategories.map(c => ({ value: c, label: c })), // custom categories
+    { value: "other", label: "Other (enter custom)" }, // "other" at the end for new customs
+  ];
+
   const resetForm = () => {
     setDescription("");
     setAmountDollars("");
     setExpenseDate(new Date().toISOString().split("T")[0]);
-    setCategory("other");
+    setCategory("software");
+    setCustomCategory("");
     setClientId("");
     setIsBillable(false);
     setIsTaxDeductible(true);
@@ -169,7 +192,9 @@ export default function ExpensesPage() {
     setDescription(expense.description);
     setAmountDollars((expense.amount_cents / 100).toString());
     setExpenseDate(expense.expense_date);
+    // If category is a custom one, set it directly; otherwise use the dropdown value
     setCategory(expense.category);
+    setCustomCategory("");
     setClientId(expense.client_id || "");
     setIsBillable(expense.is_billable);
     setIsTaxDeductible(expense.is_tax_deductible);
@@ -186,13 +211,23 @@ export default function ExpensesPage() {
       return;
     }
 
+    // Use custom category if "other" is selected and custom value provided
+    const finalCategory = category === "other" && customCategory.trim()
+      ? customCategory.trim()
+      : category;
+
+    if (category === "other" && !customCategory.trim()) {
+      showToast("Please enter a custom category name", "error");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
       description,
       amount_cents: Math.round(parseFloat(amountDollars) * 100),
       expense_date: expenseDate,
-      category,
+      category: finalCategory,
       client_id: clientId || null,
       is_billable: isBillable,
       is_tax_deductible: isTaxDeductible,
@@ -258,6 +293,7 @@ export default function ExpensesPage() {
     setDescription("");
     setAmountDollars("");
     setCategory("software");
+    setCustomCategory("");
     setClientId("");
     setIsBillable(false);
     setIsTaxDeductible(true);
@@ -276,6 +312,7 @@ export default function ExpensesPage() {
     setDescription(rec.description);
     setAmountDollars((rec.amount_cents / 100).toString());
     setCategory(rec.category);
+    setCustomCategory("");
     setClientId(rec.client_id || "");
     setIsBillable(rec.is_billable);
     setIsTaxDeductible(rec.is_tax_deductible);
@@ -296,6 +333,16 @@ export default function ExpensesPage() {
       return;
     }
 
+    // Use custom category if "other" is selected and custom value provided
+    const finalCategory = category === "other" && customCategory.trim()
+      ? customCategory.trim()
+      : category;
+
+    if (category === "other" && !customCategory.trim()) {
+      showToast("Please enter a custom category name", "error");
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -305,7 +352,7 @@ export default function ExpensesPage() {
       day_of_month: parseInt(recDayOfMonth),
       start_date: recStartDate,
       end_date: recEndDate || null,
-      category,
+      category: finalCategory,
       client_id: clientId || null,
       is_billable: isBillable,
       is_tax_deductible: isTaxDeductible,
@@ -584,7 +631,10 @@ export default function ExpensesPage() {
                     </label>
                     <select
                       value={category}
-                      onChange={(e) => setCategory(e.target.value)}
+                      onChange={(e) => {
+                        setCategory(e.target.value);
+                        if (e.target.value !== "other") setCustomCategory("");
+                      }}
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                       {CATEGORIES.map((c) => (
@@ -593,6 +643,15 @@ export default function ExpensesPage() {
                         </option>
                       ))}
                     </select>
+                    {category === "other" && (
+                      <input
+                        type="text"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        className="w-full mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter custom category name"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -929,7 +988,10 @@ export default function ExpensesPage() {
                         </label>
                         <select
                           value={category}
-                          onChange={(e) => setCategory(e.target.value)}
+                          onChange={(e) => {
+                            setCategory(e.target.value);
+                            if (e.target.value !== "other") setCustomCategory("");
+                          }}
                           className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                           {CATEGORIES.map((c) => (
@@ -938,6 +1000,15 @@ export default function ExpensesPage() {
                             </option>
                           ))}
                         </select>
+                        {category === "other" && (
+                          <input
+                            type="text"
+                            value={customCategory}
+                            onChange={(e) => setCustomCategory(e.target.value)}
+                            className="w-full mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter custom category name"
+                          />
+                        )}
                       </div>
                     </div>
 
