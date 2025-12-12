@@ -242,7 +242,7 @@ export default function ProposalsPage() {
                               </button>
                             )}
                             {p.converted_to_invoice_id && (
-                              <Link href={`/invoices/${p.converted_to_invoice_id}`} className="text-xs text-emerald-600 hover:text-emerald-800">
+                              <Link href={`/dashboard/invoices/${p.converted_to_invoice_id}`} className="text-xs text-emerald-600 hover:text-emerald-800">
                                 View Invoice
                               </Link>
                             )}

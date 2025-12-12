@@ -33,7 +33,7 @@ export default function NewInvoicePage() {
       const result = await response.json();
       
       // Redirect to the created invoice
-      router.push(`/invoices/${result.invoice.id}`);
+      router.push(`/dashboard/invoices/${result.invoice.id}`);
     } catch (error) {
       console.error('Error creating invoice:', error);
       alert(error instanceof Error ? error.message : 'Failed to create invoice');

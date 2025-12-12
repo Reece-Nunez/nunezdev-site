@@ -277,7 +277,7 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
                 {overdueInvoices.slice(0, 3).map((inv) => (
                   <Link
                     key={inv.id}
-                    href={`/invoices/${inv.id}`}
+                    href={`/dashboard/invoices/${inv.id}`}
                     className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-100 hover:border-red-300 transition-colors"
                   >
                     <div>
@@ -309,7 +309,7 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
                 {upcomingInvoices.slice(0, 3).map((inv) => (
                   <Link
                     key={inv.id}
-                    href={`/invoices/${inv.id}`}
+                    href={`/dashboard/invoices/${inv.id}`}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
                     <div>

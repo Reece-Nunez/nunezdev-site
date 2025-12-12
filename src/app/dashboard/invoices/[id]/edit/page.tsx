@@ -41,7 +41,7 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
       }
 
       // Redirect back to the invoice
-      router.push(`/invoices/${id}`);
+      router.push(`/dashboard/invoices/${id}`);
     } catch (err) {
       console.error('Error updating invoice:', err);
       setError(err instanceof Error ? err.message : 'Failed to update invoice');
@@ -51,7 +51,7 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
   };
 
   const handleCancel = () => {
-    router.push(`/invoices/${id}`);
+    router.push(`/dashboard/invoices/${id}`);
   };
 
   if (fetchError) {
