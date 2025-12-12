@@ -26,7 +26,16 @@ export async function GET(req: Request) {
     .order("issued_at", { ascending: false })
     .limit(limit);
 
-  if (status && status !== 'all') query = query.eq("status", status);
+  if (status && status !== 'all') {
+    if (status === 'overdue') {
+      // Overdue = past due date AND not fully paid (not 'paid' or 'void')
+      query = query
+        .lt("due_at", new Date().toISOString())
+        .not("status", "in", "(paid,void)");
+    } else {
+      query = query.eq("status", status);
+    }
+  }
   if (from) query = query.gte("issued_at", from);
   if (to) query = query.lte("issued_at", to);
   // Basic client name/email filtering via nested select alias
