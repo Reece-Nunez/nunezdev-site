@@ -2,18 +2,33 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import LogoutButton from '../LogOutButton';
+import {
+  HomeIcon,
+  UsersIcon,
+  DocumentTextIcon,
+  DocumentCheckIcon,
+  ClockIcon,
+  BanknotesIcon,
+  ArrowPathIcon,
+  CreditCardIcon,
+  WrenchScrewdriverIcon,
+  ChevronLeftIcon,
+  ChevronDownIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
 
 const items = [
-  { href: '/dashboard', label: 'Overview' },
-  { href: '/dashboard/clients', label: 'Clients' },
-  { href: '/dashboard/invoices', label: 'Invoices' },
-  { href: '/dashboard/proposals', label: 'Proposals' },
-  { href: '/dashboard/time', label: 'Time Tracking' },
-  { href: '/dashboard/expenses', label: 'Expenses' },
-  { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices' },
-  { href: '/dashboard/payments', label: 'Payments' },
+  { href: '/dashboard', label: 'Overview', icon: HomeIcon },
+  { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
+  { href: '/dashboard/invoices', label: 'Invoices', icon: DocumentTextIcon },
+  { href: '/dashboard/proposals', label: 'Proposals', icon: DocumentCheckIcon },
+  { href: '/dashboard/time', label: 'Time Tracking', icon: ClockIcon },
+  { href: '/dashboard/expenses', label: 'Expenses', icon: BanknotesIcon },
+  { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices', icon: ArrowPathIcon },
+  { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
 ];
 
 const adminTools = [
@@ -34,38 +49,41 @@ export default function Sidebar() {
     <aside className={`${isCollapsed ? 'w-16' : 'w-56'} shrink-0 border-r bg-white h-screen sticky top-0 transition-all duration-300`}>
       <div className={`${isCollapsed ? 'p-3' : 'p-6'} flex items-center justify-center border-b border-gray-100 relative`}>
         {!isCollapsed ? (
-          <img 
-            src="https://nunezdev.com/logo.png" 
-            alt="NunezDev Logo" 
-            className="w-38 h-16 object-contain"
+          <Image
+            src="/logo.png"
+            alt="NunezDev Logo"
+            width={152}
+            height={64}
+            className="object-contain"
+            priority
           />
         ) : (
-          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">N</span>
-          </div>
+          <Image
+            src="/n-logo.svg"
+            alt="NunezDev"
+            width={40}
+            height={40}
+            className="object-contain"
+            priority
+          />
         )}
-        
+
         {/* Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-white border border-gray-200 rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-50 shadow-sm"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <svg 
-            className={`w-3 h-3 text-gray-500 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeftIcon
+            className={`w-3 h-3 text-gray-500 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
+          />
         </button>
       </div>
 
       {/* Main Navigation */}
       <nav className="p-2 space-y-1">
-        {items.map((it, index) => {
-          const icons = ['📊', '👥', '📄', '📋', '⏱️', '🔄', '💰']; // Icons for each nav item
+        {items.map((it) => {
+          const Icon = it.icon;
           return (
             <Link
               key={it.href}
@@ -76,11 +94,11 @@ export default function Sidebar() {
                 } ` +
                 (isActive(it.href)
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'hover:bg-gray-50')
+                  : 'hover:bg-gray-50 text-gray-700')
               }
               title={isCollapsed ? it.label : undefined}
             >
-              <span className="text-lg mr-2 shrink-0">{icons[index]}</span>
+              <Icon className={`w-5 h-5 shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
               {!isCollapsed && (
                 <span className="truncate">{it.label}</span>
               )}
@@ -96,15 +114,13 @@ export default function Sidebar() {
             onClick={() => setAdminToolsOpen(!adminToolsOpen)}
             className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:bg-gray-50 rounded-lg transition-colors"
           >
-            <span>Admin Tools</span>
-            <svg
+            <div className="flex items-center gap-2">
+              <WrenchScrewdriverIcon className="w-4 h-4" />
+              <span>Admin Tools</span>
+            </div>
+            <ChevronDownIcon
               className={`w-4 h-4 transition-transform duration-200 ${adminToolsOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            />
           </button>
           {adminToolsOpen && (
             <nav className="space-y-1 mt-1">
@@ -137,7 +153,7 @@ export default function Sidebar() {
           aria-label="Add new client"
           title={isCollapsed ? 'New Client' : undefined}
         >
-          <span className="text-base leading-none">＋</span>
+          <PlusIcon className="w-5 h-5" />
           {!isCollapsed && 'New Client'}
         </Link>
 
