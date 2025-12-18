@@ -23,11 +23,38 @@ export async function GET(req: NextRequest) {
   const encoder = new TextEncoder();
   let lastEventTime = new Date().toISOString();
   let isActive = true;
+  let isClosed = false;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  // Safe enqueue that checks if controller is still open
+  const safeEnqueue = (controller: ReadableStreamDefaultController, data: Uint8Array) => {
+    if (!isClosed && isActive) {
+      try {
+        controller.enqueue(data);
+      } catch {
+        // Controller already closed, ignore
+        isClosed = true;
+      }
+    }
+  };
+
+  // Safe close that checks if controller is still open
+  const safeClose = (controller: ReadableStreamDefaultController) => {
+    if (!isClosed) {
+      isClosed = true;
+      try {
+        controller.close();
+      } catch {
+        // Controller already closed, ignore
+      }
+    }
+  };
 
   const stream = new ReadableStream({
     async start(controller) {
       // Send initial connection event
-      controller.enqueue(
+      safeEnqueue(
+        controller,
         encoder.encode(`event: connected\ndata: ${JSON.stringify({ status: "connected", org_id: orgId })}\n\n`)
       );
 
@@ -38,10 +65,16 @@ export async function GET(req: NextRequest) {
       const startTime = Date.now();
 
       const pollForEvents = async () => {
-        if (!isActive || Date.now() - startTime > maxDuration) {
-          // Send keepalive before closing
-          controller.enqueue(encoder.encode(`: keepalive\n\n`));
-          controller.close();
+        // Check if we should stop
+        if (!isActive || isClosed) {
+          if (timeoutId) clearTimeout(timeoutId);
+          return;
+        }
+
+        // Check if max duration exceeded
+        if (Date.now() - startTime > maxDuration) {
+          safeEnqueue(controller, encoder.encode(`: keepalive\n\n`));
+          safeClose(controller);
           return;
         }
 
@@ -69,25 +102,28 @@ export async function GET(req: NextRequest) {
 
           if (error) {
             console.error("[SSE] Error fetching events:", error);
-          } else if (events && events.length > 0) {
+          } else if (events && events.length > 0 && isActive && !isClosed) {
             // Send each event
             for (const event of events) {
+              if (!isActive || isClosed) break;
               const sseMessage = `event: ${event.event_type}\ndata: ${JSON.stringify(event)}\n\n`;
-              controller.enqueue(encoder.encode(sseMessage));
+              safeEnqueue(controller, encoder.encode(sseMessage));
               lastEventTime = event.created_at;
             }
           }
 
           // Send periodic keepalive to prevent timeout
-          if (Date.now() - startTime > 10000) {
-            controller.enqueue(encoder.encode(`: keepalive ${new Date().toISOString()}\n\n`));
+          if (isActive && !isClosed && Date.now() - startTime > 10000) {
+            safeEnqueue(controller, encoder.encode(`: keepalive ${new Date().toISOString()}\n\n`));
           }
 
-          // Schedule next poll
-          setTimeout(pollForEvents, pollInterval);
+          // Schedule next poll if still active
+          if (isActive && !isClosed) {
+            timeoutId = setTimeout(pollForEvents, pollInterval);
+          }
         } catch (err) {
           console.error("[SSE] Poll error:", err);
-          controller.close();
+          safeClose(controller);
         }
       };
 
@@ -97,6 +133,11 @@ export async function GET(req: NextRequest) {
 
     cancel() {
       isActive = false;
+      isClosed = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
     },
   });
 
