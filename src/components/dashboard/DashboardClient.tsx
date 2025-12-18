@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnalyticsData, MetricDetail, ClientRevenue, UpcomingInvoice, RecurringInvoiceStatus, InvoiceStatusSummary } from "@/lib/analytics";
 import DashboardCharts from "./DashboardCharts";
+import { useRealtimeEvents, RealtimeEvent } from "@/hooks/useRealtimeEvents";
 
 interface DashboardClientProps {
   kpis: AnalyticsData | null;
@@ -94,9 +96,38 @@ function MetricDetailModal({
 }
 
 export default function DashboardClient({ kpis }: DashboardClientProps) {
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState<string | null>(null);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [paymentNotification, setPaymentNotification] = useState<{ message: string; visible: boolean } | null>(null);
+
+  // Real-time updates via SSE
+  const handlePaymentEvent = useCallback((event: RealtimeEvent) => {
+    const amount = event.event_data.amount_cents
+      ? fmt(event.event_data.amount_cents)
+      : '';
+    const clientName = event.event_data.client_name || 'A client';
+    const label = event.event_data.installment_label || 'Payment';
+
+    // Show notification
+    setPaymentNotification({
+      message: `${clientName}: ${label} of ${amount} received!`,
+      visible: true
+    });
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setPaymentNotification(prev => prev ? { ...prev, visible: false } : null);
+    }, 5000);
+  }, []);
+
+  useRealtimeEvents({
+    onPaymentReceived: handlePaymentEvent,
+    onInstallmentPaid: handlePaymentEvent,
+    onRefresh: () => router.refresh(),
+    enabled: true,
+  });
 
   // Fetch activity data
   useEffect(() => {
@@ -154,6 +185,26 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
+      {/* Payment Notification Banner */}
+      {paymentNotification?.visible && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
+          <div className="bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="font-medium">{paymentNotification.message}</span>
+            <button
+              onClick={() => setPaymentNotification(null)}
+              className="ml-2 text-white/80 hover:text-white"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -400,7 +451,7 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
                 {topClients.map((client, idx) => (
                   <Link
                     key={client.id}
-                    href={`/clients/${client.id}`}
+                    href={`/dashboard/clients/${client.id}`}
                     className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 ${

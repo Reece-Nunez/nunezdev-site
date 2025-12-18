@@ -623,8 +623,8 @@ export default function PaymentsPage() {
                       <div className="font-medium text-lg text-gray-900">
                         {currency(payment.amount_cents)}
                       </div>
-                      <Link 
-                        href={`/clients/${payment.invoice.client.id}`}
+                      <Link
+                        href={`/dashboard/clients/${payment.invoice.client.id}`}
                         className="text-blue-600 hover:underline text-sm"
                       >
                         {payment.invoice.client.name}
@@ -768,7 +768,7 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-3 py-3 text-sm text-gray-900">
                       <Link
-                        href={`/clients/${payment.invoice.client.id}`}
+                        href={`/dashboard/clients/${payment.invoice.client.id}`}
                         className="text-blue-600 hover:underline truncate block"
                         title={payment.invoice.client.name}
                       >
@@ -1171,6 +1171,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState('');
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [isStandalonePayment, setIsStandalonePayment] = useState(false);
 
   // Fetch clients on modal open
   useEffect(() => {
@@ -1188,19 +1189,19 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
 
   // Fetch invoices when client is selected
   useEffect(() => {
-    if (selectedClient) {
+    if (selectedClient && !isStandalonePayment) {
       const fetchInvoices = async () => {
         setLoadingInvoices(true);
         try {
           // Fetch all invoices for the client and filter on frontend
           const response = await fetch(`/api/invoices?client_id=${selectedClient}`);
           const data = await response.json();
-          
+
           // Filter for unpaid invoices (sent, partially_paid, overdue, draft)
-          const unpaidInvoices = (data.invoices || []).filter((invoice: any) => 
+          const unpaidInvoices = (data.invoices || []).filter((invoice: any) =>
             ['sent', 'partially_paid', 'overdue', 'draft'].includes(invoice.status)
           );
-          
+
           setInvoices(unpaidInvoices);
         } catch (error) {
           console.error('Failed to fetch invoices:', error);
@@ -1214,7 +1215,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
       setInvoices([]);
       setSelectedInvoice('');
     }
-  }, [selectedClient]);
+  }, [selectedClient, isStandalonePayment]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1225,6 +1226,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
     const paymentMethod = formData.get('payment_method') as string;
     const paymentDate = formData.get('payment_date') as string;
     const notes = formData.get('notes') as string;
+    const description = formData.get('description') as string;
 
     if (!amount || amount <= 0) {
       alert('Please enter a valid payment amount');
@@ -1232,27 +1234,54 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
       return;
     }
 
-    if (!selectedInvoice) {
-      alert('Please select an invoice');
+    if (!selectedClient) {
+      alert('Please select a client');
+      setLoading(false);
+      return;
+    }
+
+    if (!isStandalonePayment && !selectedInvoice) {
+      alert('Please select an invoice or check "Standalone payment"');
+      setLoading(false);
+      return;
+    }
+
+    if (isStandalonePayment && !description) {
+      alert('Please enter a description for the standalone payment');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('/api/payments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          invoice_id: selectedInvoice,
-          amount_cents: Math.round(amount * 100),
-          payment_method: paymentMethod,
-          paid_at: paymentDate,
-          notes: notes,
-          manual: true
-        }),
-      });
+      let response;
+
+      if (isStandalonePayment) {
+        // Use the client payment endpoint which auto-creates a manual invoice
+        response = await fetch(`/api/clients/${selectedClient}/payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount_cents: Math.round(amount * 100),
+            description: description,
+            payment_method: paymentMethod,
+            paid_at: new Date(paymentDate).toISOString(),
+          }),
+        });
+      } else {
+        // Use the regular payments endpoint for invoice-linked payments
+        response = await fetch('/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invoice_id: selectedInvoice,
+            amount_cents: Math.round(amount * 100),
+            payment_method: paymentMethod,
+            paid_at: paymentDate,
+            notes: notes,
+            manual: true
+          }),
+        });
+      }
 
       if (!response.ok) {
         const error = await response.json();
@@ -1304,39 +1333,80 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               </select>
             </div>
 
-            {/* Invoice Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Invoice <span className="text-red-500">*</span>
+            {/* Standalone Payment Toggle */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="standalone-payment"
+                checked={isStandalonePayment}
+                onChange={(e) => setIsStandalonePayment(e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="standalone-payment" className="text-sm text-gray-700">
+                Standalone payment (no invoice required)
               </label>
-              <select
-                value={selectedInvoice}
-                onChange={(e) => setSelectedInvoice(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                required
-                disabled={!selectedClient || loadingInvoices}
-              >
-                <option value="">
-                  {!selectedClient ? 'Select a client first...' : 
-                   loadingInvoices ? 'Loading invoices...' : 
-                   'Select an invoice...'}
-                </option>
-                {invoices.map(invoice => (
-                  <option key={invoice.id} value={invoice.id}>
-                    {invoice.invoice_number} - ${((invoice.remaining_balance_cents || invoice.amount_cents) / 100).toFixed(2)} due
-                  </option>
-                ))}
-              </select>
             </div>
 
-            {/* Invoice Details */}
-            {selectedInvoiceData && (
+            {/* Invoice Selection - only shown when not standalone */}
+            {!isStandalonePayment && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Invoice <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedInvoice}
+                  onChange={(e) => setSelectedInvoice(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required={!isStandalonePayment}
+                  disabled={!selectedClient || loadingInvoices}
+                >
+                  <option value="">
+                    {!selectedClient ? 'Select a client first...' :
+                     loadingInvoices ? 'Loading invoices...' :
+                     invoices.length === 0 ? 'No unpaid invoices found' :
+                     'Select an invoice...'}
+                  </option>
+                  {invoices.map(invoice => (
+                    <option key={invoice.id} value={invoice.id}>
+                      {invoice.invoice_number} - ${((invoice.remaining_balance_cents || invoice.amount_cents) / 100).toFixed(2)} due
+                    </option>
+                  ))}
+                </select>
+                {selectedClient && !loadingInvoices && invoices.length === 0 && (
+                  <p className="text-sm text-amber-600 mt-1">
+                    No unpaid invoices for this client. Use standalone payment instead.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Invoice Details - only shown when invoice selected */}
+            {!isStandalonePayment && selectedInvoiceData && (
               <div className="p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-900">
                   <strong>Invoice:</strong> {selectedInvoiceData.invoice_number}<br/>
                   <strong>Total Amount:</strong> ${(selectedInvoiceData.amount_cents / 100).toFixed(2)}<br/>
                   <strong>Paid So Far:</strong> ${((selectedInvoiceData.total_paid_cents || 0) / 100).toFixed(2)}<br/>
                   <strong>Remaining Balance:</strong> ${((selectedInvoiceData.remaining_balance_cents || selectedInvoiceData.amount_cents) / 100).toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            {/* Description - only shown for standalone payments */}
+            {isStandalonePayment && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="description"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Website maintenance, consulting, etc."
+                  required={isStandalonePayment}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  A hidden invoice will be auto-created for tracking purposes.
                 </p>
               </div>
             )}

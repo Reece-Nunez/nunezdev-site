@@ -271,8 +271,8 @@ export default function RecurringInvoicesPage() {
                     <td className="px-6 py-4">
                       <div>
                         <div className="font-medium text-gray-900">{recurringInvoice.title}</div>
-                        <Link 
-                          href={`/clients/${recurringInvoice.clients.id}`}
+                        <Link
+                          href={`/dashboard/clients/${recurringInvoice.clients.id}`}
                           className="text-blue-600 hover:underline text-sm"
                         >
                           {recurringInvoice.clients.name}

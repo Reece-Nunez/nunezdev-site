@@ -1,10 +1,11 @@
 'use client';
 
 import useSWR, { useSWRConfig } from 'swr';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import InvoiceAnalytics from '@/components/invoices/InvoiceAnalytics';
 import { useToast } from '@/components/ui/Toast';
+import { useRealtimeEvents, RealtimeEvent } from '@/hooks/useRealtimeEvents';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 const currency = (cents?: number | null) =>
@@ -168,6 +169,23 @@ export default function DashboardInvoices() {
 
   const { data, isLoading } = useSWR<InvoicesResponse>(url, fetcher);
   const { mutate } = useSWRConfig(); // use SWR's global mutate
+
+  // Real-time updates via SSE
+  const handlePaymentEvent = useCallback((event: RealtimeEvent) => {
+    const amount = event.event_data.amount_cents
+      ? currency(event.event_data.amount_cents)
+      : '';
+    const clientName = event.event_data.client_name || 'A client';
+    const label = event.event_data.installment_label || 'Payment';
+    showToast(`${clientName}: ${label} of ${amount} received!`, 'success');
+  }, [showToast]);
+
+  useRealtimeEvents({
+    onPaymentReceived: handlePaymentEvent,
+    onInstallmentPaid: handlePaymentEvent,
+    onRefresh: () => mutate(url),
+    enabled: true,
+  });
 
   const handleDeleteInvoice = async (invoiceId: string) => {
     if (!confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {

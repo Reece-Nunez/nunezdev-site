@@ -56,7 +56,7 @@ export default function NewClientPage() {
     }
 
     // Go to detail page
-    router.push(`/clients/${data.id}`);
+    router.push(`/dashboard/clients/${data.id}`);
   }
 
   return (

@@ -359,7 +359,29 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
             installment_id: installmentId || null
           }
         });
-      
+
+      // Emit realtime event for SSE subscribers
+      if (orgId) {
+        await supabase
+          .from('realtime_events')
+          .insert({
+            org_id: orgId,
+            event_type: installmentId ? 'installment_paid' : 'payment_received',
+            invoice_id: invoiceId,
+            client_id: clientId,
+            event_data: {
+              invoice_id: invoiceId,
+              invoice_number: invoiceDetails?.invoice_number,
+              client_name: invoiceDetails ? (invoiceDetails.clients as any).name : null,
+              amount_cents: paymentIntent.amount,
+              installment_id: installmentId || null,
+              installment_label: installmentLabel,
+              payment_method: paymentIntent.payment_method_types?.[0] || 'card'
+            }
+          });
+        console.log(`[stripe-webhook] emitted realtime event for payment on invoice ${invoiceId}`);
+      }
+
       // The trigger will automatically update the invoice status based on total payments
     } else {
       console.error('Failed to add payment record:', paymentError);

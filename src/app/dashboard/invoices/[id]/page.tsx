@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import EditInvoice from '@/components/client-detail/EditInvoice';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import { useToast } from '@/components/ui/Toast';
 import PaymentPlanDisplay from '@/components/invoices/PaymentPlanDisplay';
+import { useRealtimeEvents } from '@/hooks/useRealtimeEvents';
 import type { InvoiceLite } from '@/types/client_detail';
 
 function getPaymentTermsDisplay(terms: string): string {
@@ -122,6 +123,23 @@ export default function InvoiceDetailPage() {
     invoiceId ? `/api/invoices/${invoiceId}/details` : null,
     fetcher
   );
+
+  // Real-time updates via SSE
+  const handlePaymentEvent = useCallback((event: { event_data: { amount_cents?: number; installment_label?: string; client_name?: string } }) => {
+    const amount = event.event_data.amount_cents
+      ? currency(event.event_data.amount_cents)
+      : '';
+    const label = event.event_data.installment_label || 'Payment';
+    showToast(`${label} of ${amount} received!`, 'success');
+  }, [showToast]);
+
+  useRealtimeEvents({
+    invoiceId,
+    onPaymentReceived: handlePaymentEvent,
+    onInstallmentPaid: handlePaymentEvent,
+    onRefresh: () => mutate(),
+    enabled: !!invoiceId,
+  });
 
   const handleSendInvoice = async () => {
     setSending(true);
