@@ -18,6 +18,7 @@ import {
   ChevronLeftIcon,
   ChevronDownIcon,
   PlusIcon,
+  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
@@ -29,6 +30,7 @@ const items = [
   { href: '/dashboard/expenses', label: 'Expenses', icon: BanknotesIcon },
   { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices', icon: ArrowPathIcon },
   { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
+  { href: '/dashboard/tax-documents', label: 'Tax Documents', icon: DocumentArrowDownIcon },
 ];
 
 const adminTools = [
