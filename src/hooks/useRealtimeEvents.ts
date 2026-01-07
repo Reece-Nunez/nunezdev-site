@@ -50,6 +50,26 @@ export function useRealtimeEvents({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
+  // Store callbacks in refs to avoid triggering reconnects when they change
+  const callbackRefs = useRef({
+    onPaymentReceived,
+    onInstallmentPaid,
+    onInvoicePaid,
+    onAnyEvent,
+    onRefresh,
+  });
+
+  // Update refs when callbacks change (without causing reconnect)
+  useEffect(() => {
+    callbackRefs.current = {
+      onPaymentReceived,
+      onInstallmentPaid,
+      onInvoicePaid,
+      onAnyEvent,
+      onRefresh,
+    };
+  });
+
   const connect = useCallback(() => {
     if (!enabled) return;
 
@@ -79,27 +99,27 @@ export function useRealtimeEvents({
       const event: RealtimeEvent = JSON.parse(e.data);
       console.log('[SSE] Payment received:', event);
       setLastEvent(event);
-      onPaymentReceived?.(event);
-      onAnyEvent?.(event);
-      onRefresh?.();
+      callbackRefs.current.onPaymentReceived?.(event);
+      callbackRefs.current.onAnyEvent?.(event);
+      callbackRefs.current.onRefresh?.();
     });
 
     eventSource.addEventListener('installment_paid', (e) => {
       const event: RealtimeEvent = JSON.parse(e.data);
       console.log('[SSE] Installment paid:', event);
       setLastEvent(event);
-      onInstallmentPaid?.(event);
-      onAnyEvent?.(event);
-      onRefresh?.();
+      callbackRefs.current.onInstallmentPaid?.(event);
+      callbackRefs.current.onAnyEvent?.(event);
+      callbackRefs.current.onRefresh?.();
     });
 
     eventSource.addEventListener('invoice_paid', (e) => {
       const event: RealtimeEvent = JSON.parse(e.data);
       console.log('[SSE] Invoice paid:', event);
       setLastEvent(event);
-      onInvoicePaid?.(event);
-      onAnyEvent?.(event);
-      onRefresh?.();
+      callbackRefs.current.onInvoicePaid?.(event);
+      callbackRefs.current.onAnyEvent?.(event);
+      callbackRefs.current.onRefresh?.();
     });
 
     eventSource.onerror = (error) => {
@@ -121,7 +141,7 @@ export function useRealtimeEvents({
       console.log('[SSE] Connection opened');
       setIsConnected(true);
     };
-  }, [enabled, invoiceId, clientId, onPaymentReceived, onInstallmentPaid, onInvoicePaid, onAnyEvent, onRefresh]);
+  }, [enabled, invoiceId, clientId]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

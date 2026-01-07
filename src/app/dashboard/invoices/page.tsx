@@ -6,6 +6,7 @@ import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import InvoiceAnalytics from '@/components/invoices/InvoiceAnalytics';
 import { useToast } from '@/components/ui/Toast';
 import { useRealtimeEvents, RealtimeEvent } from '@/hooks/useRealtimeEvents';
+import CombineInvoicesModal from '@/components/invoices/CombineInvoicesModal';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 const currency = (cents?: number | null) =>
@@ -30,7 +31,10 @@ type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'void' | 'overdue' | 'partially
 
 interface Invoice {
   id: string;
-  clients?: { name?: string | null; email?: string | null } | null;
+  client_id?: string;
+  invoice_number?: string;
+  title?: string;
+  clients?: { id?: string; name?: string | null; email?: string | null } | null;
   status: InvoiceStatus | string;
   amount_cents: number | null;
   issued_at?: string | null;
@@ -161,6 +165,9 @@ export default function DashboardInvoices() {
   const [deletingInvoice, setDeletingInvoice] = useState<string | null>(null);
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showCombineModal, setShowCombineModal] = useState(false);
+  const [combineLoading, setCombineLoading] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
   const { showToast, ToastContainer } = useToast();
 
   const url = `/api/dashboard/invoices?status=${status}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(
@@ -169,6 +176,7 @@ export default function DashboardInvoices() {
 
   const { data, isLoading } = useSWR<InvoicesResponse>(url, fetcher);
   const { mutate } = useSWRConfig(); // use SWR's global mutate
+  const rows = useMemo(() => data?.invoices ?? [], [data]);
 
   // Real-time updates via SSE
   const handlePaymentEvent = useCallback((event: RealtimeEvent) => {
@@ -280,6 +288,101 @@ export default function DashboardInvoices() {
     });
   };
 
+  // Get selected invoice objects for combine modal
+  const selectedInvoicesList = useMemo(() => {
+    return rows.filter(inv => selectedInvoices.has(inv.id));
+  }, [rows, selectedInvoices]);
+
+  // Check if we can combine (2+ invoices, all same client, not paid/void)
+  const canCombine = useMemo(() => {
+    if (selectedInvoices.size < 2) return false;
+    const clientIds = new Set(
+      selectedInvoicesList.map(inv => inv.client_id || inv.clients?.id)
+    );
+    if (clientIds.size !== 1) return false;
+    // Check all are combinable status (not paid or void)
+    return selectedInvoicesList.every(
+      inv => inv.status !== 'paid' && inv.status !== 'void'
+    );
+  }, [selectedInvoices, selectedInvoicesList]);
+
+  // Check if we can mark as paid (at least 1 invoice, not paid/void)
+  const canMarkPaid = useMemo(() => {
+    if (selectedInvoices.size === 0) return false;
+    return selectedInvoicesList.every(
+      inv => inv.status !== 'paid' && inv.status !== 'void'
+    );
+  }, [selectedInvoices, selectedInvoicesList]);
+
+  // Handle combine invoices
+  const handleCombineInvoices = async () => {
+    setCombineLoading(true);
+    try {
+      const res = await fetch('/api/invoices/combine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_ids: Array.from(selectedInvoices),
+          send_immediately: true,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to combine invoices');
+      }
+
+      setShowCombineModal(false);
+      setSelectedInvoices(new Set());
+      mutate(url);
+      showToast(data.message || 'Invoices combined successfully', 'success');
+    } catch (error) {
+      console.error('Error combining invoices:', error);
+      throw error;
+    } finally {
+      setCombineLoading(false);
+    }
+  };
+
+  // Handle mark as paid
+  const handleMarkPaid = async () => {
+    if (!canMarkPaid) return;
+
+    const confirmMsg = selectedInvoices.size === 1
+      ? 'Mark this invoice as paid?'
+      : `Mark ${selectedInvoices.size} invoices as paid?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setMarkingPaid(true);
+    try {
+      const res = await fetch('/api/invoices/mark-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          invoice_ids: Array.from(selectedInvoices),
+          payment_method: 'other',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to mark invoices as paid');
+      }
+
+      setSelectedInvoices(new Set());
+      mutate(url);
+      showToast(data.message || 'Invoices marked as paid', 'success');
+    } catch (error) {
+      console.error('Error marking invoices as paid:', error);
+      showToast(error instanceof Error ? error.message : 'Failed to mark as paid', 'error');
+    } finally {
+      setMarkingPaid(false);
+    }
+  };
+
   // Relink orphans summary state
   const [relinking, setRelinking] = useState(false);
   const [relinkSummary, setRelinkSummary] = useState<null | {
@@ -307,8 +410,6 @@ export default function DashboardInvoices() {
     }
   }
 
-  const rows = useMemo(() => data?.invoices ?? [], [data]);
-
   return (
     <>
       <ToastContainer />
@@ -321,6 +422,23 @@ export default function DashboardInvoices() {
               <span className="text-sm text-gray-600">
                 {selectedInvoices.size} selected
               </span>
+              {canMarkPaid && (
+                <button
+                  onClick={handleMarkPaid}
+                  disabled={markingPaid}
+                  className="rounded-lg border border-emerald-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-emerald-50 disabled:opacity-60 text-emerald-700 text-xs sm:text-sm whitespace-nowrap"
+                >
+                  {markingPaid ? 'Marking…' : 'Mark Paid'}
+                </button>
+              )}
+              {canCombine && (
+                <button
+                  onClick={() => setShowCombineModal(true)}
+                  className="rounded-lg border border-blue-300 px-2 py-1.5 sm:px-3 sm:py-2 hover:bg-blue-50 text-blue-700 text-xs sm:text-sm whitespace-nowrap"
+                >
+                  Combine & Send
+                </button>
+              )}
               <button
                 onClick={handleBulkDelete}
                 disabled={bulkDeleting}
@@ -408,13 +526,32 @@ export default function DashboardInvoices() {
         {/* Mobile admin buttons */}
         <div className="sm:hidden flex flex-wrap gap-2">
           {selectedInvoices.size > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              disabled={bulkDeleting}
-              className="rounded-lg border border-red-300 px-2 py-1.5 hover:bg-red-50 disabled:opacity-60 text-red-700 text-xs whitespace-nowrap"
-            >
-              {bulkDeleting ? 'Deleting…' : `Delete ${selectedInvoices.size}`}
-            </button>
+            <>
+              {canMarkPaid && (
+                <button
+                  onClick={handleMarkPaid}
+                  disabled={markingPaid}
+                  className="rounded-lg border border-emerald-300 px-2 py-1.5 hover:bg-emerald-50 disabled:opacity-60 text-emerald-700 text-xs whitespace-nowrap"
+                >
+                  {markingPaid ? 'Marking…' : 'Mark Paid'}
+                </button>
+              )}
+              {canCombine && (
+                <button
+                  onClick={() => setShowCombineModal(true)}
+                  className="rounded-lg border border-blue-300 px-2 py-1.5 hover:bg-blue-50 text-blue-700 text-xs whitespace-nowrap"
+                >
+                  Combine
+                </button>
+              )}
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="rounded-lg border border-red-300 px-2 py-1.5 hover:bg-red-50 disabled:opacity-60 text-red-700 text-xs whitespace-nowrap"
+              >
+                {bulkDeleting ? 'Deleting…' : `Delete ${selectedInvoices.size}`}
+              </button>
+            </>
           )}
           <button
             onClick={relinkOrphans}
@@ -668,6 +805,28 @@ export default function DashboardInvoices() {
         </table>
       </div>
     </div>
+
+    {/* Combine Invoices Modal */}
+    {showCombineModal && (
+      <CombineInvoicesModal
+        invoices={selectedInvoicesList.map(inv => ({
+          id: inv.id,
+          invoice_number: inv.invoice_number,
+          title: inv.title,
+          amount_cents: inv.amount_cents || 0,
+          status: inv.status,
+          issued_at: inv.issued_at || undefined,
+          clients: inv.clients ? {
+            id: inv.clients.id || '',
+            name: inv.clients.name || '',
+            email: inv.clients.email || '',
+          } : undefined,
+        }))}
+        onConfirm={handleCombineInvoices}
+        onCancel={() => setShowCombineModal(false)}
+        loading={combineLoading}
+      />
+    )}
     </>
   );
 }

@@ -69,11 +69,17 @@ export default function InvoiceBuilder({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
-  
+
   // Track display values for rate inputs to avoid formatting issues
   const [rateDisplayValues, setRateDisplayValues] = useState<Record<number, string>>({
     0: '75.00' // Default for first line item
   });
+
+  // AI Generation state
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccess, setAiSuccess] = useState(false);
 
   const handleTemplateSelect = (template: InvoiceTemplate) => {
     setFormData(prev => ({
@@ -220,6 +226,59 @@ export default function InvoiceBuilder({
 
   const selectedClient = clients.find(c => c.id === formData.client_id);
 
+  // AI Invoice Generation
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiSuccess(false);
+
+    try {
+      const res = await fetch('/api/invoices/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to generate invoice');
+      }
+
+      // Update form with generated data
+      const newRateDisplayValues: Record<number, string> = {};
+      data.line_items.forEach((item: { rate_cents: number }, index: number) => {
+        newRateDisplayValues[index] = (item.rate_cents / 100).toFixed(2);
+      });
+      setRateDisplayValues(newRateDisplayValues);
+
+      setFormData(prev => ({
+        ...prev,
+        line_items: data.line_items.map((item: { title: string; description: string; quantity: number; rate_cents: number; amount_cents: number }) => ({
+          title: item.title,
+          description: item.description,
+          quantity: item.quantity,
+          rate_cents: item.rate_cents,
+          amount_cents: item.amount_cents,
+        })),
+        project_overview: data.project_overview || prev.project_overview,
+        technology_stack: data.technology_stack || prev.technology_stack,
+      }));
+
+      setAiSuccess(true);
+      setAiPrompt('');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setAiSuccess(false), 3000);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'Failed to generate invoice');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Client & Basic Info */}
@@ -275,6 +334,88 @@ export default function InvoiceBuilder({
             rows={2}
             className="w-full rounded-lg border border-gray-300 px-3 py-2"
           />
+        </div>
+      </div>
+
+      {/* AI Invoice Generator */}
+      <div className="rounded-xl border bg-gradient-to-r from-purple-50 to-blue-50 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          <h2 className="text-lg font-semibold text-purple-900">AI Invoice Assistant</h2>
+          <span className="text-xs px-2 py-0.5 bg-purple-200 text-purple-800 rounded-full">Beta</span>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-3">
+          Describe your project and let AI generate line items, pricing, and details automatically.
+        </p>
+
+        <div className="space-y-3">
+          <textarea
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="Examples:
+• Time-based: 'React dashboard development, 60 hours at $125/hr'
+• Value-based: 'Logo design $1500, business cards $300, brand guidelines $800'
+• Mixed: 'E-commerce website $4500 plus 20 hours maintenance at $75/hr'"
+            rows={4}
+            disabled={aiLoading}
+            className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:opacity-50"
+          />
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleAiGenerate}
+              disabled={aiLoading || !aiPrompt.trim()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+            >
+              {aiLoading ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                  Generate Invoice
+                </>
+              )}
+            </button>
+
+            {formData.line_items.length > 0 && formData.line_items[0].description && (
+              <span className="text-xs text-gray-500">
+                This will replace existing line items
+              </span>
+            )}
+          </div>
+
+          {aiError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{aiError}</p>
+              <button
+                type="button"
+                onClick={() => setAiError(null)}
+                className="text-xs text-red-600 underline mt-1"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {aiSuccess && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-700">
+                Line items generated successfully! Review and edit below.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
