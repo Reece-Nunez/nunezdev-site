@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { contactsService } from "@/lib/google";
 
 export async function GET() {
   const supabase = await supabaseServer();
@@ -98,6 +99,30 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Sync to Google Contacts (async, don't block response)
+  if (contactsService.isAvailable()) {
+    contactsService
+      .createContact({ name, email, phone, company })
+      .then(async (result) => {
+        if (result.success && result.googleContactId) {
+          // Update client with Google Contact ID
+          const adminSupabase = await supabaseServer();
+          await adminSupabase
+            .from("clients")
+            .update({
+              google_contact_id: result.googleContactId,
+              google_contact_etag: result.etag,
+              google_last_synced_at: new Date().toISOString(),
+            })
+            .eq("id", data.id);
+          console.log(`Synced new client ${name} to Google Contacts`);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to sync client to Google:", err.message);
+      });
+  }
 
   // Return just the id (your new-client page expects this)
   return NextResponse.json({ id: data.id });

@@ -19,11 +19,13 @@ import {
   ChevronDownIcon,
   PlusIcon,
   DocumentArrowDownIcon,
+  CalendarIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },
   { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
+  { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
   { href: '/dashboard/invoices', label: 'Invoices', icon: DocumentTextIcon },
   { href: '/dashboard/proposals', label: 'Proposals', icon: DocumentCheckIcon },
   { href: '/dashboard/time', label: 'Time Tracking', icon: ClockIcon },
@@ -34,7 +36,7 @@ const items = [
 ];
 
 const adminTools = [
-  { href: '/dashboard/hubspot', label: 'HubSpot Sync' },
+  { href: '/dashboard/google-workspace', label: 'Google Workspace' },
   { href: '/dashboard/admin/fix-stripe-payment', label: 'Fix Stripe Payment' },
   { href: '/dashboard/admin/sync-payments', label: 'Sync Payments' },
   { href: '/dashboard/admin/debug-apis', label: 'Debug APIs' },

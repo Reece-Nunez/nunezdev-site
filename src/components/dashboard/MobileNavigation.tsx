@@ -8,6 +8,7 @@ import LogoutButton from '../LogOutButton';
 const items = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/clients', label: 'Clients' },
+  { href: '/dashboard/calendar', label: 'Calendar' },
   { href: '/dashboard/invoices', label: 'Invoices' },
   { href: '/dashboard/proposals', label: 'Proposals' },
   { href: '/dashboard/time', label: 'Time' },
@@ -17,7 +18,7 @@ const items = [
 ];
 
 const adminTools = [
-  { href: '/dashboard/hubspot', label: 'HubSpot Sync' },
+  { href: '/dashboard/google-workspace', label: 'Google Workspace' },
   { href: '/dashboard/admin/fix-stripe-payment', label: 'Fix Stripe Payment' },
   { href: '/dashboard/admin/sync-payments', label: 'Sync Payments' },
   { href: '/dashboard/admin/debug-apis', label: 'Debug APIs' },

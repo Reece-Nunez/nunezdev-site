@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { contactsService } from "@/lib/google";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -55,10 +56,42 @@ export async function PATCH(req: Request, ctx: Ctx) {
     .update(patch)
     .eq("id", id)
     .eq("org_id", orgId)
-    .select("*")
+    .select("*, google_contact_id, google_contact_etag")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Sync update to Google Contacts (async, don't block response)
+  if (contactsService.isAvailable() && data.google_contact_id) {
+    contactsService
+      .updateContact(
+        data.google_contact_id,
+        {
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          company: data.company,
+        },
+        data.google_contact_etag
+      )
+      .then(async (result) => {
+        if (result.success && result.etag) {
+          const adminSupabase = await supabaseServer();
+          await adminSupabase
+            .from("clients")
+            .update({
+              google_contact_etag: result.etag,
+              google_last_synced_at: new Date().toISOString(),
+            })
+            .eq("id", id);
+          console.log(`Synced client update ${data.name} to Google Contacts`);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to sync client update to Google:", err.message);
+      });
+  }
+
   return NextResponse.json({ client: data });
 }
 
@@ -73,16 +106,27 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (!orgId) return NextResponse.json({ error: "No org" }, { status: 403 });
 
   try {
-    // Verify client belongs to org
+    // Verify client belongs to org and get Google Contact ID
     const { data: client } = await supabase
       .from("clients")
-      .select("id, name")
+      .select("id, name, google_contact_id")
       .eq("id", id)
       .eq("org_id", orgId)
       .single();
 
     if (!client) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    // Delete from Google Contacts first (if linked)
+    if (contactsService.isAvailable() && client.google_contact_id) {
+      try {
+        await contactsService.deleteContact(client.google_contact_id);
+        console.log(`Deleted Google Contact for client: ${client.name}`);
+      } catch (err: any) {
+        console.error("Failed to delete Google Contact:", err.message);
+        // Continue with local delete even if Google delete fails
+      }
     }
 
     // Delete all related data in the correct order (respecting foreign key constraints)

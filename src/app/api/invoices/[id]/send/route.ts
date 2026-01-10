@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
 import { sendInvoiceEmail } from "@/lib/email";
 import { currency } from "@/lib/ui";
+import { calendarService } from "@/lib/google";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -258,6 +259,29 @@ export async function POST(
     if (updateError) {
       console.error("Error updating invoice:", updateError);
       return NextResponse.json({ error: "Failed to update invoice status" }, { status: 500 });
+    }
+
+    // Create calendar event for invoice due date (async, don't block)
+    if (!isResend && calendarService.isAvailable()) {
+      calendarService
+        .createEvent({
+          summary: `Invoice Due: ${(client as any).name} - ${currency(invoice.amount_cents)}`,
+          description: `Invoice ${invoice.invoice_number || invoiceId} is due today.\n\nClient: ${(client as any).name}\nEmail: ${(client as any).email}\nAmount: ${currency(invoice.amount_cents)}`,
+          start: {
+            date: dueDate.toISOString().split('T')[0],
+          },
+          end: {
+            date: dueDate.toISOString().split('T')[0],
+          },
+        })
+        .then((result) => {
+          if (result.success) {
+            console.log(`Calendar event created for invoice ${invoice.invoice_number} due date`);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to create calendar event for invoice:', err.message);
+        });
     }
 
     // Send email with secure invoice link
