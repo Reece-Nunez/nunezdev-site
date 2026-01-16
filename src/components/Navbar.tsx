@@ -65,8 +65,14 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* CTA Button */}
-      <div className="hidden md:block">
+      {/* CTA Buttons */}
+      <div className="hidden md:flex items-center gap-4">
+        <Link
+          href="/portal/login"
+          className="text-lg text-white hover:text-brand-yellow transition"
+        >
+          Client Login
+        </Link>
         <Link
           href="/contact"
           className="text-lg text-white border border-white px-6 py-3 rounded-md font-semibold hover:bg-yellow hover:text-blue transition"
@@ -130,11 +136,19 @@ export default function Navbar() {
             ))}
 
             <Link
+              href="/portal/login"
+              onClick={() => setIsOpen(false)}
+              className="text-lg text-gray-600 hover:text-blue-600 transition"
+            >
+              Client Login
+            </Link>
+
+            <Link
               href="/contact"
               onClick={() => setIsOpen(false)}
               className="text-lg border border-blue-600 text-blue-600 px-6 py-3 rounded-md hover:bg-blue-600 hover:text-white transition"
             >
-              Let’s get building
+              Let's get building
             </Link>
           </motion.div>
         )}

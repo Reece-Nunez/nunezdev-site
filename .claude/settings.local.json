@@ -42,8 +42,6 @@
     ],
     "deny": [],
     "ask": [],
-    "additionalDirectories": [
-      "C:\\c\\Users\\reece\\OneDrive\\Documents\\NunezDev"
-    ]
+    "additionalDirectories": []
   }
 }

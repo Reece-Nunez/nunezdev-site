@@ -20,6 +20,7 @@ import {
   PlusIcon,
   DocumentArrowDownIcon,
   CalendarIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
@@ -33,6 +34,7 @@ const items = [
   { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices', icon: ArrowPathIcon },
   { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
   { href: '/dashboard/tax-documents', label: 'Tax Documents', icon: DocumentArrowDownIcon },
+  { href: '/dashboard/client-portal', label: 'Client Portal', icon: CloudArrowUpIcon },
 ];
 
 const adminTools = [

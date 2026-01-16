@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({
-      calendars: calendars.map(c => ({
+      calendars: calendars.map((c: typeof calendars[number]) => ({
         id: c.id,
         summary: c.summary,
         primary: c.primary,
