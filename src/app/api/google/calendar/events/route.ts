@@ -50,7 +50,6 @@ export async function GET(req: Request) {
       summary: e.summary,
       start: e.start,
       status: e.status,
-      visibility: e.visibility,
       organizer: e.organizer?.email,
     })), null, 2));
 
