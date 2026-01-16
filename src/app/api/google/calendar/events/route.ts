@@ -45,13 +45,6 @@ export async function GET(req: Request) {
     const result = await calendarService.listEvents(options);
 
     console.log(`[Calendar API] Fetched ${result.events.length} events from Google Calendar`);
-    console.log(`[Calendar API] Raw events from Google:`, JSON.stringify(result.events.map(e => ({
-      id: e.id,
-      summary: e.summary,
-      start: e.start,
-      status: e.status,
-      organizer: e.organizer?.email,
-    })), null, 2));
 
     // Transform events to a format the frontend expects
     const events = result.events.map((event) => ({
