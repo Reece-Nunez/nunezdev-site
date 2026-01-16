@@ -18,6 +18,7 @@ frontend:
         - echo "NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL" >> .env
         - echo "NODE_ENV=production" >> .env
         - cat .env
+        - export NODE_OPTIONS="--max_old_space_size=4096"
         - npm run build
   artifacts:
     baseDirectory: .next
