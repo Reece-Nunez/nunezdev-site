@@ -117,6 +117,9 @@ export default function InvoiceDetailPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [ccEmails, setCcEmails] = useState<string[]>([]);
+  const [ccInput, setCcInput] = useState('');
   const { showToast, ToastContainer } = useToast();
 
   const { data: invoice, error, mutate } = useSWR<Invoice>(
@@ -147,6 +150,7 @@ export default function InvoiceDetailPage() {
       const response = await fetch(`/api/invoices/${invoiceId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ccEmails: ccEmails.length > 0 ? ccEmails : undefined }),
       });
 
       if (!response.ok) {
@@ -156,15 +160,38 @@ export default function InvoiceDetailPage() {
 
       // Refresh invoice data
       mutate();
-      
+
       // Get the response data to check if email was sent
       const result = await response.json();
-      showToast(result.message || 'Invoice sent successfully!', 'success');
+      const ccInfo = ccEmails.length > 0 ? ` (CC'd to ${ccEmails.length} recipient${ccEmails.length > 1 ? 's' : ''})` : '';
+      showToast((result.message || 'Invoice sent successfully!') + ccInfo, 'success');
+      setShowSendModal(false);
+      setCcEmails([]);
+      setCcInput('');
     } catch (error) {
       console.error('Error sending invoice:', error);
       showToast(error instanceof Error ? error.message : 'Failed to send invoice', 'error');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleAddCcEmail = () => {
+    const email = ccInput.trim().toLowerCase();
+    if (email && email.includes('@') && !ccEmails.includes(email)) {
+      setCcEmails([...ccEmails, email]);
+      setCcInput('');
+    }
+  };
+
+  const handleRemoveCcEmail = (emailToRemove: string) => {
+    setCcEmails(ccEmails.filter(e => e !== emailToRemove));
+  };
+
+  const handleCcInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddCcEmail();
     }
   };
 
@@ -227,23 +254,21 @@ export default function InvoiceDetailPage() {
           </button>
           {invoice.status === 'draft' && (
             <button
-              onClick={handleSendInvoice}
-              disabled={sending}
-              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg disabled:opacity-50 transition-colors"
+              onClick={() => setShowSendModal(true)}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors"
               style={{ backgroundColor: '#ffc312' }}
-              onMouseEnter={(e) => !sending && ((e.target as HTMLElement).style.backgroundColor = '#e6ad0f')}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.backgroundColor = '#e6ad0f')}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.backgroundColor = '#ffc312')}
             >
-              {sending ? 'Sending...' : 'Send Invoice'}
+              Send Invoice
             </button>
           )}
           {['sent', 'overdue', 'partially_paid'].includes(invoice.status) && (
             <button
-              onClick={handleSendInvoice}
-              disabled={sending}
-              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg disabled:opacity-50 transition-colors bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => setShowSendModal(true)}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors bg-emerald-600 hover:bg-emerald-700"
             >
-              {sending ? 'Sending...' : 'Resend Invoice'}
+              Resend Invoice
             </button>
           )}
         </div>
@@ -661,6 +686,104 @@ export default function InvoiceDetailPage() {
           }}
           onCancel={() => setShowEdit(false)}
         />
+      )}
+
+      {/* Send Invoice Modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-xl">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                {invoice.status === 'draft' ? 'Send Invoice' : 'Resend Invoice'}
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                {invoice.invoice_number || `Invoice #${invoice.id.split('-')[0]}`}
+              </p>
+
+              {/* Primary recipient */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  To (Primary)
+                </label>
+                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
+                  {invoice.clients?.email || 'No email set'}
+                </div>
+              </div>
+
+              {/* CC recipients */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CC (Additional Recipients)
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="email"
+                    value={ccInput}
+                    onChange={(e) => setCcInput(e.target.value)}
+                    onKeyDown={handleCcInputKeyDown}
+                    placeholder="Enter email and press Enter"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCcEmail}
+                    disabled={!ccInput.trim() || !ccInput.includes('@')}
+                    className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                  >
+                    Add
+                  </button>
+                </div>
+                {ccEmails.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {ccEmails.map((email) => (
+                      <span
+                        key={email}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
+                      >
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCcEmail(email)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  CC recipients will receive a copy of the invoice email.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSendModal(false);
+                    setCcEmails([]);
+                    setCcInput('');
+                  }}
+                  className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendInvoice}
+                  disabled={sending || !invoice.clients?.email}
+                  className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sending ? 'Sending...' : invoice.status === 'draft' ? 'Send Invoice' : 'Resend Invoice'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
     </>

@@ -29,9 +29,22 @@ export async function POST(
   const guard = await requireOwner();
   if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const orgId = guard.orgId!;
-  
+
   const { id: invoiceId } = await context.params;
   const supabase = await supabaseServer();
+
+  // Parse request body for CC emails
+  let ccEmails: string[] = [];
+  try {
+    const body = await req.json();
+    if (body.ccEmails && Array.isArray(body.ccEmails)) {
+      ccEmails = body.ccEmails.filter((email: string) =>
+        typeof email === 'string' && email.includes('@')
+      );
+    }
+  } catch {
+    // No body or invalid JSON is fine - ccEmails stays empty
+  }
 
   try {
     // Fetch invoice with enhanced details
@@ -287,10 +300,11 @@ export async function POST(
     // Send email with secure invoice link
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
     const secureInvoiceUrl = `${baseUrl}/invoice/${invoice.access_token}`;
-    
+
     try {
       await sendInvoiceEmail({
         to: (client as any).email,
+        cc: ccEmails.length > 0 ? ccEmails : undefined,
         clientName: (client as any).name,
         invoiceNumber: invoice.invoice_number || `INV-${invoice.id.split('-')[0]}`,
         invoiceUrl: secureInvoiceUrl,
@@ -298,8 +312,9 @@ export async function POST(
         dueDate: dueDate.toLocaleDateString(),
         requiresSignature: invoice.require_signature || false,
       });
-      
-      console.log(`Invoice email sent to ${(client as any).email}`);
+
+      const ccInfo = ccEmails.length > 0 ? ` (CC: ${ccEmails.join(', ')})` : '';
+      console.log(`Invoice email sent to ${(client as any).email}${ccInfo}`);
     } catch (emailError) {
       console.error("Email sending failed:", emailError);
       // Don't fail the request - invoice is still sent

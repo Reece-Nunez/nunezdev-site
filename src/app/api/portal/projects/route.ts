@@ -94,6 +94,7 @@ export async function GET() {
       `)
       .eq('client_id', session.clientId)
       .eq('status', 'active')
+      .eq('client_uploads.upload_status', 'completed')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -102,16 +103,22 @@ export async function GET() {
     }
 
     // Transform to include upload count
-    const projectsWithCounts = projects.map((project) => ({
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      status: project.status,
-      createdAt: project.created_at,
-      uploadCount: Array.isArray(project.client_uploads)
-        ? project.client_uploads.length
-        : (project.client_uploads as { count: number })?.count || 0,
-    }));
+    const projectsWithCounts = projects.map((project) => {
+      let uploadCount = 0;
+      if (Array.isArray(project.client_uploads) && project.client_uploads.length > 0) {
+        uploadCount = (project.client_uploads[0] as { count: number }).count || 0;
+      } else if (project.client_uploads && !Array.isArray(project.client_uploads)) {
+        uploadCount = (project.client_uploads as { count: number }).count || 0;
+      }
+      return {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        status: project.status,
+        createdAt: project.created_at,
+        uploadCount,
+      };
+    });
 
     return NextResponse.json({ projects: projectsWithCounts });
   } catch (error) {

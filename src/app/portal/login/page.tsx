@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 function LoginForm() {
@@ -335,6 +336,16 @@ export default function PortalLoginPage() {
           <LoginForm />
         </Suspense>
       </motion.div>
+
+      <Link
+        href="/"
+        className="fixed top-6 left-6 flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Back to Home
+      </Link>
 
       <p className="fixed bottom-6 text-center text-slate-400 text-sm w-full">
         NunezDev Client Portal

@@ -5,6 +5,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 interface SendInvoiceEmailParams {
   to: string;
+  cc?: string[];
   clientName: string;
   invoiceNumber: string;
   invoiceUrl: string;
@@ -15,6 +16,7 @@ interface SendInvoiceEmailParams {
 
 export async function sendInvoiceEmail({
   to,
+  cc,
   clientName,
   invoiceNumber,
   invoiceUrl,
@@ -26,6 +28,9 @@ export async function sendInvoiceEmail({
   if (!resend) {
     console.log('📧 EMAIL WOULD BE SENT:');
     console.log(`To: ${to}`);
+    if (cc && cc.length > 0) {
+      console.log(`CC: ${cc.join(', ')}`);
+    }
     console.log(`Subject: Invoice ${invoiceNumber} from NunezDev`);
     console.log(`Invoice URL: ${invoiceUrl}`);
     console.log(`Amount: ${amount}`);
@@ -238,12 +243,25 @@ export async function sendInvoiceEmail({
   `;
 
   try {
-    const result = await resend.emails.send({
+    const emailOptions: {
+      from: string;
+      to: string[];
+      cc?: string[];
+      subject: string;
+      html: string;
+    } = {
       from: 'NunezDev <invoices@nunezdev.com>',
       to: [to],
       subject,
       html,
-    });
+    };
+
+    // Add CC recipients if provided
+    if (cc && cc.length > 0) {
+      emailOptions.cc = cc;
+    }
+
+    const result = await resend.emails.send(emailOptions);
 
     return { success: true, messageId: result.data?.id };
   } catch (error) {
