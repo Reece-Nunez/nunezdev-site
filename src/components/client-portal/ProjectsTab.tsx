@@ -121,21 +121,14 @@ export default function ProjectsTab({
     }
   }
 
-  async function handleDownloadFile(url: string, fileName: string) {
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
+  function handleDownloadFile(url: string, fileName: string) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   async function handleDownloadAll() {
@@ -144,8 +137,8 @@ export default function ProjectsTab({
 
     setDownloadingAll(true);
     for (const upload of completedUploads) {
-      await handleDownloadFile(upload.url!, upload.fileName);
-      await new Promise(r => setTimeout(r, 300));
+      handleDownloadFile(upload.url!, upload.fileName);
+      await new Promise(r => setTimeout(r, 500));
     }
     setDownloadingAll(false);
   }

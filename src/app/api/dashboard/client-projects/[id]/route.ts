@@ -90,7 +90,7 @@ export async function GET(
             fileName: u.file_name,
             fileSize: u.file_size_bytes,
             mimeType: u.mime_type,
-            url: await generatePresignedDownloadUrl(u.s3_key, 3600),
+            url: await generatePresignedDownloadUrl(u.s3_key, 3600, u.file_name),
             status: u.upload_status,
             createdAt: u.created_at,
           };
