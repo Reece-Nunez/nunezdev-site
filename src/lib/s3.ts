@@ -47,6 +47,14 @@ export async function generatePresignedDownloadUrl(
   return getSignedUrl(s3Client, command, { expiresIn });
 }
 
+export async function getS3Object(key: string) {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+  return s3Client.send(command);
+}
+
 export async function deleteS3Object(key: string): Promise<void> {
   const command = new DeleteObjectCommand({
     Bucket: BUCKET_NAME,

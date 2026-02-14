@@ -132,13 +132,28 @@ export default function ProjectsTab({
   }
 
   async function handleDownloadAll() {
-    const completedUploads = projectUploads.filter(u => u.url && u.status === 'completed');
-    if (completedUploads.length === 0) return;
+    if (!expandedProjectId) return;
 
     setDownloadingAll(true);
-    for (const upload of completedUploads) {
-      handleDownloadFile(upload.url!, upload.fileName);
-      await new Promise(r => setTimeout(r, 500));
+    try {
+      const res = await fetch(`/api/dashboard/client-projects/${expandedProjectId}/download`);
+      if (!res.ok) throw new Error('Download failed');
+
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const disposition = res.headers.get('Content-Disposition');
+      const match = disposition?.match(/filename="(.+)"/);
+      a.download = match?.[1] || 'files.zip';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download all failed:', error);
+      showToast('Failed to download files', 'error');
     }
     setDownloadingAll(false);
   }
