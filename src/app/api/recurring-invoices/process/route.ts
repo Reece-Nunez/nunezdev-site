@@ -2,35 +2,50 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { sendInvoiceEmail } from "@/lib/email";
+import { currency } from "@/lib/ui";
 import Stripe from "stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// This endpoint will be called by a cron job or manually to process recurring invoices
+// Structured logging for observability
+function log(level: 'info' | 'warn' | 'error', message: string, data?: Record<string, unknown>) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    service: 'recurring-invoices',
+    level,
+    message,
+    ...data,
+  };
+  if (level === 'error') {
+    console.error(JSON.stringify(entry));
+  } else if (level === 'warn') {
+    console.warn(JSON.stringify(entry));
+  } else {
+    console.log(JSON.stringify(entry));
+  }
+}
+
 export async function POST(request: Request) {
+  const startTime = Date.now();
+
   try {
-    
-    // Initialize Stripe at runtime
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: '2025-07-30.basil',
     });
 
-    // Auth check - allow either CRON_SECRET or authenticated admin user
+    // --- Auth ---
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-
-    // Check for CRON_SECRET first
     const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-    // If not a cron request, check for user session
     let isAuthorized = isCronRequest;
     if (!isCronRequest) {
       try {
         const session = await getServerSession(authOptions);
-        isAuthorized = !!session?.user; // Allow any authenticated user for now
-      } catch (error) {
-        console.error('Error getting session:', error);
+        isAuthorized = !!session?.user;
+      } catch {
         isAuthorized = false;
       }
     }
@@ -40,8 +55,9 @@ export async function POST(request: Request) {
     }
 
     const adminSupabase = supabaseAdmin();
+    const today = new Date().toISOString().split('T')[0];
 
-    // Get all recurring invoices that are due for processing
+    // --- Fetch due recurring invoices ---
     const { data: recurringInvoices, error } = await adminSupabase
       .from('recurring_invoices')
       .select(`
@@ -56,92 +72,105 @@ export async function POST(request: Request) {
         )
       `)
       .eq('status', 'active')
-      .lte('next_invoice_date', new Date().toISOString().split('T')[0]);
+      .lte('next_invoice_date', today);
 
     if (error) {
-      console.error('Error fetching recurring invoices:', error);
+      log('error', 'Failed to fetch recurring invoices', { error: error.message });
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    const results = [];
+    if (!recurringInvoices || recurringInvoices.length === 0) {
+      log('info', 'No recurring invoices due for processing');
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        message: 'No recurring invoices due',
+        results: [],
+      });
+    }
+
+    log('info', 'Starting recurring invoice processing', { count: recurringInvoices.length });
+
+    const results: Record<string, unknown>[] = [];
     let successCount = 0;
     let errorCount = 0;
 
-    for (const recurringInvoice of recurringInvoices || []) {
+    for (const recurring of recurringInvoices) {
+      const client = recurring.clients;
+      const recurringId = recurring.id;
+
       try {
-        // Check if end_date has passed
-        if (recurringInvoice.end_date && new Date(recurringInvoice.end_date) < new Date()) {
-          // Mark as completed
+        // --- Check end date ---
+        if (recurring.end_date && new Date(recurring.end_date) < new Date()) {
           await adminSupabase
             .from('recurring_invoices')
             .update({ status: 'completed', updated_at: new Date().toISOString() })
-            .eq('id', recurringInvoice.id);
-          
-          results.push({
-            recurring_invoice_id: recurringInvoice.id,
-            status: 'completed',
-            message: 'Recurring invoice completed (end date reached)'
-          });
+            .eq('id', recurringId);
+
+          log('info', 'Recurring invoice completed (end date reached)', { recurringId });
+          results.push({ recurring_invoice_id: recurringId, status: 'completed', message: 'End date reached' });
           continue;
         }
 
-        console.log(`Processing recurring invoice ${recurringInvoice.id} for client ${recurringInvoice.clients.name}`);
+        // --- Idempotency: skip if invoice already exists for this billing period ---
+        const { data: existing } = await adminSupabase
+          .from('invoices')
+          .select('id')
+          .eq('recurring_invoice_id', recurringId)
+          .gte('issued_at', `${recurring.next_invoice_date}T00:00:00`)
+          .lte('issued_at', `${recurring.next_invoice_date}T23:59:59`)
+          .limit(1);
 
-        // Generate invoice number
-        const timestamp = Date.now();
-        const random = Math.floor(Math.random() * 1000);
-        const invoiceNumber = `INV-${timestamp}${random}`;
-
-        // Create Stripe customer if needed
-        let customerId = recurringInvoice.clients.stripe_customer_id;
-        if (!customerId) {
-          try {
-            const customer = await stripe.customers.create({
-              email: recurringInvoice.clients.email || undefined,
-              name: recurringInvoice.clients.name || undefined,
-              metadata: { 
-                org_id: recurringInvoice.org_id,
-                client_id: recurringInvoice.client_id 
-              },
-            });
-            customerId = customer.id;
-
-            // Update client with Stripe customer ID
-            await adminSupabase
-              .from('clients')
-              .update({ stripe_customer_id: customerId })
-              .eq('id', recurringInvoice.client_id);
-          } catch (stripeError) {
-            console.error('Error creating Stripe customer:', stripeError);
-            // Continue without Stripe customer
-          }
+        if (existing && existing.length > 0) {
+          log('warn', 'Invoice already exists for this billing period, skipping', {
+            recurringId,
+            existingInvoiceId: existing[0].id,
+            billingDate: recurring.next_invoice_date,
+          });
+          results.push({ recurring_invoice_id: recurringId, status: 'skipped', message: 'Already processed' });
+          continue;
         }
 
-        // Calculate payment terms
-        const paymentTermsDays = parseInt(recurringInvoice.payment_terms || '30');
+        if (!client?.email) {
+          log('warn', 'Client has no email, skipping', { recurringId, clientId: recurring.client_id });
+          results.push({ recurring_invoice_id: recurringId, status: 'skipped', message: 'Client has no email' });
+          errorCount++;
+          continue;
+        }
+
+        log('info', 'Processing recurring invoice', { recurringId, clientName: client.name });
+
+        // --- Generate invoice number ---
+        const timestamp = Date.now();
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        const invoiceNumber = `INV-${timestamp}${random}`;
+
+        // --- Calculate due date ---
+        const paymentTermsDays = parseInt(recurring.payment_terms || '30');
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + paymentTermsDays);
 
-        // Create the regular invoice in database
+        // --- Create invoice in database ---
+        const accessToken = generateAccessToken();
         const invoiceData = {
-          org_id: recurringInvoice.org_id,
-          client_id: recurringInvoice.client_id,
-          recurring_invoice_id: recurringInvoice.id,
+          org_id: recurring.org_id,
+          client_id: recurring.client_id,
+          recurring_invoice_id: recurringId,
           status: 'sent',
-          amount_cents: recurringInvoice.amount_cents,
+          amount_cents: recurring.amount_cents,
           issued_at: new Date().toISOString(),
           due_at: dueDate.toISOString(),
           invoice_number: invoiceNumber,
-          title: recurringInvoice.title,
-          description: recurringInvoice.description,
-          line_items: recurringInvoice.line_items,
-          payment_terms: recurringInvoice.payment_terms,
-          require_signature: recurringInvoice.require_signature,
-          brand_logo_url: recurringInvoice.brand_logo_url,
-          brand_primary: recurringInvoice.brand_primary,
+          title: recurring.title,
+          description: recurring.description,
+          line_items: recurring.line_items,
+          payment_terms: recurring.payment_terms,
+          require_signature: recurring.require_signature,
+          brand_logo_url: recurring.brand_logo_url,
+          brand_primary: recurring.brand_primary,
           total_paid_cents: 0,
-          remaining_balance_cents: recurringInvoice.amount_cents,
-          access_token: generateAccessToken()
+          remaining_balance_cents: recurring.amount_cents,
+          access_token: accessToken,
         };
 
         const { data: newInvoice, error: invoiceError } = await adminSupabase
@@ -150,124 +179,221 @@ export async function POST(request: Request) {
           .select('*')
           .single();
 
-        if (invoiceError) {
-          throw new Error(`Failed to create invoice: ${invoiceError.message}`);
+        if (invoiceError || !newInvoice) {
+          throw new Error(`Failed to create invoice: ${invoiceError?.message}`);
         }
 
-        // Create Stripe invoice if customer exists
-        let stripeInvoiceId = null;
-        if (customerId) {
+        log('info', 'Invoice created in database', { invoiceId: newInvoice.id, invoiceNumber });
+
+        // --- Create Stripe Payment Link (matches manual send flow) ---
+        let stripePaymentLinkUrl: string | null = null;
+
+        if (process.env.STRIPE_SECRET_KEY) {
           try {
-            // Create Stripe invoice
-            const stripeInvoice = await stripe.invoices.create({
-              customer: customerId,
-              collection_method: "send_invoice",
-              days_until_due: paymentTermsDays,
-              description: recurringInvoice.description || undefined,
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
+
+            const paymentLink = await stripe.paymentLinks.create({
+              line_items: [
+                {
+                  price_data: {
+                    currency: 'usd',
+                    product_data: {
+                      name: recurring.title || `Invoice ${invoiceNumber}`,
+                      description: recurring.description || 'Professional web development services',
+                      metadata: {
+                        invoice_id: newInvoice.id,
+                        client_id: client.id,
+                        org_id: recurring.org_id,
+                      },
+                    },
+                    unit_amount: recurring.amount_cents,
+                  },
+                  quantity: 1,
+                },
+              ],
               metadata: {
-                org_id: recurringInvoice.org_id,
-                client_id: recurringInvoice.client_id,
                 invoice_id: newInvoice.id,
-                recurring_invoice_id: recurringInvoice.id,
+                client_id: client.id,
+                org_id: recurring.org_id,
                 invoice_number: invoiceNumber,
+                client_email: client.email,
+                client_name: client.name,
+                amount_cents: recurring.amount_cents.toString(),
+                source: 'recurring_invoice',
+                recurring_invoice_id: recurringId,
+                created_at: new Date().toISOString(),
+              },
+              payment_intent_data: {
+                metadata: {
+                  invoice_id: newInvoice.id,
+                  client_id: client.id,
+                  org_id: recurring.org_id,
+                  invoice_number: invoiceNumber,
+                  client_email: client.email,
+                  client_name: client.name,
+                  amount_cents: recurring.amount_cents.toString(),
+                  source: 'recurring_invoice',
+                  recurring_invoice_id: recurringId,
+                  created_at: new Date().toISOString(),
+                },
+              },
+              after_completion: {
+                type: 'redirect',
+                redirect: {
+                  url: `${baseUrl}/invoice/${accessToken}?payment=success`,
+                },
               },
             });
 
-            // Add line items to Stripe invoice
-            const lineItems = recurringInvoice.line_items as any[];
-            for (const item of lineItems) {
-              await stripe.invoiceItems.create({
-                customer: customerId,
-                invoice: stripeInvoice.id,
-                amount: item.amount_cents,
-                currency: 'usd',
-                description: item.description,
-              });
-            }
+            stripePaymentLinkUrl = paymentLink.url;
 
-            // Finalize and send the invoice
-            if (stripeInvoice.id) {
-              await stripe.invoices.finalizeInvoice(stripeInvoice.id);
-              await stripe.invoices.sendInvoice(stripeInvoice.id);
-            }
-
-            stripeInvoiceId = stripeInvoice.id;
-
-            // Update invoice with Stripe ID
+            // Update invoice with Stripe payment link
             await adminSupabase
               .from('invoices')
-              .update({ 
-                stripe_invoice_id: stripeInvoiceId,
-                hosted_invoice_url: stripeInvoice.hosted_invoice_url 
+              .update({
+                stripe_payment_link: paymentLink.id,
+                stripe_hosted_invoice_url: paymentLink.url,
+                hosted_invoice_url: paymentLink.url,
               })
               .eq('id', newInvoice.id);
 
+            log('info', 'Stripe payment link created', { invoiceId: newInvoice.id, paymentLinkId: paymentLink.id });
           } catch (stripeError) {
-            console.error('Error with Stripe invoice:', stripeError);
-            // Continue - the invoice is still created in our database
+            log('error', 'Stripe payment link creation failed', {
+              invoiceId: newInvoice.id,
+              error: stripeError instanceof Error ? stripeError.message : String(stripeError),
+            });
+            // Continue without Stripe — invoice still exists and can be paid via portal
           }
         }
 
-        // Calculate next invoice date
+        // --- Send email notification to client ---
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
+        const secureInvoiceUrl = `${baseUrl}/invoice/${accessToken}`;
+
+        try {
+          await sendInvoiceEmail({
+            to: client.email,
+            clientName: client.name,
+            invoiceNumber,
+            invoiceUrl: secureInvoiceUrl,
+            amount: currency(recurring.amount_cents),
+            dueDate: dueDate.toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            }),
+            requiresSignature: recurring.require_signature || false,
+          });
+
+          log('info', 'Invoice email sent to client', { invoiceId: newInvoice.id, clientEmail: client.email });
+        } catch (emailError) {
+          log('error', 'Failed to send invoice email', {
+            invoiceId: newInvoice.id,
+            clientEmail: client.email,
+            error: emailError instanceof Error ? emailError.message : String(emailError),
+          });
+          // Don't fail the entire process — invoice is created and accessible via portal
+        }
+
+        // --- Log activity ---
+        await adminSupabase
+          .from('client_activity_log')
+          .insert({
+            invoice_id: newInvoice.id,
+            client_id: client.id,
+            activity_type: 'recurring_invoice_sent',
+            activity_data: {
+              recurring_invoice_id: recurringId,
+              invoice_number: invoiceNumber,
+              amount_cents: recurring.amount_cents,
+              frequency: recurring.frequency,
+              email_sent: true,
+            },
+          })
+          .then(({ error: activityError }) => {
+            if (activityError) {
+              log('warn', 'Failed to log activity', { error: activityError.message });
+            }
+          });
+
+        // --- Calculate next invoice date ---
         const nextDate = calculateNextInvoiceDate(
-          new Date(recurringInvoice.next_invoice_date),
-          recurringInvoice.frequency,
-          recurringInvoice.day_of_month
+          new Date(recurring.next_invoice_date),
+          recurring.frequency,
+          recurring.day_of_month
         );
 
-        // Update recurring invoice
+        // --- Update recurring invoice metadata ---
         await adminSupabase
           .from('recurring_invoices')
           .update({
             next_invoice_date: nextDate.toISOString().split('T')[0],
-            total_invoices_sent: (recurringInvoice.total_invoices_sent || 0) + 1,
+            total_invoices_sent: (recurring.total_invoices_sent || 0) + 1,
             last_invoice_sent_at: new Date().toISOString(),
             last_invoice_id: newInvoice.id,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', recurringInvoice.id);
+          .eq('id', recurringId);
 
         results.push({
-          recurring_invoice_id: recurringInvoice.id,
+          recurring_invoice_id: recurringId,
           invoice_id: newInvoice.id,
           invoice_number: invoiceNumber,
-          client_name: recurringInvoice.clients.name,
-          amount: `$${(recurringInvoice.amount_cents / 100).toFixed(2)}`,
+          client_name: client.name,
+          client_email: client.email,
+          amount: currency(recurring.amount_cents),
           next_invoice_date: nextDate.toISOString().split('T')[0],
-          stripe_invoice_id: stripeInvoiceId,
-          status: 'success'
+          stripe_payment_link: stripePaymentLinkUrl ? true : false,
+          email_sent: true,
+          status: 'success',
         });
 
         successCount++;
-
       } catch (error) {
-        console.error(`Error processing recurring invoice ${recurringInvoice.id}:`, error);
+        log('error', 'Failed to process recurring invoice', {
+          recurringId,
+          clientName: client?.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+
         results.push({
-          recurring_invoice_id: recurringInvoice.id,
-          client_name: recurringInvoice.clients.name,
+          recurring_invoice_id: recurringId,
+          client_name: client?.name,
           status: 'error',
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
         errorCount++;
       }
     }
 
+    const duration = Date.now() - startTime;
+
+    log('info', 'Recurring invoice processing complete', {
+      successCount,
+      errorCount,
+      durationMs: duration,
+    });
+
     return NextResponse.json({
       success: true,
+      processed: successCount + errorCount,
       message: `Processed ${successCount + errorCount} recurring invoices`,
       summary: {
         total_processed: successCount + errorCount,
         successful: successCount,
-        errors: errorCount
+        errors: errorCount,
+        duration_ms: duration,
       },
-      results
+      results,
+    });
+  } catch (error) {
+    log('error', 'Fatal error in recurring invoice processing', {
+      error: error instanceof Error ? error.message : String(error),
+      durationMs: Date.now() - startTime,
     });
 
-  } catch (error) {
-    console.error('Error in recurring invoice processing:', error);
     return NextResponse.json({
       error: 'Failed to process recurring invoices',
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
     }, { status: 500 });
   }
 }
@@ -281,10 +407,9 @@ function calculateNextInvoiceDate(currentDate: Date, frequency: string, dayOfMon
       break;
     case 'monthly':
       if (dayOfMonth) {
-        // Move to next month first
         nextDate.setMonth(nextDate.getMonth() + 1);
-        // Set to specific day of month
-        nextDate.setDate(Math.min(dayOfMonth, new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate()));
+        const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+        nextDate.setDate(Math.min(dayOfMonth, lastDay));
       } else {
         nextDate.setMonth(nextDate.getMonth() + 1);
       }
@@ -303,5 +428,10 @@ function calculateNextInvoiceDate(currentDate: Date, frequency: string, dayOfMon
 }
 
 function generateAccessToken(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token + Date.now().toString(36);
 }
