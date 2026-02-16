@@ -108,7 +108,11 @@ export default function RecurringInvoicesPage() {
 
       if (!response.ok) throw new Error(result.error || 'Processing failed');
 
-      alert(`Processing complete! ${result.summary.successful} invoices sent successfully, ${result.summary.errors} errors.`);
+      if (result.summary) {
+        alert(`Processing complete! ${result.summary.successful} invoices sent successfully, ${result.summary.errors} errors.`);
+      } else {
+        alert(result.message || 'No recurring invoices due for processing.');
+      }
 
       // Refresh data and logs
       mutate(`/api/recurring-invoices?status=${statusFilter}`);
