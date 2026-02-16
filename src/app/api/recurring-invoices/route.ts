@@ -130,16 +130,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // Calculate next invoice date
+    // Calculate next invoice date using date-only strings to avoid timezone issues
+    const startDateStr = new Date(start_date).toISOString().split('T')[0];
     const startDate = new Date(start_date);
     let nextInvoiceDate = new Date(startDate);
 
     // If day_of_month is specified for monthly frequency, adjust the next invoice date
     if (frequency === 'monthly' && day_of_month) {
-      nextInvoiceDate.setDate(day_of_month);
-      // If the day has already passed this month, move to next month
-      if (nextInvoiceDate < startDate) {
-        nextInvoiceDate.setMonth(nextInvoiceDate.getMonth() + 1);
+      // Work with date-only strings (YYYY-MM-DD) to avoid UTC/local timezone drift
+      const [year, month] = startDateStr.split('-').map(Number);
+      const candidateStr = `${year}-${String(month).padStart(2, '0')}-${String(day_of_month).padStart(2, '0')}`;
+
+      if (candidateStr < startDateStr) {
+        // Day already passed this month — move to next month
+        const next = new Date(Date.UTC(year, month, day_of_month)); // month is 1-based here, but Date uses 0-based — so this adds 1 month
+        nextInvoiceDate = next;
+      } else {
+        nextInvoiceDate = new Date(Date.UTC(year, month - 1, day_of_month));
       }
     }
 
