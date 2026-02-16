@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { supabaseServer } from "@/lib/supabaseServer";
 import { sendInvoiceEmail } from "@/lib/email";
 import { currency } from "@/lib/ui";
 import Stripe from "stripe";
@@ -27,6 +26,28 @@ function log(level: 'info' | 'warn' | 'error', message: string, data?: Record<st
   }
 }
 
+// Write to recurring_invoice_logs table for dashboard visibility
+async function writeLog(
+  db: ReturnType<typeof supabaseAdmin>,
+  orgId: string,
+  eventType: string,
+  status: string,
+  message: string,
+  opts?: { recurringInvoiceId?: string; invoiceId?: string; metadata?: Record<string, unknown> }
+) {
+  await db.from('recurring_invoice_logs').insert({
+    org_id: orgId,
+    recurring_invoice_id: opts?.recurringInvoiceId || null,
+    invoice_id: opts?.invoiceId || null,
+    event_type: eventType,
+    status,
+    message,
+    metadata: opts?.metadata || null,
+  }).then(({ error }) => {
+    if (error) log('warn', 'Failed to write activity log', { error: error.message });
+  });
+}
+
 export async function POST(request: Request) {
   const startTime = Date.now();
 
@@ -43,8 +64,9 @@ export async function POST(request: Request) {
     let isAuthorized = isCronRequest;
     if (!isCronRequest) {
       try {
-        const session = await getServerSession(authOptions);
-        isAuthorized = !!session?.user;
+        const supabase = await supabaseServer();
+        const { data: { user } } = await supabase.auth.getUser();
+        isAuthorized = !!user;
       } catch {
         isAuthorized = false;
       }
@@ -91,6 +113,14 @@ export async function POST(request: Request) {
 
     log('info', 'Starting recurring invoice processing', { count: recurringInvoices.length });
 
+    // Get org_id from the first invoice for logging
+    const orgId = recurringInvoices[0].org_id;
+
+    await writeLog(adminSupabase, orgId, 'processing_started', 'info',
+      `Processing ${recurringInvoices.length} due recurring invoice(s)`,
+      { metadata: { count: recurringInvoices.length, date: today } }
+    );
+
     const results: Record<string, unknown>[] = [];
     let successCount = 0;
     let errorCount = 0;
@@ -108,6 +138,10 @@ export async function POST(request: Request) {
             .eq('id', recurringId);
 
           log('info', 'Recurring invoice completed (end date reached)', { recurringId });
+          await writeLog(adminSupabase, recurring.org_id, 'completed', 'info',
+            `Recurring invoice for ${client?.name || 'unknown'} completed — end date reached`,
+            { recurringInvoiceId: recurringId, metadata: { end_date: recurring.end_date } }
+          );
           results.push({ recurring_invoice_id: recurringId, status: 'completed', message: 'End date reached' });
           continue;
         }
@@ -127,12 +161,20 @@ export async function POST(request: Request) {
             existingInvoiceId: existing[0].id,
             billingDate: recurring.next_invoice_date,
           });
+          await writeLog(adminSupabase, recurring.org_id, 'skipped', 'skipped',
+            `Invoice for ${client?.name || 'unknown'} already exists for billing date ${recurring.next_invoice_date}`,
+            { recurringInvoiceId: recurringId, invoiceId: existing[0].id, metadata: { billing_date: recurring.next_invoice_date } }
+          );
           results.push({ recurring_invoice_id: recurringId, status: 'skipped', message: 'Already processed' });
           continue;
         }
 
         if (!client?.email) {
           log('warn', 'Client has no email, skipping', { recurringId, clientId: recurring.client_id });
+          await writeLog(adminSupabase, recurring.org_id, 'skipped', 'failed',
+            `Skipped invoice for client ${recurring.client_id} — no email address on file`,
+            { recurringInvoiceId: recurringId }
+          );
           results.push({ recurring_invoice_id: recurringId, status: 'skipped', message: 'Client has no email' });
           errorCount++;
           continue;
@@ -184,6 +226,10 @@ export async function POST(request: Request) {
         }
 
         log('info', 'Invoice created in database', { invoiceId: newInvoice.id, invoiceNumber });
+        await writeLog(adminSupabase, recurring.org_id, 'invoice_created', 'success',
+          `Invoice ${invoiceNumber} created for ${client.name} — ${currency(recurring.amount_cents)}`,
+          { recurringInvoiceId: recurringId, invoiceId: newInvoice.id, metadata: { invoice_number: invoiceNumber, amount_cents: recurring.amount_cents, client_name: client.name, client_email: client.email } }
+        );
 
         // --- Create Stripe Payment Link (matches manual send flow) ---
         let stripePaymentLinkUrl: string | null = null;
@@ -258,11 +304,19 @@ export async function POST(request: Request) {
               .eq('id', newInvoice.id);
 
             log('info', 'Stripe payment link created', { invoiceId: newInvoice.id, paymentLinkId: paymentLink.id });
+            await writeLog(adminSupabase, recurring.org_id, 'stripe_link_created', 'success',
+              `Stripe payment link created for invoice ${invoiceNumber}`,
+              { recurringInvoiceId: recurringId, invoiceId: newInvoice.id, metadata: { payment_link_id: paymentLink.id } }
+            );
           } catch (stripeError) {
             log('error', 'Stripe payment link creation failed', {
               invoiceId: newInvoice.id,
               error: stripeError instanceof Error ? stripeError.message : String(stripeError),
             });
+            await writeLog(adminSupabase, recurring.org_id, 'stripe_link_failed', 'failed',
+              `Failed to create Stripe payment link for invoice ${invoiceNumber}: ${stripeError instanceof Error ? stripeError.message : String(stripeError)}`,
+              { recurringInvoiceId: recurringId, invoiceId: newInvoice.id }
+            );
             // Continue without Stripe — invoice still exists and can be paid via portal
           }
         }
@@ -285,12 +339,20 @@ export async function POST(request: Request) {
           });
 
           log('info', 'Invoice email sent to client', { invoiceId: newInvoice.id, clientEmail: client.email });
+          await writeLog(adminSupabase, recurring.org_id, 'email_sent', 'success',
+            `Invoice email sent to ${client.name} (${client.email})`,
+            { recurringInvoiceId: recurringId, invoiceId: newInvoice.id, metadata: { client_email: client.email, invoice_number: invoiceNumber } }
+          );
         } catch (emailError) {
           log('error', 'Failed to send invoice email', {
             invoiceId: newInvoice.id,
             clientEmail: client.email,
             error: emailError instanceof Error ? emailError.message : String(emailError),
           });
+          await writeLog(adminSupabase, recurring.org_id, 'email_failed', 'failed',
+            `Failed to email invoice ${invoiceNumber} to ${client.email}: ${emailError instanceof Error ? emailError.message : String(emailError)}`,
+            { recurringInvoiceId: recurringId, invoiceId: newInvoice.id, metadata: { client_email: client.email } }
+          );
           // Don't fail the entire process — invoice is created and accessible via portal
         }
 
@@ -355,6 +417,11 @@ export async function POST(request: Request) {
           error: error instanceof Error ? error.message : String(error),
         });
 
+        await writeLog(adminSupabase, recurring.org_id, 'error', 'failed',
+          `Error processing invoice for ${client?.name || 'unknown'}: ${error instanceof Error ? error.message : String(error)}`,
+          { recurringInvoiceId: recurringId, metadata: { error: error instanceof Error ? error.message : String(error) } }
+        );
+
         results.push({
           recurring_invoice_id: recurringId,
           client_name: client?.name,
@@ -372,6 +439,11 @@ export async function POST(request: Request) {
       errorCount,
       durationMs: duration,
     });
+
+    await writeLog(adminSupabase, orgId, 'processing_completed', 'info',
+      `Processing complete: ${successCount} successful, ${errorCount} errors (${duration}ms)`,
+      { metadata: { successful: successCount, errors: errorCount, duration_ms: duration } }
+    );
 
     return NextResponse.json({
       success: true,

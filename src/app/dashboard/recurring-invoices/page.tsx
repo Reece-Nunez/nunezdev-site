@@ -38,6 +38,17 @@ interface RecurringInvoicesData {
   count: number;
 }
 
+interface InvoiceLog {
+  id: string;
+  event_type: string;
+  status: string;
+  message: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  recurring_invoice_id: string | null;
+  invoice_id: string | null;
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function RecurringInvoicesPage() {
@@ -46,9 +57,21 @@ export default function RecurringInvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<RecurringInvoice | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [actionLoading, setActionLoading] = useState<string>('');
+  const [today, setToday] = useState<string>('');
+  const [showLogs, setShowLogs] = useState(false);
+  const [logFilter, setLogFilter] = useState<string>('all');
+
+  useEffect(() => {
+    setToday(new Date().toISOString().split('T')[0]);
+  }, []);
 
   const { data, error, isLoading } = useSWR<RecurringInvoicesData>(
-    `/api/recurring-invoices?status=${statusFilter}`, 
+    `/api/recurring-invoices?status=${statusFilter}`,
+    fetcher
+  );
+
+  const { data: logsData, mutate: mutateLogs } = useSWR<{ logs: InvoiceLog[] }>(
+    showLogs ? `/api/recurring-invoices/logs?limit=100${logFilter !== 'all' ? `&event_type=${logFilter}` : ''}` : null,
     fetcher
   );
 
@@ -87,8 +110,9 @@ export default function RecurringInvoicesPage() {
 
       alert(`Processing complete! ${result.summary.successful} invoices sent successfully, ${result.summary.errors} errors.`);
 
-      // Refresh data
+      // Refresh data and logs
       mutate(`/api/recurring-invoices?status=${statusFilter}`);
+      if (showLogs) mutateLogs();
     } catch (error) {
       console.error('Failed to process recurring invoices:', error);
       alert('Failed to process recurring invoices');
@@ -209,10 +233,10 @@ export default function RecurringInvoicesPage() {
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <div className="text-sm text-gray-600">Due Today</div>
             <div className="text-2xl font-bold text-orange-600">
-              {data.recurring_invoices.filter(ri => 
-                ri.status === 'active' && 
-                new Date(ri.next_invoice_date) <= new Date()
-              ).length}
+              {today ? data.recurring_invoices.filter(ri =>
+                ri.status === 'active' &&
+                ri.next_invoice_date <= today
+              ).length : 0}
             </div>
           </div>
         </div>
@@ -373,9 +397,86 @@ export default function RecurringInvoicesPage() {
         )}
       </div>
 
+      {/* Activity Log */}
+      <div className="bg-white rounded-xl border shadow-sm">
+        <button
+          onClick={() => setShowLogs(!showLogs)}
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="font-medium text-gray-900">Activity Log</span>
+          </div>
+          <svg className={`w-5 h-5 text-gray-400 transition-transform ${showLogs ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showLogs && (
+          <div className="border-t">
+            <div className="p-4 border-b bg-gray-50 flex items-center gap-3">
+              <label className="text-sm font-medium text-gray-700">Filter:</label>
+              <select
+                value={logFilter}
+                onChange={(e) => setLogFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="all">All Events</option>
+                <option value="processing_started">Processing Started</option>
+                <option value="processing_completed">Processing Completed</option>
+                <option value="invoice_created">Invoice Created</option>
+                <option value="email_sent">Email Sent</option>
+                <option value="email_failed">Email Failed</option>
+                <option value="stripe_link_created">Stripe Link Created</option>
+                <option value="stripe_link_failed">Stripe Link Failed</option>
+                <option value="skipped">Skipped</option>
+                <option value="error">Error</option>
+                <option value="completed">Completed</option>
+              </select>
+              <button
+                onClick={() => mutateLogs()}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto">
+              {logsData?.logs && logsData.logs.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {logsData.logs.map((logEntry) => (
+                    <div key={logEntry.id} className="px-4 py-3 flex items-start gap-3 hover:bg-gray-50">
+                      <div className="mt-0.5">
+                        <LogStatusIcon status={logEntry.status} eventType={logEntry.event_type} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <LogEventBadge eventType={logEntry.event_type} />
+                          <span className="text-xs text-gray-400">
+                            {new Date(logEntry.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mt-0.5">{logEntry.message}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No activity logs yet. Process invoices to see events here.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Create/Edit Modals */}
       {showCreateModal && (
-        <CreateRecurringInvoiceModal 
+        <CreateRecurringInvoiceModal
+          today={today}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             mutate(`/api/recurring-invoices?status=${statusFilter}`);
@@ -403,7 +504,7 @@ export default function RecurringInvoicesPage() {
 }
 
 // Create Recurring Invoice Modal Component
-function CreateRecurringInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: string; onClose: () => void; onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [lineItems, setLineItems] = useState([
@@ -589,7 +690,7 @@ function CreateRecurringInvoiceModal({ onClose, onSuccess }: { onClose: () => vo
                   <input
                     type="date"
                     name="start_date"
-                    defaultValue={new Date().toISOString().split('T')[0]}
+                    defaultValue={today}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -946,5 +1047,82 @@ function EditRecurringInvoiceModal({
         </form>
       </div>
     </div>
+  );
+}
+
+function LogStatusIcon({ status, eventType }: { status: string; eventType: string }) {
+  if (status === 'failed' || eventType === 'error') {
+    return (
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-100">
+        <svg className="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === 'skipped') {
+    return (
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-yellow-100">
+        <svg className="w-3.5 h-3.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === 'success') {
+    return (
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
+        <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100">
+      <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </span>
+  );
+}
+
+function LogEventBadge({ eventType }: { eventType: string }) {
+  const styles: Record<string, string> = {
+    processing_started: 'bg-blue-100 text-blue-800',
+    processing_completed: 'bg-blue-100 text-blue-800',
+    invoice_created: 'bg-green-100 text-green-800',
+    email_sent: 'bg-green-100 text-green-800',
+    email_failed: 'bg-red-100 text-red-800',
+    stripe_link_created: 'bg-purple-100 text-purple-800',
+    stripe_link_failed: 'bg-red-100 text-red-800',
+    payment_received: 'bg-emerald-100 text-emerald-800',
+    payment_failed: 'bg-red-100 text-red-800',
+    invoice_opened: 'bg-indigo-100 text-indigo-800',
+    skipped: 'bg-yellow-100 text-yellow-800',
+    completed: 'bg-gray-100 text-gray-800',
+    error: 'bg-red-100 text-red-800',
+  };
+
+  const labels: Record<string, string> = {
+    processing_started: 'Processing Started',
+    processing_completed: 'Processing Complete',
+    invoice_created: 'Invoice Created',
+    email_sent: 'Email Sent',
+    email_failed: 'Email Failed',
+    stripe_link_created: 'Stripe Link',
+    stripe_link_failed: 'Stripe Failed',
+    payment_received: 'Payment Received',
+    payment_failed: 'Payment Failed',
+    invoice_opened: 'Invoice Opened',
+    skipped: 'Skipped',
+    completed: 'Completed',
+    error: 'Error',
+  };
+
+  return (
+    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${styles[eventType] || 'bg-gray-100 text-gray-800'}`}>
+      {labels[eventType] || eventType}
+    </span>
   );
 }
