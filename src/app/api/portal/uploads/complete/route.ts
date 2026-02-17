@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
+import { sendUploadNotification } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,10 +25,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'uploadId is required' }, { status: 400 });
     }
 
-    // Verify upload belongs to this user
+    // Verify upload belongs to this user and fetch details for notification
     const { data: upload, error: fetchError } = await supabase
       .from('client_uploads')
-      .select('id, s3_key, uploaded_by')
+      .select(`
+        id, s3_key, uploaded_by, file_name, file_size_bytes, mime_type,
+        project:client_projects!project_id (
+          id, name,
+          client:clients!client_id ( name )
+        )
+      `)
       .eq('id', uploadId)
       .eq('uploaded_by', session.portalUserId)
       .single();
@@ -49,6 +56,19 @@ export async function POST(req: Request) {
     if (updateError) {
       console.error('Error updating upload status:', updateError);
       return NextResponse.json({ error: 'Failed to update upload status' }, { status: 500 });
+    }
+
+    // Send email notification for successful uploads (fire and forget)
+    if (success && upload.project) {
+      const project = upload.project as any;
+      sendUploadNotification({
+        clientName: project.client?.name || 'Unknown Client',
+        projectName: project.name || 'Unknown Project',
+        fileName: upload.file_name,
+        fileSizeMb: (upload.file_size_bytes / (1024 * 1024)).toFixed(2),
+        fileType: upload.mime_type,
+        projectId: project.id,
+      }).catch(err => console.error('[upload-complete] Notification error:', err));
     }
 
     return NextResponse.json({

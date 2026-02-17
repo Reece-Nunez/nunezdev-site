@@ -38,7 +38,14 @@
       "Bash(git config:*)",
       "Bash(cat:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx next build)",
+      "Skill(coderabbit:review)",
+      "Bash(coderabbit review:*)",
+      "Bash(git stash:*)",
+      "Bash(git status:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(gh auth status:*)"
     ],
     "deny": [],
     "ask": [],
