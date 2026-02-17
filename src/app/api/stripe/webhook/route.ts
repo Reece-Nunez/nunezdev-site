@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { sendBusinessNotification } from "@/lib/notifications";
+import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -271,23 +271,21 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
 
       if (!installmentError) {
         console.log(`[stripe-webhook] updated payment plan installment ${installmentId} as paid`);
-        
-        // Add activity log for installment payment
-        await supabase
-          .from('client_activity_log')
-          .insert({
-            invoice_id: invoiceId,
-            client_id: clientId,
-            activity_type: 'payment_completed',
-            activity_data: {
-              installment_id: installmentId,
-              amount_cents: paymentIntent.amount,
-              payment_intent_id: paymentIntent.id
-            }
-          });
       } else {
         console.error('Failed to update installment status:', installmentError);
       }
+    }
+
+    // Guard against duplicate webhook deliveries — check if payment already recorded
+    const { data: existingPayment } = await supabase
+      .from('invoice_payments')
+      .select('id')
+      .eq('stripe_payment_intent_id', paymentIntent.id)
+      .maybeSingle();
+
+    if (existingPayment) {
+      console.log(`[stripe-webhook] Payment already recorded for intent ${paymentIntent.id}, skipping`);
+      return;
     }
 
     // Add payment record for all payments (installment or full)
@@ -336,14 +334,43 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       
       // Send business notification for payment received
       if (invoiceDetails) {
-        await sendBusinessNotification('payment_received', {
+        const clientName = (invoiceDetails.clients as any).name;
+        const clientEmail = (invoiceDetails.clients as any).email;
+
+        sendBusinessNotification('payment_received', {
           invoice_id: invoiceId,
-          client_name: (invoiceDetails.clients as any).name,
+          client_name: clientName,
           invoice_number: invoiceDetails.invoice_number,
           amount_cents: paymentIntent.amount,
           installment_label: installmentLabel,
           payment_method: paymentIntent.payment_method_types?.[0] || 'card'
-        });
+        }).catch(err => console.error('[stripe-webhook] Business notification error:', err));
+
+        // Send payment receipt to client (fire-and-forget to avoid blocking Stripe response)
+        if (clientEmail) {
+          (async () => {
+            const { data: invoiceTotals } = await supabase
+              .from('invoices')
+              .select('amount_cents, total_paid_cents, remaining_balance_cents')
+              .eq('id', invoiceId)
+              .single();
+
+            await sendPaymentReceipt({
+              invoice_id: invoiceId,
+              invoice_number: invoiceDetails.invoice_number,
+              client_name: clientName,
+              client_email: clientEmail,
+              amount_cents: paymentIntent.amount,
+              total_paid_cents: invoiceTotals?.total_paid_cents || paymentIntent.amount,
+              invoice_total_cents: invoiceTotals?.amount_cents || undefined,
+              remaining_balance_cents: invoiceTotals?.remaining_balance_cents ?? undefined,
+              payment_method: paymentIntent.payment_method_types?.[0] || 'card',
+              payment_date: new Date().toISOString(),
+              installment_label: installmentId ? installmentLabel : undefined,
+              transaction_id: paymentIntent.id,
+            });
+          })().catch(err => console.error('[stripe-webhook] Client receipt error:', err));
+        }
       }
       
       // Add activity log
@@ -502,10 +529,8 @@ export async function POST(req: Request) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[stripe-webhook] Signature verification failed:', {
         error: message,
-        signatureHeader: sig,
         bodyLength: bodyBuffer.length,
-        bodyPreview: bodyBuffer.toString().substring(0, 100),
-        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 10) + '...'
+        hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET
       });
       return NextResponse.json({ error: `Webhook signature failed: ${message}` }, { status: 400 });
     }

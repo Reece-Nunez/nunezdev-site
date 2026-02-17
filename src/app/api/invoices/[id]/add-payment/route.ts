@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -59,15 +60,46 @@ export async function POST(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Get updated invoice status (will be updated by trigger)
+    // Get updated invoice status and details for notifications
     const { data: updatedInvoice } = await supabase
       .from("invoices")
-      .select("status, total_paid_cents, remaining_balance_cents")
+      .select("invoice_number, amount_cents, status, total_paid_cents, remaining_balance_cents, clients(name, email)")
       .eq("id", id)
       .single();
 
-    return NextResponse.json({ 
-      success: true, 
+    // Send notifications (fire-and-forget)
+    if (updatedInvoice) {
+      const clientData = updatedInvoice.clients as any;
+      const clientName = Array.isArray(clientData) ? clientData[0]?.name : clientData?.name;
+      const clientEmail = Array.isArray(clientData) ? clientData[0]?.email : clientData?.email;
+
+      sendBusinessNotification('payment_received', {
+        invoice_id: id,
+        client_name: clientName || 'Unknown',
+        invoice_number: updatedInvoice.invoice_number,
+        amount_cents: amount_cents,
+        payment_method: payment_method || 'manual',
+      }).catch(err => console.error('[add-payment] Business notification error:', err));
+
+      if (clientEmail) {
+        sendPaymentReceipt({
+          invoice_id: id,
+          invoice_number: updatedInvoice.invoice_number,
+          client_name: clientName || 'Client',
+          client_email: clientEmail,
+          amount_cents: amount_cents,
+          total_paid_cents: updatedInvoice.total_paid_cents || amount_cents,
+          invoice_total_cents: updatedInvoice.amount_cents,
+          remaining_balance_cents: updatedInvoice.remaining_balance_cents || 0,
+          payment_method: payment_method || 'manual',
+          payment_date: paid_at || new Date().toISOString(),
+          transaction_id: stripe_payment_intent_id || undefined,
+        }).catch(err => console.error('[add-payment] Client receipt error:', err));
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
       message: "Payment added successfully",
       payment,
       updatedInvoiceStatus: updatedInvoice

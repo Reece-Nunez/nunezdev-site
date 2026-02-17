@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -32,8 +32,12 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState<number>(0);
+  const lastFetchedKey = useRef<string>('');
 
   useEffect(() => {
+    const key = `${token}-${installmentId}`;
+    if (lastFetchedKey.current === key) return;
+    lastFetchedKey.current = key;
     fetchInvoiceAndCreateIntent();
   }, [token, installmentId]);
 

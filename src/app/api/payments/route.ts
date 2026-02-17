@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -228,6 +229,34 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error('Failed to update invoice:', updateError);
+    }
+
+    // Send notifications (fire-and-forget, don't block response)
+    const clientData = invoice.clients as any;
+    const clientName = Array.isArray(clientData) ? clientData[0]?.name : clientData?.name;
+    const clientEmail = Array.isArray(clientData) ? clientData[0]?.email : clientData?.email;
+
+    sendBusinessNotification('payment_received', {
+      invoice_id: invoice.id,
+      client_name: clientName || 'Unknown',
+      invoice_number: invoice.invoice_number,
+      amount_cents: amount_cents,
+      payment_method: payment_method,
+    }).catch(err => console.error('[payments] Business notification error:', err));
+
+    if (clientEmail) {
+      sendPaymentReceipt({
+        invoice_id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        client_name: clientName || 'Client',
+        client_email: clientEmail,
+        amount_cents: amount_cents,
+        total_paid_cents: totalPaidCents,
+        invoice_total_cents: invoice.amount_cents,
+        remaining_balance_cents: remainingBalanceCents,
+        payment_method: payment_method,
+        payment_date: paid_at,
+      }).catch(err => console.error('[payments] Client receipt error:', err));
     }
 
     const result = {

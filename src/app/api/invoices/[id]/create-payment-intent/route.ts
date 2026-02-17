@@ -59,6 +59,7 @@ export async function POST(
         .from("invoice_payment_plans")
         .select("*")
         .eq("id", installment_id)
+        .eq("invoice_id", invoiceId)
         .single();
 
       if (!installmentError && installment) {
@@ -70,17 +71,41 @@ export async function POST(
       }
     }
 
-    // Create a PaymentIntent with Stripe
-    // Automatically includes all payment methods enabled in your Stripe dashboard
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: 'usd',
-      description: description,
-      metadata: metadata,
-      automatic_payment_methods: {
-        enabled: true,
-      },
+    // Check for an existing reusable payment intent to prevent duplicates
+    const idempotencyKey = installment_id
+      ? `pi-${invoiceId}-inst-${installment_id}`
+      : `pi-${invoiceId}-full`;
+
+    // Search for an existing incomplete payment intent for this invoice/installment
+    const existingIntents = await stripe.paymentIntents.search({
+      query: `metadata["invoice_id"]:"${invoiceId}"${
+        installment_id ? ` AND metadata["installment_id"]:"${installment_id}"` : ' AND -metadata["installment_id"]:*'
+      } AND status:"requires_payment_method"`,
+      limit: 1,
     });
+
+    let paymentIntent: Stripe.PaymentIntent;
+
+    if (existingIntents.data.length > 0 && existingIntents.data[0].amount === amount) {
+      // Reuse the existing incomplete payment intent
+      paymentIntent = existingIntents.data[0];
+      console.log(`[create-payment-intent] Reusing existing intent ${paymentIntent.id} for invoice ${invoiceId}`);
+    } else {
+      // Create a new PaymentIntent with idempotency key
+      paymentIntent = await stripe.paymentIntents.create(
+        {
+          amount: amount,
+          currency: 'usd',
+          description: description,
+          metadata: metadata,
+          automatic_payment_methods: {
+            enabled: true,
+          },
+        },
+        { idempotencyKey }
+      );
+      console.log(`[create-payment-intent] Created new intent ${paymentIntent.id} for invoice ${invoiceId}`);
+    }
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

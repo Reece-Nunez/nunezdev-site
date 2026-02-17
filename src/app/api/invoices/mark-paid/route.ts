@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
+import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,10 +32,10 @@ export async function POST(req: NextRequest) {
 
     const supabase = await supabaseServer();
 
-    // Fetch all selected invoices
+    // Fetch all selected invoices with client details
     const { data: invoices, error: fetchError } = await supabase
       .from("invoices")
-      .select("id, status, amount_cents, invoice_number, client_id")
+      .select("id, status, amount_cents, invoice_number, client_id, clients(name, email)")
       .eq("org_id", orgId)
       .in("id", invoice_ids);
 
@@ -74,6 +75,8 @@ export async function POST(req: NextRequest) {
           .update({
             status: 'paid',
             paid_at: now,
+            total_paid_cents: invoice.amount_cents,
+            remaining_balance_cents: 0,
           })
           .eq("id", invoice.id)
           .eq("org_id", orgId);
@@ -101,6 +104,34 @@ export async function POST(req: NextRequest) {
         if (paymentError) {
           console.error("Error recording payment:", paymentError);
           // Don't fail - invoice is already marked paid
+        }
+
+        // Send notifications (fire-and-forget)
+        const clientData = (invoice as any).clients;
+        const clientName = Array.isArray(clientData) ? clientData[0]?.name : clientData?.name;
+        const clientEmail = Array.isArray(clientData) ? clientData[0]?.email : clientData?.email;
+
+        sendBusinessNotification('payment_received', {
+          invoice_id: invoice.id,
+          client_name: clientName || 'Unknown',
+          invoice_number: invoice.invoice_number,
+          amount_cents: invoice.amount_cents,
+          payment_method: payment_method || 'manual',
+        }).catch(err => console.error('[mark-paid] Business notification error:', err));
+
+        if (clientEmail) {
+          sendPaymentReceipt({
+            invoice_id: invoice.id,
+            invoice_number: invoice.invoice_number,
+            client_name: clientName || 'Client',
+            client_email: clientEmail,
+            amount_cents: invoice.amount_cents,
+            total_paid_cents: invoice.amount_cents,
+            invoice_total_cents: invoice.amount_cents,
+            remaining_balance_cents: 0,
+            payment_method: payment_method || 'manual',
+            payment_date: now,
+          }).catch(err => console.error('[mark-paid] Client receipt error:', err));
         }
 
         results.push({ id: invoice.id, success: true });
