@@ -27,8 +27,9 @@ export async function GET() {
     revMap[m] = (revMap[m] ?? 0) + (payment.amount_cents ?? 0);
   });
 
+  const currentYear = start.getUTCFullYear();
   const months = Array.from({length: 12}, (_,k) => {
-    const d = new Date(2025, k, 1);
+    const d = new Date(currentYear, k, 1);
     return d.toISOString().slice(0,7);
   });
   const revenueByMonth = months.map(m => ({ month: m, cents: revMap[m] ?? 0 }));
