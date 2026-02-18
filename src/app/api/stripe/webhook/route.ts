@@ -446,7 +446,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   }
 }
 
-async function handleChargeSucceeded(charge: Stripe.Charge) {
+async function handleChargeSucceeded(charge: Stripe.Charge, stripe: Stripe) {
   const supabase = supabaseAdmin();
   console.log("[stripe-webhook] charge.succeeded", charge.id);
 
@@ -461,6 +461,32 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
 
     if (!error) {
       console.log(`[stripe-webhook] linked charge ${charge.id} to payment intent ${charge.payment_intent}`);
+    }
+
+    // Retrieve Stripe fee from balance transaction and store it
+    if (charge.balance_transaction) {
+      try {
+        const balanceTxnId = typeof charge.balance_transaction === 'string'
+          ? charge.balance_transaction
+          : charge.balance_transaction.id;
+        const balanceTxn = await stripe.balanceTransactions.retrieve(balanceTxnId);
+        const feeCents = balanceTxn.fee || 0;
+
+        if (feeCents > 0) {
+          const { error: feeError } = await supabase
+            .from('invoice_payments')
+            .update({ stripe_fee_cents: feeCents })
+            .eq('stripe_payment_intent_id', charge.payment_intent);
+
+          if (!feeError) {
+            console.log(`[stripe-webhook] stored fee ${feeCents} cents for payment intent ${charge.payment_intent}`);
+          } else {
+            console.error(`[stripe-webhook] failed to store fee:`, feeError);
+          }
+        }
+      } catch (err) {
+        console.error(`[stripe-webhook] failed to retrieve balance transaction:`, err);
+      }
     }
   }
 }
@@ -585,7 +611,7 @@ export async function POST(req: Request) {
     if (event.type === "charge.succeeded") {
       console.log('[stripe-webhook] Handling charge.succeeded');
       const charge = event.data.object as Stripe.Charge;
-      await handleChargeSucceeded(charge);
+      await handleChargeSucceeded(charge, stripe);
       console.log('[stripe-webhook] charge.succeeded handled successfully');
       return NextResponse.json({ ok: true });
     }

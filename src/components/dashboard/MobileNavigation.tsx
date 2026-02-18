@@ -24,6 +24,7 @@ const adminTools = [
   { href: '/dashboard/admin/sync-payments', label: 'Sync Payments' },
   { href: '/dashboard/admin/debug-apis', label: 'Debug APIs' },
   { href: '/dashboard/admin/cleanup-payment-links', label: 'Cleanup Payment Links' },
+  { href: '/dashboard/admin/backfill-stripe-fees', label: 'Backfill Stripe Fees' },
 ];
 
 export default function MobileNavigation() {
