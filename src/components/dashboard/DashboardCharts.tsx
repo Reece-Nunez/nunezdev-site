@@ -12,15 +12,34 @@ const formatMonth = (monthStr: string) => {
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  lead_fees: 'Lead Fees (Thumbtack, etc.)',
+  software: 'Software & Subscriptions',
+  hardware: 'Hardware & Equipment',
+  hosting: 'Hosting & Infrastructure',
+  marketing: 'Marketing & Advertising',
+  travel: 'Travel',
+  office: 'Office Supplies',
+  meals: 'Meals & Entertainment',
+  professional_services: 'Professional Services',
+  insurance: 'Insurance',
+  utilities: 'Utilities',
+  other: 'Other',
+};
+
 export default function DashboardCharts() {
   const { data, isLoading } = useSWR('/api/dashboard/charts', fetcher);
 
   const revenueByMonth = (data?.revenueByMonth ?? []).filter((m: any) => m.cents > 0);
   const revenueByYear = (data?.revenueByYear ?? []).filter((y: any) => y.gross_cents > 0);
+  const topExpenseCategories = data?.topExpenseCategories ?? [];
   const totalRevenue = revenueByMonth.reduce((sum: number, m: any) => sum + (m.cents || 0), 0);
   const totalFees = revenueByMonth.reduce((sum: number, m: any) => sum + (m.fees_cents || 0), 0);
+  const totalExpenses = revenueByMonth.reduce((sum: number, m: any) => sum + (m.expenses_cents || 0), 0);
   const totalNet = totalRevenue - totalFees;
+  const totalProfit = totalNet - totalExpenses;
   const hasFees = totalFees > 0;
+  const hasExpenses = totalExpenses > 0;
 
   return (
     <div className="space-y-6">
@@ -28,16 +47,17 @@ export default function DashboardCharts() {
       {!isLoading && revenueByYear.length > 0 && (
         <div className="rounded-xl border bg-white">
           <div className="p-4 border-b">
-            <h3 className="font-semibold text-gray-800">Yearly Revenue</h3>
+            <h3 className="font-semibold text-gray-800">Yearly Overview</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <th className="px-4 py-3">Year</th>
-                  <th className="px-4 py-3 text-right">Gross</th>
-                  {hasFees && <th className="px-4 py-3 text-right">Fees</th>}
-                  {hasFees && <th className="px-4 py-3 text-right">Net</th>}
+                  <th className="px-4 py-3 text-right">Gross Revenue</th>
+                  {hasFees && <th className="px-4 py-3 text-right hidden sm:table-cell">Stripe Fees</th>}
+                  {hasExpenses && <th className="px-4 py-3 text-right hidden sm:table-cell">Expenses</th>}
+                  <th className="px-4 py-3 text-right">Profit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -48,15 +68,18 @@ export default function DashboardCharts() {
                       {fmtUSD(yr.gross_cents)}
                     </td>
                     {hasFees && (
-                      <td className="px-4 py-3 text-sm text-right text-red-600">
+                      <td className="px-4 py-3 text-sm text-right text-red-600 hidden sm:table-cell">
                         -{fmtUSD(yr.fees_cents)}
                       </td>
                     )}
-                    {hasFees && (
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">
-                        {fmtUSD(yr.net_cents)}
+                    {hasExpenses && (
+                      <td className="px-4 py-3 text-sm text-right text-orange-600 hidden sm:table-cell">
+                        -{fmtUSD(yr.expenses_cents)}
                       </td>
                     )}
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">
+                      {fmtUSD(yr.profit_cents)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -66,15 +89,55 @@ export default function DashboardCharts() {
                     <td className="px-4 py-3 text-sm text-gray-900">Total</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-900">{fmtUSD(totalRevenue)}</td>
                     {hasFees && (
-                      <td className="px-4 py-3 text-sm text-right text-red-600">-{fmtUSD(totalFees)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-red-600 hidden sm:table-cell">-{fmtUSD(totalFees)}</td>
                     )}
-                    {hasFees && (
-                      <td className="px-4 py-3 text-sm text-right text-emerald-700">{fmtUSD(totalNet)}</td>
+                    {hasExpenses && (
+                      <td className="px-4 py-3 text-sm text-right text-orange-600 hidden sm:table-cell">-{fmtUSD(totalExpenses)}</td>
                     )}
+                    <td className="px-4 py-3 text-sm text-right text-emerald-700">{fmtUSD(totalProfit)}</td>
                   </tr>
                 </tfoot>
               )}
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Expense Breakdown by Category */}
+      {!isLoading && topExpenseCategories.length > 0 && (
+        <div className="rounded-xl border bg-white">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h3 className="font-semibold text-gray-800">Expense Breakdown</h3>
+            <Link href="/dashboard/expenses" className="text-sm text-emerald-600 hover:text-emerald-800">
+              View all expenses
+            </Link>
+          </div>
+          <div className="p-4">
+            <div className="space-y-3">
+              {topExpenseCategories.map((cat: any) => {
+                const pct = totalExpenses > 0 ? ((cat.amount_cents / totalExpenses) * 100) : 0;
+                return (
+                  <div key={cat.category} className="flex items-center gap-3">
+                    <span className="text-sm text-gray-700 w-48 truncate">
+                      {CATEGORY_LABELS[cat.category] || cat.category}
+                    </span>
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-orange-400 h-2 rounded-full"
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-24 text-right">
+                      {fmtUSD(cat.amount_cents)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 pt-3 border-t flex justify-between text-sm font-semibold">
+              <span className="text-gray-700">Total Expenses</span>
+              <span className="text-orange-600">{fmtUSD(totalExpenses)}</span>
+            </div>
           </div>
         </div>
       )}
@@ -100,7 +163,8 @@ export default function DashboardCharts() {
                   <th className="px-4 py-3">Month</th>
                   <th className="px-4 py-3 text-right">Gross</th>
                   {hasFees && <th className="px-4 py-3 text-right hidden sm:table-cell">Fees</th>}
-                  {hasFees && <th className="px-4 py-3 text-right hidden sm:table-cell">Net</th>}
+                  {hasExpenses && <th className="px-4 py-3 text-right hidden sm:table-cell">Expenses</th>}
+                  <th className="px-4 py-3 text-right hidden sm:table-cell">Profit</th>
                   <th className="px-4 py-3 text-right hidden sm:table-cell">% of Total</th>
                 </tr>
               </thead>
@@ -120,11 +184,14 @@ export default function DashboardCharts() {
                           {month.fees_cents > 0 ? `-${fmtUSD(month.fees_cents)}` : '$0.00'}
                         </td>
                       )}
-                      {hasFees && (
-                        <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700 hidden sm:table-cell">
-                          {fmtUSD(month.net_cents)}
+                      {hasExpenses && (
+                        <td className="px-4 py-3 text-sm text-right text-orange-600 hidden sm:table-cell">
+                          {month.expenses_cents > 0 ? `-${fmtUSD(month.expenses_cents)}` : '$0.00'}
                         </td>
                       )}
+                      <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700 hidden sm:table-cell">
+                        {fmtUSD(month.profit_cents)}
+                      </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-500 hidden sm:table-cell">
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-16 bg-gray-200 rounded-full h-1.5">
@@ -147,9 +214,10 @@ export default function DashboardCharts() {
                   {hasFees && (
                     <td className="px-4 py-3 text-sm text-right text-red-600 hidden sm:table-cell">-{fmtUSD(totalFees)}</td>
                   )}
-                  {hasFees && (
-                    <td className="px-4 py-3 text-sm text-right text-emerald-700 hidden sm:table-cell">{fmtUSD(totalNet)}</td>
+                  {hasExpenses && (
+                    <td className="px-4 py-3 text-sm text-right text-orange-600 hidden sm:table-cell">-{fmtUSD(totalExpenses)}</td>
                   )}
+                  <td className="px-4 py-3 text-sm text-right text-emerald-700 hidden sm:table-cell">{fmtUSD(totalProfit)}</td>
                   <td className="px-4 py-3 text-sm text-right text-gray-500 hidden sm:table-cell">100%</td>
                 </tr>
               </tfoot>

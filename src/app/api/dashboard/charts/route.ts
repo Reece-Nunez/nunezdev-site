@@ -102,9 +102,91 @@ export async function GET() {
     }
   }
 
+  // Fetch one-time expenses (2025+) for profit calculations
+  const { data: expenses } = await supabase
+    .from("expenses")
+    .select("amount_cents, expense_date, category")
+    .eq("org_id", orgId)
+    .gte("expense_date", "2025-01-01");
+
+  // Fetch recurring expenses (these have start_date in 2026+, so no overlap with
+  // 2025 manual entries)
+  const { data: recurringExpenses } = await supabase
+    .from("recurring_expenses")
+    .select("amount_cents, frequency, start_date, end_date, category, is_active")
+    .eq("org_id", orgId)
+    .eq("is_active", true);
+
+  // Aggregate expenses by month and year
+  const monthExpenses: Record<string, number> = {};
+  const yearExpenses: Record<number, number> = {};
+  const expensesByCategory: Record<string, number> = {};
+
+  // One-time expenses
+  (expenses ?? []).forEach(exp => {
+    const d = new Date(exp.expense_date);
+    const m = d.toISOString().slice(0, 7);
+    const y = d.getUTCFullYear();
+    monthExpenses[m] = (monthExpenses[m] ?? 0) + (exp.amount_cents ?? 0);
+    yearExpenses[y] = (yearExpenses[y] ?? 0) + (exp.amount_cents ?? 0);
+    const cat = exp.category || 'other';
+    expensesByCategory[cat] = (expensesByCategory[cat] ?? 0) + (exp.amount_cents ?? 0);
+  });
+
+  // Recurring expenses — apply to each applicable month based on frequency and date range
+  (recurringExpenses ?? []).forEach(rec => {
+    const recStart = new Date(rec.start_date);
+    const recEnd = rec.end_date ? new Date(rec.end_date) : new Date();
+    const cat = rec.category || 'other';
+
+    for (const monthStr of months) {
+      const [yr, mo] = monthStr.split('-').map(Number);
+      const monthStart = new Date(Date.UTC(yr, mo - 1, 1));
+      const monthEnd = new Date(Date.UTC(yr, mo, 0));
+
+      if (monthStart > recEnd || monthEnd < recStart) continue;
+
+      let applies = false;
+      if (rec.frequency === 'monthly') {
+        applies = true;
+      } else if (rec.frequency === 'quarterly') {
+        const monthsDiff = (yr - recStart.getUTCFullYear()) * 12 + (mo - 1 - recStart.getUTCMonth());
+        applies = monthsDiff >= 0 && monthsDiff % 3 === 0;
+      } else if (rec.frequency === 'annually') {
+        applies = (mo - 1) === recStart.getUTCMonth();
+      }
+
+      if (applies) {
+        monthExpenses[monthStr] = (monthExpenses[monthStr] ?? 0) + (rec.amount_cents ?? 0);
+        yearExpenses[yr] = (yearExpenses[yr] ?? 0) + (rec.amount_cents ?? 0);
+        expensesByCategory[cat] = (expensesByCategory[cat] ?? 0) + (rec.amount_cents ?? 0);
+      }
+    }
+  });
+
+  // Add expenses to monthly data
+  const revenueByMonthWithExpenses = revenueByMonth.map(m => ({
+    ...m,
+    expenses_cents: monthExpenses[m.month] ?? 0,
+    profit_cents: m.net_cents - (monthExpenses[m.month] ?? 0),
+  }));
+
+  // Add expenses to yearly data
+  const revenueByYearWithExpenses = revenueByYear.map(y => ({
+    ...y,
+    expenses_cents: yearExpenses[y.year] ?? 0,
+    profit_cents: y.net_cents - (yearExpenses[y.year] ?? 0),
+  }));
+
+  // Top expense categories
+  const topExpenseCategories = Object.entries(expensesByCategory)
+    .map(([category, amount_cents]) => ({ category, amount_cents }))
+    .sort((a, b) => b.amount_cents - a.amount_cents);
+
   return NextResponse.json({
-    revenueByMonth,
-    revenueByYear,
-    paymentMethods
+    revenueByMonth: revenueByMonthWithExpenses,
+    revenueByYear: revenueByYearWithExpenses,
+    paymentMethods,
+    topExpenseCategories,
   });
 }
