@@ -66,6 +66,7 @@ const DEFAULT_CATEGORIES = [
   { value: "software", label: "Software & Subscriptions" },
   { value: "hardware", label: "Hardware & Equipment" },
   { value: "hosting", label: "Hosting & Infrastructure" },
+  { value: "lead_fees", label: "Lead Fees (Thumbtack, etc.)" },
   { value: "marketing", label: "Marketing & Advertising" },
   { value: "travel", label: "Travel" },
   { value: "office", label: "Office Supplies" },
