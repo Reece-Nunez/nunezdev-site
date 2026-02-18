@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { Resend } from "resend";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function POST(
     const { data: proposal, error: fetchError } = await supabase
       .from("proposals")
       .select(`
-        *,
+        *, org_id,
         clients (id, name, email, company)
       `)
       .eq("id", id)
@@ -81,6 +82,17 @@ export async function POST(
     if (updateError) {
       console.error("Error accepting proposal:", updateError);
       return NextResponse.json({ error: "Failed to accept proposal" }, { status: 500 });
+    }
+
+    // Create in-app notification
+    if (proposal.org_id) {
+      createNotification({
+        orgId: proposal.org_id,
+        type: 'proposal_accepted',
+        title: `Proposal accepted by ${proposal.clients?.name || 'Client'}`,
+        body: `${proposal.title} - $${(proposal.amount_cents / 100).toFixed(2)}`,
+        link: `/dashboard/proposals`,
+      }).catch(err => console.error('[proposal-accept] In-app notification error:', err));
     }
 
     // Send notification email to business owner

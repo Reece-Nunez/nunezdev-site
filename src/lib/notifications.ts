@@ -732,6 +732,50 @@ export async function sendUploadNotification(data: {
   }
 }
 
+// In-app notification types
+export type InAppNotificationType =
+  | 'invoice_sent'
+  | 'invoice_paid'
+  | 'invoice_partially_paid'
+  | 'payment_overdue'
+  | 'contract_signed'
+  | 'proposal_accepted'
+  | 'file_uploaded';
+
+interface CreateNotificationData {
+  orgId: string;
+  type: InAppNotificationType;
+  title: string;
+  body?: string;
+  link?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// Create a persistent in-app notification (shown in bell dropdown)
+export async function createNotification(data: CreateNotificationData) {
+  try {
+    const supabase = supabaseAdmin();
+    const { error } = await supabase
+      .from('notifications')
+      .insert({
+        org_id: data.orgId,
+        type: data.type,
+        title: data.title,
+        body: data.body || null,
+        link: data.link || null,
+        metadata: data.metadata || {},
+      });
+
+    if (error) {
+      console.error('[notifications] Error creating in-app notification:', error);
+    } else {
+      console.log(`[notifications] In-app notification created: ${data.type}`);
+    }
+  } catch (error) {
+    console.error('[notifications] Error creating in-app notification:', error);
+  }
+}
+
 // SMS notification setup (for future implementation)
 export async function sendSMSNotification(
   phoneNumber: string,

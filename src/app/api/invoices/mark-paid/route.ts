@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
-import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
+import { sendBusinessNotification, sendPaymentReceipt, createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -133,6 +133,14 @@ export async function POST(req: NextRequest) {
             payment_date: now,
           }).catch(err => console.error('[mark-paid] Client receipt error:', err));
         }
+
+        createNotification({
+          orgId,
+          type: 'invoice_paid',
+          title: `Invoice marked as paid - ${clientName || 'Client'}`,
+          body: `${invoice.invoice_number} - $${(invoice.amount_cents / 100).toFixed(2)}`,
+          link: `/dashboard/invoices/${invoice.id}`,
+        }).catch(err => console.error('[mark-paid] In-app notification error:', err));
 
         results.push({ id: invoice.id, success: true });
       } catch (err) {

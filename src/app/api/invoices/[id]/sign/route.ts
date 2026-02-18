@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { sendBusinessNotification } from '@/lib/notifications';
+import { sendBusinessNotification, createNotification } from '@/lib/notifications';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Get invoice details for notifications
   const { data: invoice, error: fetchError } = await supabase
     .from('invoices')
-    .select('invoice_number, client_id')
+    .select('invoice_number, client_id, org_id')
     .eq('id', id)
     .single();
   
@@ -38,6 +38,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       invoice_number: invoice.invoice_number
     });
     
+    // Create in-app notification
+    if (invoice.org_id) {
+      createNotification({
+        orgId: invoice.org_id,
+        type: 'contract_signed',
+        title: `Contract signed by ${name}`,
+        body: `Invoice ${invoice.invoice_number}`,
+        link: `/dashboard/invoices/${id}`,
+      }).catch(err => console.error('[sign] In-app notification error:', err));
+    }
+
     // Log activity
     await supabase
       .from('client_activity_log')

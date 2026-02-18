@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { sendClientNotification, sendBusinessNotification } from "@/lib/notifications";
+import { sendClientNotification, sendBusinessNotification, createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
         invoices!inner(
           invoice_number,
           client_id,
+          org_id,
           clients!inner(name, email, phone)
         )
       `)
@@ -108,6 +109,18 @@ export async function POST(req: Request) {
           amount_cents: installment.amount_cents,
           installment_label: installment.installment_label
         });
+
+        // Create in-app notification
+        const invoiceOrgId = (invoice as any).org_id;
+        if (invoiceOrgId) {
+          createNotification({
+            orgId: invoiceOrgId,
+            type: 'payment_overdue',
+            title: `Payment overdue - ${client.name}`,
+            body: `${(invoice as any).invoice_number} - ${installment.installment_label} - $${(installment.amount_cents / 100).toFixed(2)}`,
+            link: `/dashboard/invoices/${installment.invoice_id}`,
+          }).catch(err => console.error('[cron] In-app notification error:', err));
+        }
 
         // Update installment status to overdue
         await supabase

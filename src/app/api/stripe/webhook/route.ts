@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
+import { sendBusinessNotification, sendPaymentReceipt, createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -386,6 +386,19 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
             installment_id: installmentId || null
           }
         });
+
+      // Create in-app notification
+      if (orgId && invoiceDetails) {
+        const clientName = (invoiceDetails.clients as any).name;
+        const amountFmt = `$${(paymentIntent.amount / 100).toFixed(2)}`;
+        createNotification({
+          orgId,
+          type: 'invoice_paid',
+          title: `Payment received from ${clientName}`,
+          body: `${invoiceDetails.invoice_number}${installmentLabel ? ` - ${installmentLabel}` : ''} - ${amountFmt}`,
+          link: `/dashboard/invoices/${invoiceId}`,
+        }).catch(err => console.error('[stripe-webhook] In-app notification error:', err));
+      }
 
       // Emit realtime event for SSE subscribers
       if (orgId) {

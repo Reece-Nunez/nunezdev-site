@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LogoutButton from '../LogOutButton';
+import NotificationBell from './NotificationBell';
 
 const items = [
   { href: '/dashboard', label: 'Overview' },
@@ -45,11 +46,13 @@ export default function MobileNavigation() {
           />
         </div>
         
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
-          aria-label="Open menu"
-        >
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+            aria-label="Open menu"
+          >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             {isOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -58,6 +61,7 @@ export default function MobileNavigation() {
             )}
           </svg>
         </button>
+        </div>
       </div>
 
       {/* Mobile Sidebar Overlay */}

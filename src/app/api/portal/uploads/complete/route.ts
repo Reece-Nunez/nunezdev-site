@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
-import { sendUploadNotification } from '@/lib/notifications';
+import { sendUploadNotification, createNotification } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         id, s3_key, uploaded_by, file_name, file_size_bytes, mime_type,
         project:client_projects!project_id (
           id, name,
-          client:clients!client_id ( name )
+          client:clients!client_id ( name, org_id )
         )
       `)
       .eq('id', uploadId)
@@ -69,6 +69,18 @@ export async function POST(req: Request) {
         fileType: upload.mime_type,
         projectId: project.id,
       }).catch(err => console.error('[upload-complete] Notification error:', err));
+
+      // Create in-app notification
+      const orgId = project.client?.org_id;
+      if (orgId) {
+        createNotification({
+          orgId,
+          type: 'file_uploaded',
+          title: `${project.client?.name || 'Client'} uploaded a file`,
+          body: `${upload.file_name} to ${project.name}`,
+          link: `/dashboard/client-portal`,
+        }).catch(err => console.error('[upload-complete] In-app notification error:', err));
+      }
     }
 
     return NextResponse.json({

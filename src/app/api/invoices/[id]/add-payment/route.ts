@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { sendBusinessNotification, sendPaymentReceipt } from "@/lib/notifications";
+import { sendBusinessNotification, sendPaymentReceipt, createNotification } from "@/lib/notifications";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -96,6 +96,22 @@ export async function POST(req: Request, ctx: Ctx) {
           transaction_id: stripe_payment_intent_id || undefined,
         }).catch(err => console.error('[add-payment] Client receipt error:', err));
       }
+    }
+
+    // Create in-app notification
+    if (updatedInvoice) {
+      const clientData = updatedInvoice.clients as any;
+      const cName = Array.isArray(clientData) ? clientData[0]?.name : clientData?.name;
+      const isPaid = updatedInvoice.status === 'paid';
+      createNotification({
+        orgId,
+        type: isPaid ? 'invoice_paid' : 'invoice_partially_paid',
+        title: isPaid
+          ? `Invoice fully paid - ${cName || 'Client'}`
+          : `Partial payment received - ${cName || 'Client'}`,
+        body: `${updatedInvoice.invoice_number} - $${(amount_cents / 100).toFixed(2)}`,
+        link: `/dashboard/invoices/${id}`,
+      }).catch(err => console.error('[add-payment] In-app notification error:', err));
     }
 
     return NextResponse.json({

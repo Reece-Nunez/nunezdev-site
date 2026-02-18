@@ -2,6 +2,7 @@
 
 import useSWR, { useSWRConfig } from 'swr';
 import { useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import InvoiceAnalytics from '@/components/invoices/InvoiceAnalytics';
 import { useToast } from '@/components/ui/Toast';
@@ -158,7 +159,8 @@ function BackfillStripeButton({ onDone }: { onDone: () => void }) {
 
 
 export default function DashboardInvoices() {
-  const [status, setStatus] = useState('all');
+  const searchParams = useSearchParams();
+  const [status, setStatus] = useState(searchParams.get('status') || 'all');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [q, setQ] = useState('');

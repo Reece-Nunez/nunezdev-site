@@ -5,6 +5,7 @@ import { requireOwner } from "@/lib/authz";
 import { sendInvoiceEmail } from "@/lib/email";
 import { currency } from "@/lib/ui";
 import { calendarService } from "@/lib/google";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -319,6 +320,15 @@ export async function POST(
       console.error("Email sending failed:", emailError);
       // Don't fail the request - invoice is still sent
     }
+
+    // Create in-app notification
+    createNotification({
+      orgId,
+      type: 'invoice_sent',
+      title: `Invoice ${isResend ? 'resent' : 'sent'} to ${(client as any).name}`,
+      body: `${invoice.invoice_number || ''} - ${currency(invoice.amount_cents)}`,
+      link: `/dashboard/invoices/${invoiceId}`,
+    }).catch(err => console.error('[send] Notification error:', err));
 
     const action = isResend ? "resent" : "sent";
     return NextResponse.json({

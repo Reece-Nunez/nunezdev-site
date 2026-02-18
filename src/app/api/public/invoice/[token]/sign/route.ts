@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,7 @@ export async function POST(
     // Verify token exists and invoice requires signature
     const { data: invoice, error: fetchError } = await supabase
       .from("invoices")
-      .select("id, require_signature, signed_at")
+      .select("id, require_signature, signed_at, org_id, invoice_number")
       .eq("access_token", token)
       .single();
 
@@ -53,6 +54,17 @@ export async function POST(
 
     if (updateError) {
       return NextResponse.json({ error: "Failed to save signature" }, { status: 500 });
+    }
+
+    // Create in-app notification
+    if (invoice.org_id) {
+      createNotification({
+        orgId: invoice.org_id,
+        type: 'contract_signed',
+        title: `Contract signed by ${signerName}`,
+        body: invoice.invoice_number ? `Invoice ${invoice.invoice_number}` : undefined,
+        link: `/dashboard/invoices/${invoice.id}`,
+      }).catch(err => console.error('[public-sign] In-app notification error:', err));
     }
 
     return NextResponse.json({ success: true });

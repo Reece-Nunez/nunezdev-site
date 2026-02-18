@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import LogoutButton from '../LogOutButton';
+import NotificationBell from './NotificationBell';
 import {
   HomeIcon,
   UsersIcon,
@@ -84,6 +85,11 @@ export default function Sidebar() {
             className={`w-3 h-3 text-gray-500 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`}
           />
         </button>
+      </div>
+
+      {/* Notification Bell */}
+      <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-3 py-2 border-b border-gray-100`}>
+        <NotificationBell collapsed={isCollapsed} />
       </div>
 
       {/* Main Navigation */}
