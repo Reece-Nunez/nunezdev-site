@@ -91,6 +91,17 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
     discount_value: invoice.discount_value || 0,
     technology_stack: invoice.technology_stack || [],
     terms_conditions: invoice.terms_conditions || '',
+    // Payment plan fields
+    payment_plan_enabled: invoice.payment_plan_enabled || false,
+    payment_plan_type: invoice.payment_plan_type || 'full',
+    payment_plan_installments: (invoice.invoice_payment_plans || []).map((p: any) => ({
+      id: p.id,
+      installment_number: p.installment_number,
+      installment_label: p.installment_label,
+      amount_cents: p.amount_cents,
+      due_date: p.due_date,
+      grace_period_days: p.grace_period_days ?? 3,
+    })),
   };
 
   return (

@@ -43,6 +43,7 @@ export async function GET(
           installment_label,
           amount_cents,
           due_date,
+          grace_period_days,
           status,
           paid_at
         )

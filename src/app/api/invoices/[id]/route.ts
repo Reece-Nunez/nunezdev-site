@@ -269,6 +269,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (body.brand_logo_url !== undefined) updatePayload.brand_logo_url = body.brand_logo_url;
     if (body.brand_primary !== undefined) updatePayload.brand_primary = body.brand_primary;
 
+    // Payment plan fields
+    if (body.payment_plan_enabled !== undefined) updatePayload.payment_plan_enabled = body.payment_plan_enabled;
+    if (body.payment_plan_type !== undefined) updatePayload.payment_plan_type = body.payment_plan_type;
+
     // Handle status changes
     if (body.status === 'paid' && invoice.status !== 'paid') {
       updatePayload.paid_at = new Date().toISOString();
@@ -290,16 +294,49 @@ export async function PATCH(req: Request, ctx: Ctx) {
       return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 });
     }
 
-    // Check if total changed and payment plan exists - recalculate installments
-    const newTotal = updatePayload.amount_cents as number | undefined;
-    if (newTotal && newTotal !== invoice.amount_cents && invoice.payment_plan_enabled) {
-      await recalculatePaymentPlanInstallments(
-        supabase,
-        invoiceId,
-        newTotal,
-        invoice.payment_plan_type,
-        orgId
-      );
+    // Handle payment plan installments update
+    if (body.payment_plan_installments !== undefined) {
+      // Delete existing installments for this invoice
+      await supabase
+        .from("invoice_payment_plans")
+        .delete()
+        .eq("invoice_id", invoiceId);
+
+      // Insert new installments if payment plan is enabled
+      const planEnabled = body.payment_plan_enabled ?? invoice.payment_plan_enabled;
+      const planType = body.payment_plan_type ?? invoice.payment_plan_type;
+      if (planEnabled && planType !== 'full' && body.payment_plan_installments.length > 0) {
+        const installmentRows = body.payment_plan_installments.map((inst: any) => ({
+          invoice_id: invoiceId,
+          plan_type: planType,
+          installment_number: inst.installment_number,
+          installment_label: inst.installment_label,
+          amount_cents: inst.amount_cents,
+          due_date: inst.due_date,
+          grace_period_days: inst.grace_period_days ?? 3,
+          status: 'pending',
+        }));
+
+        const { error: insertError } = await supabase
+          .from("invoice_payment_plans")
+          .insert(installmentRows);
+
+        if (insertError) {
+          console.error("Error inserting payment plan installments:", insertError);
+        }
+      }
+    } else {
+      // No explicit installments provided - recalculate if total changed and payment plan exists
+      const newTotal = updatePayload.amount_cents as number | undefined;
+      if (newTotal && newTotal !== invoice.amount_cents && invoice.payment_plan_enabled) {
+        await recalculatePaymentPlanInstallments(
+          supabase,
+          invoiceId,
+          newTotal,
+          invoice.payment_plan_type,
+          orgId
+        );
+      }
     }
 
     return NextResponse.json({ success: true, invoice: updatedInvoice });

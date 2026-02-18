@@ -22,21 +22,35 @@ interface PaymentPlanBuilderProps {
   invoiceDueDate?: string;
 }
 
-export default function PaymentPlanBuilder({ 
-  totalAmountCents, 
-  paymentPlan, 
-  onChange, 
-  invoiceDueDate 
+type InputMode = 'amount' | 'percentage';
+
+export default function PaymentPlanBuilder({
+  totalAmountCents,
+  paymentPlan,
+  onChange,
+  invoiceDueDate
 }: PaymentPlanBuilderProps) {
   const [localPlan, setLocalPlan] = useState(paymentPlan);
+  const [inputMode, setInputMode] = useState<InputMode>('amount');
+  // Track percentage values for each installment when in percentage mode
+  const [percentages, setPercentages] = useState<Record<number, string>>({});
 
   useEffect(() => {
     setLocalPlan(paymentPlan);
-  }, [paymentPlan]);
+    // Derive initial percentages from existing installments
+    if (paymentPlan.installments.length > 0 && totalAmountCents > 0) {
+      const newPercentages: Record<number, string> = {};
+      paymentPlan.installments.forEach((inst, i) => {
+        const pct = (inst.amount_cents / totalAmountCents) * 100;
+        newPercentages[i] = pct % 1 === 0 ? pct.toString() : pct.toFixed(2);
+      });
+      setPercentages(newPercentages);
+    }
+  }, [paymentPlan, totalAmountCents]);
 
   const handlePlanTypeChange = (type: typeof paymentPlan.type) => {
     let newInstallments: PaymentPlanInstallment[] = [];
-    
+
     if (type === 'full') {
       newInstallments = [{
         installment_number: 1,
@@ -67,7 +81,7 @@ export default function PaymentPlanBuilder({
       const firstAmount = Math.round(totalAmountCents * 0.4);
       const secondAmount = Math.round(totalAmountCents * 0.3);
       const finalAmount = totalAmountCents - firstAmount - secondAmount;
-      
+
       newInstallments = [
         {
           installment_number: 1,
@@ -111,6 +125,18 @@ export default function PaymentPlanBuilder({
       ];
     }
 
+    // Update percentages for new installments
+    const newPercentages: Record<number, string> = {};
+    newInstallments.forEach((inst, i) => {
+      if (totalAmountCents > 0) {
+        const pct = (inst.amount_cents / totalAmountCents) * 100;
+        newPercentages[i] = pct % 1 === 0 ? pct.toString() : pct.toFixed(2);
+      } else {
+        newPercentages[i] = '0';
+      }
+    });
+    setPercentages(newPercentages);
+
     const newPlan = {
       enabled: type !== 'full',
       type,
@@ -135,19 +161,49 @@ export default function PaymentPlanBuilder({
       [field]: field === 'amount_cents' ? Math.round(parseFloat(value || '0') * 100) : value
     };
 
+    // Update percentage tracking when amount changes
+    if (field === 'amount_cents' && totalAmountCents > 0) {
+      const newAmountCents = Math.round(parseFloat(value || '0') * 100);
+      const pct = (newAmountCents / totalAmountCents) * 100;
+      setPercentages(prev => ({
+        ...prev,
+        [index]: pct % 1 === 0 ? pct.toString() : pct.toFixed(2)
+      }));
+    }
+
+    const newPlan = { ...localPlan, installments: newInstallments };
+    setLocalPlan(newPlan);
+    onChange(newPlan);
+  };
+
+  const handlePercentageChange = (index: number, percentStr: string) => {
+    const percent = parseFloat(percentStr || '0');
+    const amountCents = Math.round(totalAmountCents * (percent / 100));
+
+    setPercentages(prev => ({ ...prev, [index]: percentStr }));
+
+    const newInstallments = [...localPlan.installments];
+    newInstallments[index] = {
+      ...newInstallments[index],
+      amount_cents: amountCents
+    };
+
     const newPlan = { ...localPlan, installments: newInstallments };
     setLocalPlan(newPlan);
     onChange(newPlan);
   };
 
   const addInstallment = () => {
+    const newIndex = localPlan.installments.length;
     const newInstallment: PaymentPlanInstallment = {
-      installment_number: localPlan.installments.length + 1,
-      installment_label: `Payment ${localPlan.installments.length + 1}`,
+      installment_number: newIndex + 1,
+      installment_label: `Payment ${newIndex + 1}`,
       amount_cents: 0,
       due_date: invoiceDueDate || '',
       grace_period_days: 3
     };
+
+    setPercentages(prev => ({ ...prev, [newIndex]: '0' }));
 
     const newPlan = {
       ...localPlan,
@@ -168,6 +224,18 @@ export default function PaymentPlanBuilder({
         installment_number: i + 1
       }));
 
+    // Rebuild percentages with new indices
+    const newPercentages: Record<number, string> = {};
+    newInstallments.forEach((inst, i) => {
+      if (totalAmountCents > 0) {
+        const pct = (inst.amount_cents / totalAmountCents) * 100;
+        newPercentages[i] = pct % 1 === 0 ? pct.toString() : pct.toFixed(2);
+      } else {
+        newPercentages[i] = '0';
+      }
+    });
+    setPercentages(newPercentages);
+
     const newPlan = { ...localPlan, installments: newInstallments };
     setLocalPlan(newPlan);
     onChange(newPlan);
@@ -175,12 +243,15 @@ export default function PaymentPlanBuilder({
 
   const totalPlanned = localPlan.installments.reduce((sum, inst) => sum + inst.amount_cents, 0);
   const difference = totalAmountCents - totalPlanned;
+  const totalPercentage = totalAmountCents > 0
+    ? localPlan.installments.reduce((sum, inst) => sum + (inst.amount_cents / totalAmountCents) * 100, 0)
+    : 0;
 
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold mb-4">Payment Plan</h3>
-        
+
         {/* Payment Plan Type Selection */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
           {[
@@ -211,15 +282,44 @@ export default function PaymentPlanBuilder({
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-medium">Payment Installments</h4>
-              {localPlan.type === 'custom' && (
-                <button
-                  type="button"
-                  onClick={addInstallment}
-                  className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                >
-                  + Add Payment
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Input Mode Toggle */}
+                {localPlan.type === 'custom' && (
+                  <>
+                    <div className="flex rounded border border-gray-300 overflow-hidden text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setInputMode('amount')}
+                        className={`px-3 py-1 transition-colors ${
+                          inputMode === 'amount'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        $ Amount
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInputMode('percentage')}
+                        className={`px-3 py-1 transition-colors ${
+                          inputMode === 'percentage'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        % Percentage
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addInstallment}
+                      className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                    >
+                      + Add Payment
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -239,18 +339,49 @@ export default function PaymentPlanBuilder({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        Amount ($)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={installment.amount_cents / 100}
-                        onChange={(e) => handleInstallmentChange(index, 'amount_cents', e.target.value)}
-                        className="w-full text-sm border rounded px-2 py-1"
-                        disabled={localPlan.type !== 'custom'}
-                      />
+                      {inputMode === 'percentage' && localPlan.type === 'custom' ? (
+                        <>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Percentage (%)
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={percentages[index] ?? '0'}
+                              onChange={(e) => handlePercentageChange(index, e.target.value)}
+                              className="w-full text-sm border rounded px-2 py-1"
+                            />
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              = ${(installment.amount_cents / 100).toFixed(2)}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Amount ($)
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={installment.amount_cents / 100}
+                              onChange={(e) => handleInstallmentChange(index, 'amount_cents', e.target.value)}
+                              className="w-full text-sm border rounded px-2 py-1"
+                              disabled={localPlan.type !== 'custom'}
+                            />
+                            {localPlan.type === 'custom' && totalAmountCents > 0 && (
+                              <span className="text-xs text-gray-500 whitespace-nowrap">
+                                = {((installment.amount_cents / totalAmountCents) * 100).toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div>
@@ -279,7 +410,7 @@ export default function PaymentPlanBuilder({
                           className="w-full text-sm border rounded px-2 py-1"
                         />
                       </div>
-                      
+
                       {localPlan.type === 'custom' && localPlan.installments.length > 1 && (
                         <button
                           type="button"
@@ -305,6 +436,9 @@ export default function PaymentPlanBuilder({
                 <span>Total Planned:</span>
                 <span className={`font-medium ${difference !== 0 ? 'text-red-600' : 'text-green-600'}`}>
                   ${(totalPlanned / 100).toFixed(2)}
+                  {totalAmountCents > 0 && (
+                    <span className="text-xs ml-1">({totalPercentage.toFixed(1)}%)</span>
+                  )}
                 </span>
               </div>
               {difference !== 0 && (

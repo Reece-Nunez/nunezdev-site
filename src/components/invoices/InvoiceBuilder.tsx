@@ -61,10 +61,19 @@ export default function InvoiceBuilder({
     terms_conditions: initialData?.terms_conditions || '',
   });
 
-  const [paymentPlan, setPaymentPlan] = useState({
-    enabled: false,
-    type: 'full' as 'full' | '50_50' | '40_30_30' | 'custom',
-    installments: [] as PaymentPlanInstallment[]
+  const [paymentPlan, setPaymentPlan] = useState(() => {
+    if (initialData?.payment_plan_enabled && initialData?.payment_plan_type && initialData?.payment_plan_type !== 'full') {
+      return {
+        enabled: true,
+        type: initialData.payment_plan_type as 'full' | '50_50' | '40_30_30' | 'custom',
+        installments: (initialData.payment_plan_installments || []) as PaymentPlanInstallment[]
+      };
+    }
+    return {
+      enabled: false,
+      type: 'full' as 'full' | '50_50' | '40_30_30' | 'custom',
+      installments: [] as PaymentPlanInstallment[]
+    };
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
