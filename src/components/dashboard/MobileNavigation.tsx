@@ -16,6 +16,7 @@ const items = [
   { href: '/dashboard/expenses', label: 'Expenses' },
   { href: '/dashboard/recurring-invoices', label: 'Recurring' },
   { href: '/dashboard/payments', label: 'Payments' },
+  { href: '/dashboard/settings', label: 'Business Profile' },
 ];
 
 const adminTools = [

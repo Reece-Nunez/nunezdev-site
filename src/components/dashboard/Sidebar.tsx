@@ -22,6 +22,7 @@ import {
   DocumentArrowDownIcon,
   CalendarIcon,
   CloudArrowUpIcon,
+  Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
@@ -36,6 +37,7 @@ const items = [
   { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
   { href: '/dashboard/tax-documents', label: 'Tax Documents', icon: DocumentArrowDownIcon },
   { href: '/dashboard/client-portal', label: 'Client Portal', icon: CloudArrowUpIcon },
+  { href: '/dashboard/settings', label: 'Business Profile', icon: Cog6ToothIcon },
 ];
 
 const adminTools = [
