@@ -296,6 +296,27 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
     // Handle payment plan installments update
     if (body.payment_plan_installments !== undefined) {
+      // Fetch existing installments to deactivate their Stripe payment links
+      const { data: oldInstallments } = await supabase
+        .from("invoice_payment_plans")
+        .select("id, stripe_payment_link_id")
+        .eq("invoice_id", invoiceId);
+
+      if (oldInstallments && oldInstallments.length > 0) {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+        for (const inst of oldInstallments) {
+          if (inst.stripe_payment_link_id) {
+            try {
+              await stripe.paymentLinks.update(inst.stripe_payment_link_id, {
+                active: false
+              });
+            } catch (stripeErr) {
+              console.error(`Failed to deactivate payment link ${inst.stripe_payment_link_id}:`, stripeErr);
+            }
+          }
+        }
+      }
+
       // Delete existing installments for this invoice
       await supabase
         .from("invoice_payment_plans")
