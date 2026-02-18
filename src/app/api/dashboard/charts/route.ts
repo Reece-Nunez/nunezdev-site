@@ -25,9 +25,8 @@ export async function GET() {
     revMap[m] = (revMap[m] ?? 0) + (payment.amount_cents ?? 0);
   });
 
-  const years = currentYear > 2025 ? [2025, currentYear] : [2025];
   const months: string[] = [];
-  for (const year of years) {
+  for (let year = 2025; year <= currentYear; year++) {
     for (let k = 0; k < 12; k++) {
       months.push(new Date(year, k, 1).toISOString().slice(0, 7));
     }
