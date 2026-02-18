@@ -9,11 +9,9 @@ export async function GET() {
   const orgId = guard.orgId!;
   const supabase = await supabaseServer();
 
-  // Revenue by month (YTD, from actual payments)
-  const start = new Date();
-  start.setUTCMonth(0);
-  start.setUTCDate(1);
-  start.setUTCHours(0,0,0,0);
+  // Revenue by month (2025 + current year, from actual payments)
+  const currentYear = new Date().getUTCFullYear();
+  const start = new Date(Date.UTC(2025, 0, 1));
 
   const { data: payments } = await supabase
     .from("invoice_payments")
@@ -27,11 +25,13 @@ export async function GET() {
     revMap[m] = (revMap[m] ?? 0) + (payment.amount_cents ?? 0);
   });
 
-  const currentYear = start.getUTCFullYear();
-  const months = Array.from({length: 12}, (_,k) => {
-    const d = new Date(currentYear, k, 1);
-    return d.toISOString().slice(0,7);
-  });
+  const years = currentYear > 2025 ? [2025, currentYear] : [2025];
+  const months: string[] = [];
+  for (const year of years) {
+    for (let k = 0; k < 12; k++) {
+      months.push(new Date(year, k, 1).toISOString().slice(0, 7));
+    }
+  }
   const revenueByMonth = months.map(m => ({ month: m, cents: revMap[m] ?? 0 }));
 
   // Payment methods breakdown
