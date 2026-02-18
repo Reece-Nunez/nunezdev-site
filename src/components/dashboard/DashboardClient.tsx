@@ -376,41 +376,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
 
           {/* Charts */}
           <DashboardCharts />
-
-          {/* Recent Activity */}
-          <div className="bg-white border rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-800">Recent Activity</h3>
-            </div>
-            {activityLoading ? (
-              <div className="text-sm text-gray-500 text-center py-4">Loading activity...</div>
-            ) : activityItems.length === 0 ? (
-              <div className="text-sm text-gray-500 text-center py-4">No recent activity</div>
-            ) : (
-              <div className="space-y-2">
-                {activityItems.slice(0, 8).map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${
-                      item.type === 'invoice' ? 'bg-blue-100 text-blue-600' :
-                      item.type === 'note' ? 'bg-yellow-100 text-yellow-600' :
-                      item.type === 'task' ? 'bg-purple-100 text-purple-600' :
-                      'bg-emerald-100 text-emerald-600'
-                    }`}>
-                      {item.type === 'invoice' ? '📄' : item.type === 'note' ? '📝' : item.type === 'task' ? '✓' : '💰'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-gray-900 truncate">
-                        {item.type === 'invoice' && `Invoice ${item.data.status} - ${fmt(item.data.amount_cents || 0)}`}
-                        {item.type === 'note' && (item.data.body?.substring(0, 50) || 'Note added')}
-                        {item.type === 'task' && (item.data.title || 'Task created')}
-                      </div>
-                      <div className="text-xs text-gray-500">{formatDate(item.ts)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right Column - Top Clients & Recurring */}
@@ -575,6 +540,39 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
               </div>
             </div>
           )}
+
+          {/* Recent Activity */}
+          <div className="bg-white border rounded-xl p-4">
+            <h3 className="font-semibold text-gray-800 mb-2">Recent Activity</h3>
+            {activityLoading ? (
+              <div className="text-xs text-gray-500 text-center py-3">Loading...</div>
+            ) : activityItems.length === 0 ? (
+              <div className="text-xs text-gray-500 text-center py-3">No recent activity</div>
+            ) : (
+              <div className="space-y-1">
+                {activityItems.slice(0, 5).map((item, idx) => (
+                  <div key={idx} className="flex items-start gap-2 p-1.5 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${
+                      item.type === 'invoice' ? 'bg-blue-100 text-blue-600' :
+                      item.type === 'note' ? 'bg-yellow-100 text-yellow-600' :
+                      item.type === 'task' ? 'bg-purple-100 text-purple-600' :
+                      'bg-emerald-100 text-emerald-600'
+                    }`}>
+                      {item.type === 'invoice' ? '📄' : item.type === 'note' ? '📝' : item.type === 'task' ? '✓' : '💰'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-900 truncate">
+                        {item.type === 'invoice' && `Invoice ${item.data.status} - ${fmt(item.data.amount_cents || 0)}`}
+                        {item.type === 'note' && (item.data.body?.substring(0, 40) || 'Note added')}
+                        {item.type === 'task' && (item.data.title || 'Task created')}
+                      </div>
+                      <div className="text-[11px] text-gray-400">{formatDate(item.ts)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
