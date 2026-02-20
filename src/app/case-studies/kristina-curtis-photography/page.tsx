@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import ThreeBackground from "@/components/ThreeBackground";
 
 const fadeInUp = {
@@ -14,7 +13,7 @@ const fadeInUp = {
   },
 };
 
-export default function MeridianCaseStudy() {
+export default function KristinaCurtisPhotographyCaseStudy() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-start px-4 pt-32 text-left text-offwhite overflow-hidden">
       <ThreeBackground />
@@ -28,40 +27,23 @@ export default function MeridianCaseStudy() {
         className="space-y-6 mb-16 max-w-4xl text-center"
       >
         <h1 className="text-yellow text-3xl md:text-5xl font-bold leading-tight">
-          Building a Full-Stack Travel Platform: How Custom Web Development Transformed Meridian Luxury Travel
+          Kristina Curtis Photography: Portfolio and Client Experience Platform
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A complete custom web application that automated bookings, integrated payments, and streamlined operations for a luxury travel business.
+          A custom photography portfolio featuring curated galleries, investment transparency, vendor connections, and a serverless contact backend — designed to showcase stunning work and guide clients seamlessly from discovery to booking.
         </p>
         <a
-          href="https://meridianluxury.travel"
+          href="https://kristinacurtisphotography.com"
           target="_blank"
           rel="noopener noreferrer"
           className="text-yellow/70 hover:text-yellow transition text-base"
         >
-          meridianluxury.travel →
+          kristinacurtisphotography.com →
         </a>
       </motion.div>
 
       {/* Main Content */}
       <div className="relative w-full max-w-4xl px-6 z-10 space-y-12">
-
-        {/* Hero Image */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.4 }}
-          variants={fadeInUp}
-          className="relative w-full h-64 md:h-96 rounded-2xl overflow-hidden shadow-xl"
-        >
-          <Image
-            src="/images/meridian.png"
-            alt="Meridian Luxury Travel Platform"
-            fill
-            className="object-cover"
-            priority
-          />
-        </motion.div>
 
         {/* The Challenge */}
         <motion.section
@@ -72,38 +54,38 @@ export default function MeridianCaseStudy() {
           className="bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
-            The Challenge: Outgrowing Cookie-Cutter Solutions
+            The Challenge: A Portfolio That Converts Visitors into Clients
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Meridian Luxury Travel came to me with a familiar problem: their existing tools couldn't keep up with their business. They relied on static websites and third-party platforms that were expensive, rigid, and frustrating to manage.
+            Kristina Curtis Photography needed more than a gallery — she needed a portfolio that showcased her work beautifully while guiding potential clients through the booking process. The existing online presence wasn't reflecting the quality of the photography or making it easy for interested clients to take the next step.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
-            They needed more than a website — they needed a custom platform that could:
+            The platform needed to:
           </p>
           <ul className="space-y-3 text-white text-lg">
             <li className="flex items-start gap-3">
               <span className="text-yellow text-xl">•</span>
-              <span>Automate personalized quote requests</span>
+              <span>Display photography in curated, filterable galleries</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-yellow text-xl">•</span>
-              <span>Handle secure payment processing</span>
+              <span>Provide transparent pricing and investment information</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-yellow text-xl">•</span>
-              <span>Manage content and pricing dynamically</span>
+              <span>Connect clients with preferred vendors for a complete event experience</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-yellow text-xl">•</span>
-              <span>Give their team a powerful dashboard for daily operations</span>
+              <span>Make it effortless to inquire and start the booking conversation</span>
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            In short, they needed software that worked the way their business worked, instead of forcing them into someone else's system.
+            The goal was a site that felt as polished as the photography itself — one that told a story, built trust, and made booking feel natural.
           </p>
         </motion.section>
 
-        {/* Solution Overview with Image */}
+        {/* Solution Overview */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -112,30 +94,14 @@ export default function MeridianCaseStudy() {
           className="bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
-            The Solution: A Custom Web Application
+            The Solution: A Portfolio Built for the Full Client Journey
           </h2>
           <p className="text-white text-lg leading-relaxed mb-8">
-            I designed and built a full-stack web application tailored to Meridian's exact workflows. The platform combines sleek design with powerful functionality, allowing them to deliver the luxury experience their clients expect while streamlining internal processes.
+            I designed and built a custom photography portfolio with curated galleries featuring tag-based filtering, an investment page for pricing transparency, a preferred vendor directory, and a contact form powered by AWS Lambda for reliable email delivery. The site also includes a brand storytelling about page and mobile-optimized image viewing throughout.
           </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div className="relative h-64 rounded-xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/meridian1.png"
-                alt="Meridian Travel Platform Dashboard"
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="relative h-64 rounded-xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/meridian2.png"
-                alt="Meridian Travel Quote System"
-                fill
-                className="object-cover"
-              />
-            </div>
-          </div>
+          <p className="text-white text-lg leading-relaxed">
+            Every page is designed to move visitors closer to booking — from the first gallery they browse to the moment they submit an inquiry. The result is a cohesive brand experience that reflects the artistry of the photography and makes the business side effortless.
+          </p>
         </motion.section>
 
         {/* Key Features */}
@@ -152,47 +118,33 @@ export default function MeridianCaseStudy() {
 
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
-              <h3 className="text-xl font-semibold text-yellow mb-2">Automated Quotes to Bookings</h3>
-              <p className="text-white leading-relaxed">Clients request personalized trips, and the system generates quotes, processes payments, and confirms bookings automatically.</p>
+              <h3 className="text-xl font-semibold text-yellow mb-2">Curated Portfolio Galleries with Tag-Based Filtering</h3>
+              <p className="text-white leading-relaxed">Beautiful, responsive galleries organized by category with tag-based filtering — allowing visitors to browse weddings, portraits, events, and more with a single click.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
-              <h3 className="text-xl font-semibold text-yellow mb-2">Secure Payment Integration</h3>
-              <p className="text-white leading-relaxed">Built with Stripe, ensuring reliable transactions and real-time booking updates.</p>
+              <h3 className="text-xl font-semibold text-yellow mb-2">Investment/Pricing Page for Transparency</h3>
+              <p className="text-white leading-relaxed">A dedicated investment page that clearly communicates packages and pricing, setting expectations upfront and attracting clients who are the right fit.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
-              <h3 className="text-xl font-semibold text-yellow mb-2">Custom Content Management</h3>
-              <p className="text-white leading-relaxed">A simple, non-technical CMS so their team can update destinations, itineraries, and pricing with ease.</p>
+              <h3 className="text-xl font-semibold text-yellow mb-2">Preferred Vendor Directory</h3>
+              <p className="text-white leading-relaxed">A curated list of trusted vendors — florists, venues, planners, and more — adding value for clients planning events and strengthening professional partnerships.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
-              <h3 className="text-xl font-semibold text-yellow mb-2">Admin Dashboard</h3>
-              <p className="text-white leading-relaxed">A single place to track payments, manage quotes, build itineraries, and access analytics — essentially a travel ERP system designed for them.</p>
+              <h3 className="text-xl font-semibold text-yellow mb-2">Contact Form with AWS Lambda Email Backend</h3>
+              <p className="text-white leading-relaxed">A polished contact form backed by a serverless AWS Lambda function for reliable email delivery — ensuring every inquiry reaches the photographer without depending on third-party form services.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
-              <h3 className="text-xl font-semibold text-yellow mb-2">Responsive, High-Performance Design</h3>
-              <p className="text-white leading-relaxed">Optimized for SEO, fast load times, and a smooth mobile experience.</p>
+              <h3 className="text-xl font-semibold text-yellow mb-2">About Page with Brand Storytelling</h3>
+              <p className="text-white leading-relaxed">A compelling about page that shares Kristina's story, philosophy, and approach — creating a personal connection with visitors before they ever meet in person.</p>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-            <div className="relative h-64 rounded-xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/meridian3.png"
-                alt="Meridian Travel Content Management"
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="relative h-64 rounded-xl overflow-hidden shadow-lg">
-              <Image
-                src="/images/meridian4.png"
-                alt="Meridian Travel Mobile Experience"
-                fill
-                className="object-cover"
-              />
+            <div className="border-l-4 border-yellow pl-6">
+              <h3 className="text-xl font-semibold text-yellow mb-2">Mobile-Optimized Image Viewing</h3>
+              <p className="text-white leading-relaxed">Images are optimized for fast loading and beautiful display on every screen size, ensuring the photography looks stunning whether viewed on a phone, tablet, or desktop.</p>
             </div>
           </div>
         </motion.section>
@@ -209,7 +161,7 @@ export default function MeridianCaseStudy() {
             Technology Behind the Scenes
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            While the client doesn't need to know every technical detail, it's important to highlight the modern stack that powers this platform:
+            The Kristina Curtis Photography platform combines a modern frontend with serverless backend capabilities for a fast, reliable experience:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -217,30 +169,30 @@ export default function MeridianCaseStudy() {
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-yellow rounded-full"></span>
                 <span className="text-white font-semibold">Next.js + React</span>
-                <span className="text-gray-300">for speed, SEO, and scalability</span>
+                <span className="text-gray-300">for fast, SEO-friendly pages</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-yellow rounded-full"></span>
-                <span className="text-white font-semibold">Supabase (PostgreSQL + auth)</span>
-                <span className="text-gray-300">for reliable database management</span>
+                <span className="text-white font-semibold">TypeScript</span>
+                <span className="text-gray-300">for reliable code</span>
               </div>
             </div>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-yellow rounded-full"></span>
-                <span className="text-white font-semibold">Stripe API</span>
-                <span className="text-gray-300">for secure, automated payments</span>
+                <span className="text-white font-semibold">AWS Lambda</span>
+                <span className="text-gray-300">for serverless email backend</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="w-3 h-3 bg-yellow rounded-full"></span>
-                <span className="text-white font-semibold">Tailwind CSS & Framer Motion</span>
-                <span className="text-gray-300">for modern, responsive UI</span>
+                <span className="text-white font-semibold">Tailwind CSS</span>
+                <span className="text-gray-300">for responsive design</span>
               </div>
             </div>
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            This stack ensures the platform is not only robust today but also scales easily as Meridian grows.
+            This stack delivers the visual polish a photography portfolio demands, with the performance and reliability needed to make a strong first impression every time.
           </p>
         </motion.section>
 
@@ -256,7 +208,7 @@ export default function MeridianCaseStudy() {
             Business Impact: Results That Matter
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            The new platform transformed how Meridian operates:
+            The new portfolio platform elevated the entire client experience:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -264,15 +216,15 @@ export default function MeridianCaseStudy() {
               <div className="flex items-start gap-3">
                 <span className="text-yellow text-2xl">→</span>
                 <div>
-                  <span className="text-white font-semibold">No more manual quote processing</span>
-                  <p className="text-gray-300">saving hours of admin time every week</p>
+                  <span className="text-white font-semibold">Professional brand presence</span>
+                  <p className="text-gray-300">a portfolio that matches the quality of the photography</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-yellow text-2xl">→</span>
                 <div>
-                  <span className="text-white font-semibold">Integrated payments</span>
-                  <p className="text-gray-300">smoother cash flow and fewer errors</p>
+                  <span className="text-white font-semibold">Streamlined client inquiries</span>
+                  <p className="text-gray-300">contact form with reliable serverless email delivery</p>
                 </div>
               </div>
             </div>
@@ -280,58 +232,22 @@ export default function MeridianCaseStudy() {
               <div className="flex items-start gap-3">
                 <span className="text-yellow text-2xl">→</span>
                 <div>
-                  <span className="text-white font-semibold">Dynamic content</span>
-                  <p className="text-gray-300">faster updates and better SEO visibility</p>
+                  <span className="text-white font-semibold">Showcased work effectively</span>
+                  <p className="text-gray-300">filterable galleries that let the photography shine</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-yellow text-2xl">→</span>
                 <div>
-                  <span className="text-white font-semibold">Seamless mobile experience</span>
-                  <p className="text-gray-300">improved customer satisfaction</p>
+                  <span className="text-white font-semibold">Added value for clients</span>
+                  <p className="text-gray-300">vendor directory and investment transparency build trust</p>
                 </div>
               </div>
             </div>
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            Instead of wrestling with tools that don't fit, their team now runs on a custom-built system that adapts to them.
-          </p>
-        </motion.section>
-
-        {/* Why This Matters */}
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl"
-        >
-          <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
-            Why This Matters for Growing Businesses
-          </h2>
-          <p className="text-white text-lg leading-relaxed mb-6">
-            This project highlights the difference between a template site and a custom solution. Templates are fine when you're starting out, but as soon as your workflows get complex, they hold you back.
-          </p>
-          <p className="text-white text-lg leading-relaxed mb-6">
-            Custom development ensures your tools:
-          </p>
-          <ul className="space-y-3 text-white text-lg mb-6">
-            <li className="flex items-start gap-3">
-              <span className="text-yellow text-xl">•</span>
-              <span>Scale with your business</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-yellow text-xl">•</span>
-              <span>Automate your most time-consuming tasks</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="text-yellow text-xl">•</span>
-              <span>Give you unique advantages competitors can't copy</span>
-            </li>
-          </ul>
-          <p className="text-white text-lg leading-relaxed">
-            For Meridian, that meant turning a clunky process into a smooth, modern experience — and positioning their brand as a leader in luxury travel.
+            Kristina Curtis Photography now has a digital home that does justice to the artistry of the work and turns visitors into booked clients.
           </p>
         </motion.section>
 
@@ -347,10 +263,10 @@ export default function MeridianCaseStudy() {
             Ready to Transform Your Business?
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6 max-w-2xl mx-auto">
-            I help small businesses and startups build custom web applications that save time, reduce manual work, and deliver better customer experiences.
+            I help creative professionals build portfolio websites that showcase their work beautifully and guide visitors from browsing to booking.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your current software is holding you back, let's talk. I'll help design a solution tailored to your business — just like I did for Meridian Luxury Travel.
+            Whether you're a photographer, designer, or creative entrepreneur, let's build a platform that reflects your artistry and grows your business — just like I did for Kristina Curtis Photography.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -361,7 +277,7 @@ export default function MeridianCaseStudy() {
               Start Your Project →
             </Link>
             <a
-              href="https://meridianluxury.travel"
+              href="https://kristinacurtisphotography.com"
               target="_blank"
               rel="noopener noreferrer"
               className="border border-yellow text-yellow font-semibold px-8 py-4 rounded-lg hover:bg-yellow hover:text-blue transition text-lg"
