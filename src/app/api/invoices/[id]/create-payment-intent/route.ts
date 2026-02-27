@@ -6,15 +6,21 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-07-30.basil",
 });
 
+const REUSABLE_STATUSES = new Set([
+  "requires_payment_method",
+  "requires_confirmation",
+  "requires_action",
+]);
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: invoiceId } = await params;
+
   try {
-    const { id: invoiceId } = await params;
     const { installment_id } = await request.json();
 
-    // Use service role client for public access (no auth required)
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -42,9 +48,16 @@ export async function POST(
       );
     }
 
+    if (invoice.status === "paid") {
+      return NextResponse.json(
+        { error: "Invoice is already paid" },
+        { status: 400 }
+      );
+    }
+
     let amount = invoice.amount_cents;
     let description = `Invoice ${invoice.invoice_number || invoice.id.split('-')[0]}`;
-    let metadata: any = {
+    let metadata: Record<string, string> = {
       invoice_id: invoice.id,
       client_id: invoice.client_id,
       invoice_number: invoice.invoice_number || '',
@@ -53,58 +66,92 @@ export async function POST(
       source: 'custom_payment_page',
     };
 
-    // If this is for a specific installment, get those details
+    // Track which DB table/record to persist the payment intent ID to
+    let installment: any = null;
+
     if (installment_id) {
-      const { data: installment, error: installmentError } = await supabase
+      const { data: inst, error: installmentError } = await supabase
         .from("invoice_payment_plans")
         .select("*")
         .eq("id", installment_id)
         .eq("invoice_id", invoiceId)
         .single();
 
-      if (!installmentError && installment) {
-        amount = installment.amount_cents;
-        description = `${invoice.invoice_number || invoice.id.split('-')[0]} - ${installment.installment_label}`;
-        metadata.installment_id = installment.id;
-        metadata.installment_label = installment.installment_label;
-        metadata.installment_number = installment.installment_number.toString();
+      if (installmentError || !inst) {
+        return NextResponse.json(
+          { error: "Installment not found" },
+          { status: 404 }
+        );
+      }
+
+      if (inst.status === "paid") {
+        return NextResponse.json(
+          { error: "Installment is already paid" },
+          { status: 400 }
+        );
+      }
+
+      installment = inst;
+      amount = inst.amount_cents;
+      description = `${invoice.invoice_number || invoice.id.split('-')[0]} - ${inst.installment_label}`;
+      metadata.installment_id = inst.id;
+      metadata.installment_label = inst.installment_label;
+      metadata.installment_number = inst.installment_number.toString();
+    }
+
+    // --- Try to reuse an existing payment intent from the DB ---
+    const existingIntentId = installment
+      ? installment.stripe_payment_intent_id
+      : invoice.stripe_payment_intent_id;
+
+    if (existingIntentId) {
+      try {
+        const existing = await stripe.paymentIntents.retrieve(existingIntentId);
+
+        if (REUSABLE_STATUSES.has(existing.status) && existing.amount === amount) {
+          console.log(`[create-payment-intent] Reusing existing intent ${existing.id} for invoice ${invoiceId}`);
+          return NextResponse.json({
+            clientSecret: existing.client_secret,
+            amount: amount,
+            invoice_number: invoice.invoice_number || invoice.id.split('-')[0],
+          });
+        }
+
+        // If the amount changed, cancel the stale intent and create a fresh one
+        if (REUSABLE_STATUSES.has(existing.status) && existing.amount !== amount) {
+          console.log(`[create-payment-intent] Canceling stale intent ${existing.id} (amount mismatch: ${existing.amount} vs ${amount})`);
+          await stripe.paymentIntents.cancel(existing.id);
+        }
+      } catch (retrieveError: any) {
+        // Intent doesn't exist in Stripe anymore — fall through to create a new one
+        console.warn(`[create-payment-intent] Could not retrieve existing intent ${existingIntentId}:`, retrieveError.message);
       }
     }
 
-    // Check for an existing reusable payment intent to prevent duplicates
-    const idempotencyKey = installment_id
-      ? `pi-${invoiceId}-inst-${installment_id}`
-      : `pi-${invoiceId}-full`;
-
-    // Search for an existing incomplete payment intent for this invoice/installment
-    const existingIntents = await stripe.paymentIntents.search({
-      query: `metadata["invoice_id"]:"${invoiceId}"${
-        installment_id ? ` AND metadata["installment_id"]:"${installment_id}"` : ' AND -metadata["installment_id"]:*'
-      } AND status:"requires_payment_method"`,
-      limit: 1,
+    // --- Create a new PaymentIntent ---
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      description,
+      metadata,
+      automatic_payment_methods: {
+        enabled: true,
+      },
     });
 
-    let paymentIntent: Stripe.PaymentIntent;
+    console.log(`[create-payment-intent] Created new intent ${paymentIntent.id} for invoice ${invoiceId}${installment ? ` installment ${installment_id}` : ''}`);
 
-    if (existingIntents.data.length > 0 && existingIntents.data[0].amount === amount) {
-      // Reuse the existing incomplete payment intent
-      paymentIntent = existingIntents.data[0];
-      console.log(`[create-payment-intent] Reusing existing intent ${paymentIntent.id} for invoice ${invoiceId}`);
+    // Persist the intent ID so we can reuse it on subsequent page loads
+    if (installment) {
+      await supabase
+        .from("invoice_payment_plans")
+        .update({ stripe_payment_intent_id: paymentIntent.id })
+        .eq("id", installment_id);
     } else {
-      // Create a new PaymentIntent with idempotency key
-      paymentIntent = await stripe.paymentIntents.create(
-        {
-          amount: amount,
-          currency: 'usd',
-          description: description,
-          metadata: metadata,
-          automatic_payment_methods: {
-            enabled: true,
-          },
-        },
-        { idempotencyKey }
-      );
-      console.log(`[create-payment-intent] Created new intent ${paymentIntent.id} for invoice ${invoiceId}`);
+      await supabase
+        .from("invoices")
+        .update({ stripe_payment_intent_id: paymentIntent.id })
+        .eq("id", invoiceId);
     }
 
     return NextResponse.json({
@@ -112,10 +159,16 @@ export async function POST(
       amount: amount,
       invoice_number: invoice.invoice_number || invoice.id.split('-')[0],
     });
-  } catch (error) {
-    console.error("Error creating payment intent:", error);
+  } catch (error: any) {
+    console.error(`[create-payment-intent] Error for invoice ${invoiceId}:`, error);
+
+    // Return a more specific error for Stripe errors
+    const message = error?.type?.startsWith("Stripe")
+      ? `Payment processing error: ${error.message}`
+      : "Failed to create payment intent";
+
     return NextResponse.json(
-      { error: "Failed to create payment intent" },
+      { error: message },
       { status: 500 }
     );
   }

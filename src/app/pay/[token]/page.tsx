@@ -68,7 +68,8 @@ export default function PaymentPage() {
       );
 
       if (!paymentIntentResponse.ok) {
-        throw new Error('Failed to create payment intent');
+        const errorData = await paymentIntentResponse.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to create payment intent');
       }
 
       const { clientSecret: secret, amount: paymentAmount } = await paymentIntentResponse.json();
