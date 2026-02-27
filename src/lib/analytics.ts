@@ -188,13 +188,11 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     `)
     .eq("org_id", orgId);
 
-  // Get client count
   const { count: clientsCount } = await supabase
     .from("clients")
     .select("*", { count: "exact", head: true })
     .eq("org_id", orgId);
 
-  // Calculate metrics
   const revenueThisMonth = (thisMonthPayments ?? []).reduce((sum, p) => sum + (p.amount_cents ?? 0), 0);
   const revenueLastMonth = (lastMonthPayments ?? []).reduce((sum, p) => sum + (p.amount_cents ?? 0), 0);
   const totalRevenue = (allPayments ?? []).reduce((sum, p) => sum + (p.amount_cents ?? 0), 0);
@@ -246,7 +244,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     };
   }).filter(inv => inv.amount > 0);
 
-  // Split into overdue and upcoming
   const overdueInvoices: UpcomingInvoice[] = processedInvoices
     .filter(inv => inv.isOverdue)
     .map(({ isOverdue, ...rest }) => rest);
@@ -280,7 +277,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     .sort((a, b) => b.totalRevenue - a.totalRevenue)
     .slice(0, 5);
 
-  // Format recurring invoices
   const recurringInvoices: RecurringInvoiceStatus[] = (recurringInvoicesRaw ?? []).map(ri => ({
     id: ri.id,
     clientName: (ri.clients as any)?.name || 'Unknown',
@@ -313,7 +309,6 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
       amount: statusMap.get(s)!.amount
     }));
 
-  // Format data for popups
   const formatPayments = (payments: any[]): MetricDetail[] => {
     return (payments ?? []).map(p => ({
       id: p.id,

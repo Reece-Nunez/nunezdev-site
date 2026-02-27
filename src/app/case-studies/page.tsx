@@ -134,7 +134,6 @@ export default function CaseStudies() {
     <main className="flex min-h-screen flex-col items-center justify-start px-4 pt-32 text-center text-offwhite overflow-hidden">
       <ThreeBackground />
 
-      {/* Hero Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -154,7 +153,6 @@ export default function CaseStudies() {
         </p>
       </motion.div>
 
-      {/* Featured Case Study */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -208,7 +206,6 @@ export default function CaseStudies() {
         </div>
       </motion.div>
 
-      {/* All Case Studies Grid */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -251,7 +248,6 @@ export default function CaseStudies() {
         </div>
       </motion.div>
 
-      {/* Why Custom Development Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -292,7 +288,6 @@ export default function CaseStudies() {
         </div>
       </motion.div>
 
-      {/* CTA Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"

@@ -25,13 +25,11 @@ export async function GET() {
 export async function POST(req: Request) {
   const supabase = await supabaseServer();
 
-  // Auth
   const { data: auth, error: authErr } = await supabase.auth.getUser();
   if (authErr || !auth?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Org
   const { data: memberships, error: mErr } = await supabase
     .from("org_members")
     .select("org_id")
@@ -41,7 +39,6 @@ export async function POST(req: Request) {
   }
   const orgId = memberships[0].org_id as string;
 
-  // Body (all fields optional)
   type ClientRequestBody = {
     name?: string;
     email?: string;
@@ -81,7 +78,6 @@ export async function POST(req: Request) {
     if (tags.length === 0) tags = null;
   }
 
-  // Insert (whitelist fields)
   const insert = {
     org_id: orgId,
     name,
@@ -100,13 +96,11 @@ export async function POST(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Sync to Google Contacts (async, don't block response)
   if (contactsService.isAvailable()) {
     contactsService
       .createContact({ name, email, phone, company })
       .then(async (result) => {
         if (result.success && result.googleContactId) {
-          // Update client with Google Contact ID
           const adminSupabase = await supabaseServer();
           await adminSupabase
             .from("clients")
@@ -124,7 +118,6 @@ export async function POST(req: Request) {
       });
   }
 
-  // Return just the id (your new-client page expects this)
   return NextResponse.json({ id: data.id });
 }
 

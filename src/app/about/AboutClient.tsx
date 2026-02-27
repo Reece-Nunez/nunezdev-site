@@ -21,7 +21,6 @@ const fadeInUp: Variants = {
 export default function AboutClient() {
   return (
     <main className="bg-black min-h-screen px-4 sm:px-6 py-24 mx-auto text-offwhite overflow-x-hidden">
-      {/* Section Heading */}
       <motion.div
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -34,19 +33,16 @@ export default function AboutClient() {
         <div className="mx-auto w-24 h-1 bg-gradient-to-r from-yellow to-white rounded-full animate-pulse" />
       </motion.div>
 
-      {/* Hero Section */}
       <motion.section
         initial="hidden"
         animate="show"
         variants={containerVariants}
         className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start max-w-6xl mx-auto"
       >
-        {/* Profile + Family Images */}
         <motion.div
           variants={fadeInUp}
           className="flex flex-col items-center space-y-10 w-full"
         >
-          {/* Avatar Image */}
           <div className="relative w-48 sm:w-64 md:w-80 aspect-square rounded-full overflow-hidden border-4 border-yellow shadow-xl">
             <Image
               src="/reece-avatar.png"
@@ -57,7 +53,6 @@ export default function AboutClient() {
             />
           </div>
 
-          {/* Family Image */}
           <div className="relative w-full max-w-md aspect-video overflow-hidden rounded-lg">
             <Image
               src="/family.jpg"
@@ -73,7 +68,6 @@ export default function AboutClient() {
           </div>
         </motion.div>
 
-        {/* Text Content */}
         <motion.div
           variants={fadeInUp}
           className="space-y-10 text-base sm:text-lg leading-relaxed w-full"

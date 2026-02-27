@@ -155,7 +155,6 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-      {/* Total Revenue */}
       <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
@@ -172,7 +171,6 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
         </div>
       </div>
 
-      {/* Pending Revenue */}
       <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
@@ -199,7 +197,6 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
         </div>
       </div>
 
-      {/* This Month */}
       <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
@@ -219,7 +216,6 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
         </div>
       </div>
 
-      {/* Overdue */}
       <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
@@ -239,7 +235,6 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
         </div>
       </div>
 
-      {/* Status Breakdown */}
       <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm sm:col-span-2 lg:col-span-2">
         <h3 className="font-semibold text-gray-800 mb-3 text-sm sm:text-base">Invoice Status</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
@@ -252,7 +247,6 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
         </div>
       </div>
 
-      {/* Quick Stats */}
       <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm sm:col-span-2 lg:col-span-2">
         <h3 className="font-semibold text-gray-800 mb-3 text-sm sm:text-base">Quick Stats</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">

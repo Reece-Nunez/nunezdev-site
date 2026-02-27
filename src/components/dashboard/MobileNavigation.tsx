@@ -38,7 +38,6 @@ export default function MobileNavigation() {
 
   return (
     <>
-      {/* Mobile Header Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
         <div className="flex items-center">
           <img 
@@ -69,15 +68,12 @@ export default function MobileNavigation() {
       {/* Mobile Sidebar Overlay */}
       {isOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50" 
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50"
             onClick={closeMenu}
           />
-          
-          {/* Sidebar */}
+
           <div className="relative flex flex-col w-64 bg-white bg-opacity-95 backdrop-blur-sm shadow-xl">
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center">
                 <img 
@@ -96,9 +92,7 @@ export default function MobileNavigation() {
               </button>
             </div>
 
-            {/* Navigation */}
             <div className="flex-1 overflow-y-auto">
-              {/* Main Navigation */}
               <nav className="p-4 space-y-2">
                 <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                   Main
@@ -156,7 +150,6 @@ export default function MobileNavigation() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="p-4 border-t border-gray-200 space-y-2">
               <Link
                 href="/dashboard/clients/new"

@@ -203,7 +203,6 @@ function LoginForm() {
         </form>
       ) : (
         <>
-          {/* Google Sign In */}
           <button
             onClick={handleGoogleLogin}
             className="w-full py-3 px-4 bg-white border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
@@ -238,7 +237,6 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* Email/Password Form */}
           <form onSubmit={handlePasswordLogin}>
             <div className="mb-4">
               <label

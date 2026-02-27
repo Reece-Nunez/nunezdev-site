@@ -208,7 +208,6 @@ export default function ProjectsTab({
 
   return (
     <div className="space-y-4">
-      {/* Create Button / Form */}
       <div>
         <button
           onClick={() => setShowCreateForm(!showCreateForm)}
@@ -290,7 +289,6 @@ export default function ProjectsTab({
         )}
       </div>
 
-      {/* Projects List */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

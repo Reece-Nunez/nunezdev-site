@@ -6,7 +6,6 @@ export async function requireOwner() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return { ok: false, reason: "unauthenticated" as const };
 
-  // Only consider OWNER memberships, prefer the latest
   const { data, error: mErr } = await supabase
     .from("org_members")
     .select("org_id, role, created_at")

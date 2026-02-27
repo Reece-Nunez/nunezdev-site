@@ -136,7 +136,6 @@ export default function NotificationBell({ collapsed = false }: NotificationBell
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`relative flex items-center justify-center rounded-lg transition-colors hover:bg-gray-100 ${
@@ -156,10 +155,8 @@ export default function NotificationBell({ collapsed = false }: NotificationBell
         )}
       </button>
 
-      {/* Dropdown Panel */}
       {isOpen && (
         <div className="absolute left-full top-0 ml-2 w-80 max-h-[480px] bg-white rounded-lg shadow-lg border border-gray-200 z-50 flex flex-col overflow-hidden lg:left-full lg:ml-2 max-lg:left-0 max-lg:top-full max-lg:mt-2 max-lg:ml-0">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
             <h3 className="font-semibold text-sm text-gray-800">Notifications</h3>
             {unreadCount > 0 && (
@@ -173,7 +170,6 @@ export default function NotificationBell({ collapsed = false }: NotificationBell
             )}
           </div>
 
-          {/* Notification List */}
           <div className="overflow-y-auto flex-1">
             {notifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-gray-400">

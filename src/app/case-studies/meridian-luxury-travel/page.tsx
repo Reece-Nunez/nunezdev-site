@@ -19,7 +19,6 @@ export default function MeridianCaseStudy() {
     <main className="flex min-h-screen flex-col items-center justify-start px-4 pt-32 text-left text-offwhite overflow-hidden">
       <ThreeBackground />
 
-      {/* Hero Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -43,10 +42,8 @@ export default function MeridianCaseStudy() {
         </a>
       </motion.div>
 
-      {/* Main Content */}
       <div className="relative w-full max-w-4xl px-6 z-10 space-y-12">
 
-        {/* Hero Image */}
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -63,7 +60,6 @@ export default function MeridianCaseStudy() {
           />
         </motion.div>
 
-        {/* The Challenge */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -103,7 +99,6 @@ export default function MeridianCaseStudy() {
           </p>
         </motion.section>
 
-        {/* Solution Overview with Image */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -138,7 +133,6 @@ export default function MeridianCaseStudy() {
           </div>
         </motion.section>
 
-        {/* Key Features */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -197,7 +191,6 @@ export default function MeridianCaseStudy() {
           </div>
         </motion.section>
 
-        {/* Technology Stack */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -244,7 +237,6 @@ export default function MeridianCaseStudy() {
           </p>
         </motion.section>
 
-        {/* Business Impact */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -299,7 +291,6 @@ export default function MeridianCaseStudy() {
           </p>
         </motion.section>
 
-        {/* Why This Matters */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -335,7 +326,6 @@ export default function MeridianCaseStudy() {
           </p>
         </motion.section>
 
-        {/* CTA Section */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -377,7 +367,6 @@ export default function MeridianCaseStudy() {
           </div>
         </motion.section>
 
-        {/* Back to Case Studies */}
         <motion.div
           initial="hidden"
           whileInView="visible"

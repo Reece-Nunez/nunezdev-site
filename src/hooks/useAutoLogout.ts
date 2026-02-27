@@ -37,7 +37,6 @@ export function useAutoLogout({
     }
   }, [onLogout, router]);
 
-  // Check Supabase auth state
   useEffect(() => {
     const supabase = createClient();
     
@@ -48,7 +47,6 @@ export function useAutoLogout({
       }
     });
 
-    // Get initial user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setSupabaseUser(user);
     });
@@ -59,7 +57,6 @@ export function useAutoLogout({
   const resetTimer = useCallback(() => {
     if (!supabaseUser) return;
 
-    // Clear existing timeouts
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -69,7 +66,6 @@ export function useAutoLogout({
 
     lastActivityRef.current = Date.now();
 
-    // Set warning timeout
     const warningMs = (timeout - warningTime) * 60 * 1000;
     if (warningMs > 0) {
       warningTimeoutRef.current = setTimeout(() => {
@@ -77,7 +73,6 @@ export function useAutoLogout({
       }, warningMs);
     }
 
-    // Set logout timeout
     const timeoutMs = timeout * 60 * 1000;
     timeoutRef.current = setTimeout(() => {
       logout();
@@ -97,7 +92,6 @@ export function useAutoLogout({
 
   useEffect(() => {
     if (!supabaseUser) {
-      // Clear timers if no user
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -107,7 +101,6 @@ export function useAutoLogout({
       return;
     }
 
-    // Start timer when user is logged in
     resetTimer();
 
     // Activity event listeners

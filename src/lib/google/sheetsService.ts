@@ -176,13 +176,11 @@ class SheetsService {
   ): Promise<SheetExportResult> {
     const title = `NunezDev Clients Export - ${new Date().toLocaleDateString()}`;
 
-    // Create spreadsheet
     const createResult = await this.createSpreadsheet(title, ['Clients']);
     if (!createResult.success || !createResult.spreadsheetId) {
       return createResult;
     }
 
-    // Prepare data
     const data: SheetData = {
       headers: [
         'Name',
@@ -206,7 +204,6 @@ class SheetsService {
       ]),
     };
 
-    // Write data
     const writeSuccess = await this.writeData(
       createResult.spreadsheetId,
       'Clients!A1',
@@ -217,7 +214,6 @@ class SheetsService {
       return { success: false, error: 'Failed to write client data' };
     }
 
-    // Format the spreadsheet
     await this.formatExportSheet(createResult.spreadsheetId);
 
     return createResult;
@@ -240,13 +236,11 @@ class SheetsService {
   ): Promise<SheetExportResult> {
     const title = `NunezDev Invoices Export - ${new Date().toLocaleDateString()}`;
 
-    // Create spreadsheet
     const createResult = await this.createSpreadsheet(title, ['Invoices']);
     if (!createResult.success || !createResult.spreadsheetId) {
       return createResult;
     }
 
-    // Prepare data
     const data: SheetData = {
       headers: [
         'Invoice #',
@@ -270,7 +264,6 @@ class SheetsService {
       ]),
     };
 
-    // Write data
     const writeSuccess = await this.writeData(
       createResult.spreadsheetId,
       'Invoices!A1',
@@ -281,7 +274,6 @@ class SheetsService {
       return { success: false, error: 'Failed to write invoice data' };
     }
 
-    // Format the spreadsheet
     await this.formatExportSheet(createResult.spreadsheetId);
 
     return createResult;
@@ -295,7 +287,6 @@ class SheetsService {
       const sheets = await this.getClient();
       if (!sheets) return false;
 
-      // Get the sheet ID (first sheet)
       const spreadsheet = await sheets.spreadsheets.get({
         spreadsheetId,
       });

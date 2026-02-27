@@ -106,13 +106,11 @@ export default function ClientPortalPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Client Portal</h1>
         <p className="text-gray-500 mt-1">Manage client access, projects, and uploads</p>
       </div>
 
-      {/* Stats */}
       <ClientPortalStats
         totalClients={totalClients}
         activeUsers={activeUsers}
@@ -121,7 +119,6 @@ export default function ClientPortalPage() {
         completedProjects={completedProjects}
       />
 
-      {/* Filter Bar */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="sm:w-64">
@@ -172,7 +169,6 @@ export default function ClientPortalPage() {
         </div>
       </div>
 
-      {/* Tab Bar */}
       <div className="border-b border-gray-200">
         <div className="flex gap-6">
           {tabs.map((tab) => (
@@ -198,7 +194,6 @@ export default function ClientPortalPage() {
         </div>
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'users' && (
         <PortalUsersTab
           users={filteredUsers}
@@ -220,13 +215,11 @@ export default function ClientPortalPage() {
         />
       )}
 
-      {/* Image Preview Modal */}
       <ImagePreviewModal
         previewImage={previewImage}
         onClose={() => setPreviewImage(null)}
       />
 
-      {/* Toast Container */}
       <ToastContainer />
     </div>
   );

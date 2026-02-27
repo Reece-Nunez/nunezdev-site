@@ -112,7 +112,6 @@ export default function ProposalsPage() {
     <>
       <ToastContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
-        {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl sm:text-2xl font-semibold">Proposals</h1>
           <Link
@@ -123,7 +122,6 @@ export default function ProposalsPage() {
           </Link>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           <div className="bg-white rounded-xl border p-3">
             <div className="text-xs text-gray-500">Draft</div>
@@ -151,7 +149,6 @@ export default function ProposalsPage() {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="bg-white rounded-xl border p-3">
           <select
             className="rounded-lg border px-3 py-2 text-sm"
@@ -168,7 +165,6 @@ export default function ProposalsPage() {
           </select>
         </div>
 
-        {/* Table */}
         <div className="bg-white rounded-xl border overflow-hidden">
           {error ? (
             <div className="p-4 text-red-600">Failed to load proposals</div>

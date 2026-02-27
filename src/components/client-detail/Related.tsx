@@ -46,7 +46,6 @@ export function ClientInvoices({ clientId }: { clientId: string }) {
           <a href="/dashboard/invoices" className="text-sm text-blue-600 hover:underline">Open invoices</a>
         </div>
         
-        {/* Financial Summary */}
         {data?.financials && (
           <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
             <div className="text-center">
@@ -64,7 +63,6 @@ export function ClientInvoices({ clientId }: { clientId: string }) {
           </div>
         )}
 
-        {/* Invoice List with Payment Details */}
         {data?.invoices && data.invoices.length > 0 ? (
           <div className="space-y-4">
             {data.invoices.map((invoice) => (

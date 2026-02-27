@@ -220,7 +220,6 @@ export default function InvoiceAgreementPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 sm:py-12 lg:py-48">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 min-w-0">
-        {/* Invoice Header */}
         <div className="bg-white rounded-lg shadow-lg mb-4 sm:mb-8 min-w-0">
           <div className="border-b-4 p-4 sm:p-6 lg:p-8" style={{ borderColor: '#ffc312' }}>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -243,7 +242,6 @@ export default function InvoiceAgreementPage() {
           </div>
 
           <div className="p-4 sm:p-6 lg:p-8">
-            {/* Invoice Details */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
               <div>
                 <h3 className="font-semibold mb-2 text-sm sm:text-base" style={{ color: '#111111' }}>From:</h3>
@@ -275,7 +273,6 @@ export default function InvoiceAgreementPage() {
               </div>
             </div>
 
-            {/* Invoice Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
               <div>
                 {invoice.issued_at && (
@@ -293,7 +290,6 @@ export default function InvoiceAgreementPage() {
               </div>
             </div>
 
-            {/* Service Details */}
             <div className="mb-6 sm:mb-8">
               {/* Desktop Table - hidden on small screens */}
               <div className="hidden sm:block overflow-x-auto">
@@ -338,7 +334,6 @@ export default function InvoiceAgreementPage() {
               </div>
             </div>
 
-            {/* Total */}
             <div className="border-t-2 border-gray-200 pt-4 mb-6 sm:mb-8">
               <div className="flex justify-end">
                 <div className="text-right">
@@ -349,7 +344,6 @@ export default function InvoiceAgreementPage() {
               </div>
             </div>
 
-            {/* Terms */}
             <div className="mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-gray-200">
               <h3 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Terms & Conditions</h3>
               <div className="text-xs sm:text-sm text-gray-600 space-y-1.5 sm:space-y-2">
@@ -362,7 +356,6 @@ export default function InvoiceAgreementPage() {
           </div>
         </div>
 
-        {/* Signature Section */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8 min-w-0">
           <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-3 sm:mb-4">Digital Signature Required</h3>
           <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
@@ -370,7 +363,6 @@ export default function InvoiceAgreementPage() {
             and you authorize the payment of this invoice.
           </p>
 
-          {/* Signature Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Full Name *</label>
@@ -396,7 +388,6 @@ export default function InvoiceAgreementPage() {
             </div>
           </div>
 
-          {/* Signature Pad */}
           <div className="mb-4 sm:mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Digital Signature *</label>
             <div className="border-2 border-gray-300 rounded-lg bg-white overflow-hidden">
@@ -435,7 +426,6 @@ export default function InvoiceAgreementPage() {
             </div>
           </div>
 
-          {/* Sign Button */}
           <div className="flex justify-center">
             <button
               onClick={handleSign}
@@ -453,7 +443,6 @@ export default function InvoiceAgreementPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-6 sm:mt-8 text-xs sm:text-sm text-gray-500">
           <p>This is a secure, legally binding digital signature process.</p>
           <p>© {new Date().getFullYear()} NunezDev. All rights reserved.</p>

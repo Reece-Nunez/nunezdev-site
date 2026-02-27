@@ -109,7 +109,6 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-28">
       <div className="max-w-2xl mx-auto px-4">
-        {/* Header */}
         <div className="text-center mb-8">
           <img
             src="/logo.png"
@@ -120,7 +119,6 @@ export default function PaymentPage() {
           <p className="text-gray-600">Complete your payment for {invoice.clients?.name}</p>
         </div>
 
-        {/* Payment Form */}
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
           {clientSecret && (
             <Elements
@@ -149,7 +147,6 @@ export default function PaymentPage() {
           )}
         </div>
 
-        {/* Security Badge */}
         <div className="mt-6 text-center">
           <div className="inline-flex items-center text-sm text-gray-600">
             <svg className="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">

@@ -149,7 +149,6 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
           </div>
           </div>
 
-          {/* Enhanced Invoice Fields */}
           <div className="space-y-6">
             <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Project Details</h4>
             
@@ -193,7 +192,6 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
             </div>
           </div>
 
-          {/* Discount Configuration */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Discount</h4>
             
@@ -229,7 +227,6 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
             </div>
           </div>
 
-          {/* Technology Stack */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Technology Stack</h4>
             
@@ -250,7 +247,6 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
             </div>
           </div>
 
-          {/* Terms & Conditions */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Terms & Conditions</h4>
             
@@ -268,7 +264,6 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
             </div>
           </div>
 
-          {/* Signature Requirement */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold text-gray-800 border-b pb-2">Signature</h4>
             

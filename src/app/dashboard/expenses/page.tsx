@@ -439,7 +439,6 @@ export default function ExpensesPage() {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ToastContainer />
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
@@ -461,7 +460,6 @@ export default function ExpensesPage() {
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
         <button
           onClick={() => setActiveTab("expenses")}
@@ -485,7 +483,6 @@ export default function ExpensesPage() {
         </button>
       </div>
 
-      {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow p-4">
@@ -527,10 +524,8 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* One-time Expenses Tab Content */}
       {activeTab === "expenses" && (
         <>
-          {/* Filters */}
           <div className="bg-white rounded-lg shadow p-4 mb-6">
             <div className="flex flex-wrap gap-4">
               <div>
@@ -569,7 +564,6 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-      {/* Add/Edit Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -763,7 +757,6 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Expenses Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -882,7 +875,6 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* Category Breakdown */}
       {summary?.by_category && summary.by_category.length > 0 && (
         <div className="mt-6 bg-white rounded-lg shadow p-4">
           <h3 className="text-lg font-semibold mb-4">Expenses by Category</h3>
@@ -906,10 +898,8 @@ export default function ExpensesPage() {
         </>
       )}
 
-      {/* Recurring Expenses Tab Content */}
       {activeTab === "recurring" && (
         <>
-          {/* Recurring Form Modal */}
           {showRecurringForm && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -1101,7 +1091,6 @@ export default function ExpensesPage() {
             </div>
           )}
 
-          {/* Recurring Expenses List */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -1202,7 +1191,6 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          {/* Monthly Cost Summary */}
           {recurringExpenses && recurringExpenses.length > 0 && (
             <div className="mt-6 bg-white rounded-lg shadow p-4">
               <h3 className="text-lg font-semibold mb-4">Monthly Cost Breakdown</h3>

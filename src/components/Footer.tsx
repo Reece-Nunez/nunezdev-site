@@ -12,12 +12,9 @@ export default function Footer() {
 
   return (
     <footer className="w-full px-6 pt-12 pb-4 bg-black text-white">
-      {/* Divider */}
       <div className="w-24 h-1 mx-auto bg-gradient-to-r from-yellow via-white to-yellow rounded-full mb-8 animate-pulse" />
 
-      {/* Main Footer Content */}
       <div className="w-full grid md:grid-cols-3 gap-12 text-center md:text-left">
-        {/* Logo */}
         <div className="space-y-4">
           <button
             onClick={scrollToTop}
@@ -36,7 +33,6 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Quick Links */}
         <div className="space-y-2 text-center">
           <h4 className="text-yellow text-lg font-semibold mb-4">Explore</h4>
           <ul className="space-y-2 text-sm">
@@ -63,8 +59,6 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Contact & Social */}
-        {/* Contact & Social */}
         <div className="space-y-4 text-center md:text-right">
           <h4 className="text-yellow text-lg font-semibold mb-4">Get In Touch</h4>
           <p className="text-sm text-gray-400">Ponca City, Oklahoma</p>
@@ -106,7 +100,6 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Copyright */}
       <div className="mt-2 text-center text-xs text-gray-500">
         © {new Date().getFullYear()} NunezDev. All rights reserved.
       </div>

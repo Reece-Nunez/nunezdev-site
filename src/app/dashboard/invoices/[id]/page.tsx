@@ -228,7 +228,6 @@ export default function InvoiceDetailPage() {
     <>
       <ToastContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-7xl mx-auto min-w-0">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <Link href="/dashboard/invoices" className="text-blue-600 hover:underline text-sm">
@@ -274,9 +273,7 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Invoice Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Client Information */}
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Client Information</h2>
           <div className="space-y-3">
@@ -303,7 +300,6 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
-        {/* Invoice Information */}
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Invoice Information</h2>
           <div className="space-y-3">
@@ -367,7 +363,6 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Line Items */}
       {invoice.line_items && invoice.line_items.length > 0 && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Line Items</h2>
@@ -427,7 +422,6 @@ export default function InvoiceDetailPage() {
             ))}
           </div>
           
-          {/* Invoice Totals */}
           <div className="mt-4 border-t pt-4">
             <div className="flex justify-end">
               <div className="w-full max-w-sm space-y-2">
@@ -459,7 +453,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Payment Plan Schedule */}
       {invoice.invoice_payment_plans && invoice.invoice_payment_plans.length > 0 && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Payment Schedule</h2>
@@ -517,7 +510,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Project Details */}
       {(invoice.project_overview || invoice.project_start_date || invoice.delivery_date || (invoice.technology_stack && invoice.technology_stack.length > 0)) && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Project Details</h2>
@@ -558,7 +550,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Terms & Conditions */}
       {invoice.terms_conditions && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Terms & Conditions</h2>
@@ -566,7 +557,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Notes */}
       {invoice.notes && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Notes</h2>
@@ -574,7 +564,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Signature Status */}
       {(invoice.signed_at || invoice.hosted_invoice_url) && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Signature Status</h2>
@@ -615,7 +604,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Payments */}
       {invoice.invoice_payments && invoice.invoice_payments.length > 0 && (
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Payment History</h2>
@@ -668,7 +656,6 @@ export default function InvoiceDetailPage() {
         </div>
       )}
 
-      {/* Invoice Preview Modal */}
       {showPreview && (
         <InvoicePreviewModal
           invoice={invoice}
@@ -676,7 +663,6 @@ export default function InvoiceDetailPage() {
         />
       )}
 
-      {/* Invoice Edit Modal */}
       {showEdit && (
         <EditInvoice
           invoice={invoice}
@@ -688,7 +674,6 @@ export default function InvoiceDetailPage() {
         />
       )}
 
-      {/* Send Invoice Modal */}
       {showSendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="w-full max-w-lg bg-white rounded-xl shadow-xl">
@@ -700,7 +685,6 @@ export default function InvoiceDetailPage() {
                 {invoice.invoice_number || `Invoice #${invoice.id.split('-')[0]}`}
               </p>
 
-              {/* Primary recipient */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   To (Primary)
@@ -710,7 +694,6 @@ export default function InvoiceDetailPage() {
                 </div>
               </div>
 
-              {/* CC recipients */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   CC (Additional Recipients)
@@ -759,7 +742,6 @@ export default function InvoiceDetailPage() {
                 </p>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 justify-end">
                 <button
                   type="button"
@@ -794,7 +776,6 @@ function InvoicePreviewModal({ invoice, onClose }: { invoice: Invoice; onClose: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
       <div className="w-full max-w-4xl max-h-[95vh] overflow-auto rounded-lg bg-white min-w-0">
-        {/* Modal Header */}
         <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex justify-between items-center">
           <h2 className="text-base sm:text-lg font-semibold">Invoice Preview</h2>
           <button
@@ -805,7 +786,6 @@ function InvoicePreviewModal({ invoice, onClose }: { invoice: Invoice; onClose: 
           </button>
         </div>
 
-        {/* Invoice Preview Content */}
         <div className="p-3 sm:p-8">
           <InvoicePreviewContent invoice={invoice} />
         </div>
@@ -828,13 +808,11 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
   
   return (
     <div className="max-w-3xl mx-auto bg-white">
-      {/* Enhanced Header */}
       <div className="text-center mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-4xl font-bold truncate" style={{ color: '#111111' }}>INVOICE</h1>
         <h2 className="text-sm sm:text-xl text-gray-600 mt-2 px-2">{invoice.title || 'Professional Development Services'}</h2>
       </div>
 
-      {/* Client Information */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Client Information</h3>
         <div className="text-gray-700">
@@ -845,7 +823,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      {/* Enhanced Invoice Details */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Invoice Details</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
@@ -880,7 +857,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      {/* Project Overview */}
       {invoice.project_overview && (
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Project Overview</h3>
@@ -888,7 +864,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       )}
 
-      {/* Service Details */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4" style={{ color: '#111111' }}>Service Details</h3>
         
@@ -971,7 +946,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      {/* Enhanced Totals */}
       <div className="border-t-2 border-gray-300 pt-4 mb-8">
         <div className="flex justify-end">
           <div className="w-full max-w-md space-y-3">
@@ -999,14 +973,12 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      {/* Payment Plan */}
       <PaymentPlanDisplay 
         invoiceId={invoice.id} 
         isPublic={false}
         className="mb-8"
       />
 
-      {/* Technology Stack */}
       {invoice.technology_stack && invoice.technology_stack.length > 0 && (
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Technology Stack</h3>
@@ -1022,7 +994,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       )}
 
-      {/* Enhanced Terms & Conditions */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Terms & Conditions</h3>
         <div className="space-y-2 text-gray-700 text-sm">
@@ -1044,7 +1015,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      {/* Thank You Section */}
       <div className="text-center py-6 border-t border-gray-200">
         <h3 className="text-lg font-semibold mb-2" style={{ color: '#ffc312' }}>
           Thank you for choosing our development services!
@@ -1057,7 +1027,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      {/* Additional Notes */}
       {invoice.notes && (
         <div className="mt-6 p-4 bg-gray-50 rounded">
           <h4 className="font-semibold text-gray-800 mb-2">Additional Notes</h4>
@@ -1065,7 +1034,6 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       )}
 
-      {/* Signature Section */}
       {!invoice.signed_at && (
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-4">Signature Required</h3>

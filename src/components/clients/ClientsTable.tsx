@@ -129,7 +129,6 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
     <>
       <ToastContainer />
       <div className="w-full min-w-0 space-y-3">
-        {/* Header */}
         <div className="flex items-center justify-between gap-3 max-w-full">
           <div className="flex items-center gap-3 min-w-0">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 min-w-0 truncate">Clients</h1>
@@ -156,7 +155,6 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
           </Link>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full min-w-0">
         <div className="rounded-xl border bg-white p-3 shadow-sm min-w-0">
           <div className="text-xs text-gray-600">Total Invoiced</div>
@@ -350,7 +348,6 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
         </table>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-md rounded-lg bg-white p-6">
@@ -391,7 +388,6 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
         </div>
       )}
 
-      {/* Bulk Delete Confirmation Modal */}
       {bulkDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-md rounded-lg bg-white p-6">

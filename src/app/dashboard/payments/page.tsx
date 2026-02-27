@@ -347,7 +347,6 @@ export default function PaymentsPage() {
 
   return (
     <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Payments</h1>
@@ -376,7 +375,6 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white rounded-xl border shadow-sm p-4">
           <div className="text-xs sm:text-sm text-gray-600">Total Revenue</div>
@@ -423,7 +421,6 @@ export default function PaymentsPage() {
         </div>
       </div>
 
-      {/* Monthly Revenue Summary */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         <button
           onClick={() => setShowMonthlySummary(!showMonthlySummary)}
@@ -513,7 +510,6 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      {/* Filters and Controls */}
       <div className="bg-white rounded-xl border shadow-sm p-4 sm:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
@@ -585,7 +581,6 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        {/* Custom Date Range Inputs */}
         {dateRange === 'custom' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t">
             <div>
@@ -610,7 +605,6 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      {/* Payments Table */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
         {filteredPayments.length > 0 ? (
           <>
@@ -875,8 +869,6 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      {/* Modal Components */}
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full">
@@ -903,7 +895,6 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* Payment Details Modal */}
       {showDetailsModal && selectedPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -974,7 +965,6 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* Edit Payment Modal */}
       {showEditModal && selectedPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full">
@@ -1094,7 +1084,6 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* Add Note Modal */}
       {showAddNoteModal && selectedPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full">
@@ -1149,7 +1138,6 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* Add Manual Payment Modal */}
       {showAddPaymentModal && (
         <AddManualPaymentModal 
           onClose={closeModals}
@@ -1313,7 +1301,6 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Client Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Client <span className="text-red-500">*</span>
@@ -1333,7 +1320,6 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               </select>
             </div>
 
-            {/* Standalone Payment Toggle */}
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -1412,7 +1398,6 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Payment Amount */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Payment Amount <span className="text-red-500">*</span>
@@ -1428,7 +1413,6 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
                 />
               </div>
 
-              {/* Payment Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Payment Date <span className="text-red-500">*</span>
@@ -1443,7 +1427,6 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               </div>
             </div>
 
-            {/* Payment Method */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment Method <span className="text-red-500">*</span>
@@ -1464,7 +1447,6 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               </select>
             </div>
 
-            {/* Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Notes (Optional)

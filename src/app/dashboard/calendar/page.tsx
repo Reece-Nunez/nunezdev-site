@@ -254,7 +254,6 @@ export default function CalendarPage() {
         />
       </div>
 
-      {/* Event Details Modal */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
@@ -318,7 +317,6 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* New Event Modal */}
       {showNewEventModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">

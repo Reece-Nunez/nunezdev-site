@@ -54,12 +54,10 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
 
       <ClientForm clientId={clientId} />
 
-      {/* Invoices & Payments */}
       <section className="rounded-lg border p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h2 className="font-semibold">Invoices & Payments</h2>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Tax Export Controls */}
             <div className="flex items-center gap-2 pr-2 border-r border-gray-200">
               <select
                 value={selectedYear}
@@ -98,10 +96,8 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
         </div>
       </section>
 
-      {/* Notes */}
       <ClientNotes clientId={clientId} />
 
-      {/* Tasks */}
       <ClientTasks clientId={clientId} />
     </div>
   );

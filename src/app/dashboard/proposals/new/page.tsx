@@ -158,7 +158,6 @@ export default function NewProposalPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Client Selection */}
         <div className="bg-white rounded-xl border p-4">
           <h2 className="font-semibold mb-3">Client</h2>
           <select
@@ -176,7 +175,6 @@ export default function NewProposalPage() {
           </select>
         </div>
 
-        {/* Proposal Details */}
         <div className="bg-white rounded-xl border p-4 space-y-4">
           <h2 className="font-semibold">Proposal Details</h2>
 
@@ -228,7 +226,6 @@ export default function NewProposalPage() {
           </div>
         </div>
 
-        {/* Line Items */}
         <div className="bg-white rounded-xl border p-4">
           <h2 className="font-semibold mb-3">Line Items</h2>
 
@@ -295,7 +292,6 @@ export default function NewProposalPage() {
             + Add Line Item
           </button>
 
-          {/* Discount */}
           <div className="mt-4 pt-4 border-t">
             <div className="flex items-center gap-4">
               <label className="text-sm text-gray-600">Discount:</label>
@@ -317,7 +313,6 @@ export default function NewProposalPage() {
             </div>
           </div>
 
-          {/* Totals */}
           <div className="mt-4 pt-4 border-t space-y-2 text-right">
             <div className="flex justify-end gap-4">
               <span className="text-gray-600">Subtotal:</span>
@@ -336,7 +331,6 @@ export default function NewProposalPage() {
           </div>
         </div>
 
-        {/* Project Details (optional) */}
         <div className="bg-white rounded-xl border p-4 space-y-4">
           <h2 className="font-semibold">Project Details (Optional)</h2>
 
@@ -395,7 +389,6 @@ export default function NewProposalPage() {
           </div>
         </div>
 
-        {/* Options */}
         <div className="bg-white rounded-xl border p-4">
           <label className="flex items-center gap-2">
             <input
@@ -408,7 +401,6 @@ export default function NewProposalPage() {
           </label>
         </div>
 
-        {/* Actions */}
         <div className="flex items-center justify-end gap-3">
           <Link
             href="/dashboard/proposals"

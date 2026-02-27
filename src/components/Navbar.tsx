@@ -35,7 +35,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-800/30 backdrop-blur-sm px-4 py-4 flex justify-between items-center">
-      {/* Left: Logo - double-click for admin access */}
+      {/* double-click for admin access */}
       <Link href="/" className="flex items-center gap-2" onDoubleClick={handleLogoDoubleClick}>
         <Image
           src="/logo.svg"
@@ -48,7 +48,6 @@ export default function Navbar() {
         />
       </Link>
 
-      {/* Desktop Nav */}
       <div className="hidden md:flex gap-6 text-white text-xl">
         {navItems.map((item) => (
           <Link
@@ -65,7 +64,6 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* CTA Buttons */}
       <div className="hidden md:flex items-center gap-4">
         <Link
           href="/portal/login"
@@ -81,7 +79,6 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* Hamburger Button */}
       <button
         className="md:hidden flex flex-col justify-center items-center w-10 h-10 z-[60]"
         onClick={toggleMenu}
@@ -112,7 +109,6 @@ export default function Navbar() {
         />
       </button>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div

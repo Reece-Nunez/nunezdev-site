@@ -45,15 +45,12 @@ export default function CombineInvoicesModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
         onClick={onCancel}
       />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden">
-        {/* Header */}
         <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -68,9 +65,7 @@ export default function CombineInvoicesModal({
           </div>
         </div>
 
-        {/* Content */}
         <div className="px-6 py-4 max-h-[50vh] overflow-y-auto">
-          {/* Client Info */}
           {client && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
               <p className="text-sm font-medium text-gray-700">Client</p>
@@ -79,7 +74,6 @@ export default function CombineInvoicesModal({
             </div>
           )}
 
-          {/* Invoice List */}
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700 mb-2">
               Invoices to combine ({invoices.length})
@@ -120,7 +114,6 @@ export default function CombineInvoicesModal({
             </div>
           </div>
 
-          {/* Combined Total */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-blue-900">Combined Total</span>
@@ -130,7 +123,6 @@ export default function CombineInvoicesModal({
             </div>
           </div>
 
-          {/* Warning */}
           <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <div className="flex gap-2">
               <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,7 +137,6 @@ export default function CombineInvoicesModal({
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-700">{error}</p>
@@ -153,7 +144,6 @@ export default function CombineInvoicesModal({
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
           <button
             type="button"

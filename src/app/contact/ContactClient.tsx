@@ -15,7 +15,6 @@ export default function ContactClient() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7 }}
             >
-                {/* Header */}
                 <div className="space-y-6">
                     <h1 className="text-4xl md:text-6xl font-bold text-yellow">
                         Let's Work Together
@@ -25,7 +24,6 @@ export default function ContactClient() {
                     </p>
                 </div>
 
-                {/* Call to Action */}
                 <motion.div
                     className="space-y-8"
                     initial={{ opacity: 0, y: 20 }}
@@ -63,7 +61,6 @@ export default function ContactClient() {
                     </div>
                 </motion.div>
 
-                {/* What to Expect */}
                 <motion.div
                     className="bg-gray-900/50 backdrop-blur border border-white/10 rounded-2xl p-8 max-w-2xl mx-auto"
                     initial={{ opacity: 0, y: 20 }}
@@ -91,7 +88,6 @@ export default function ContactClient() {
                     </div>
                 </motion.div>
 
-                {/* Alternative Contact */}
                 <motion.div
                     className="pt-8 border-t border-white/10"
                     initial={{ opacity: 0 }}
@@ -108,7 +104,6 @@ export default function ContactClient() {
                 </motion.div>
             </motion.div>
 
-            {/* Custom Booking Modal */}
             <CustomBooking
                 isOpen={isBookingOpen}
                 onClose={() => setIsBookingOpen(false)}

@@ -33,12 +33,10 @@ class ContactsService {
         return { success: false, error: 'Google Contacts not available' };
       }
 
-      // Parse name into given/family name
       const nameParts = input.name.trim().split(' ');
       const givenName = nameParts[0] || '';
       const familyName = nameParts.slice(1).join(' ') || '';
 
-      // Build contact resource
       const contactResource: any = {
         names: [
           {
@@ -107,12 +105,10 @@ class ContactsService {
         ? googleContactId
         : `people/${googleContactId}`;
 
-      // Parse name
       const nameParts = input.name.trim().split(' ');
       const givenName = nameParts[0] || '';
       const familyName = nameParts.slice(1).join(' ') || '';
 
-      // Build update resource
       const contactResource: any = {
         etag: currentEtag,
         names: [

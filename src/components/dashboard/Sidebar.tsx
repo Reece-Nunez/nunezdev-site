@@ -78,7 +78,6 @@ export default function Sidebar() {
           />
         )}
 
-        {/* Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-white border border-gray-200 rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-50 shadow-sm"
@@ -90,12 +89,10 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Notification Bell */}
       <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-3 py-2 border-b border-gray-100`}>
         <NotificationBell collapsed={isCollapsed} />
       </div>
 
-      {/* Main Navigation */}
       <nav className="p-2 space-y-1">
         {items.map((it) => {
           const Icon = it.icon;
@@ -158,7 +155,6 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Actions */}
       <div className="p-2 pt-3 space-y-2">
         <Link
           href="/dashboard/clients/new"

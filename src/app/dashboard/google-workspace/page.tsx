@@ -101,7 +101,6 @@ export default function GoogleWorkspacePage() {
     <div className="p-6 max-w-4xl">
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">Google Workspace</h1>
 
-      {/* Status Message */}
       {message && (
         <div
           className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
@@ -119,7 +118,6 @@ export default function GoogleWorkspacePage() {
         </div>
       )}
 
-      {/* Contacts Sync Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -167,7 +165,6 @@ export default function GoogleWorkspacePage() {
         )}
       </div>
 
-      {/* Export Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Export to Google Sheets</h2>
         <div className="grid grid-cols-2 gap-4">
@@ -200,7 +197,6 @@ export default function GoogleWorkspacePage() {
         </div>
       </div>
 
-      {/* Google Drive Section */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-2">Google Drive</h2>
         <p className="text-sm text-gray-500 mb-4">
@@ -212,7 +208,6 @@ export default function GoogleWorkspacePage() {
         </div>
       </div>
 
-      {/* Recent Sync Activity */}
       {syncStatus?.recentLogs && syncStatus.recentLogs.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Sync Activity</h2>

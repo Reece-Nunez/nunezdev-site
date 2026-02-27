@@ -216,7 +216,6 @@ export default function BusinessProfileClient() {
         </p>
       </div>
 
-      {/* General Information */}
       <section className="bg-white rounded-xl border shadow-sm">
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">General Information</h2>
@@ -349,7 +348,6 @@ export default function BusinessProfileClient() {
         </form>
       </section>
 
-      {/* Sensitive Information */}
       <section className="bg-white rounded-xl border border-amber-200 shadow-sm">
         <div className="px-6 py-4 border-b border-amber-100 bg-amber-50 rounded-t-xl">
           <h2 className="text-lg font-semibold text-gray-900">Sensitive Information</h2>
@@ -411,7 +409,6 @@ export default function BusinessProfileClient() {
         </form>
       </section>
 
-      {/* Bank Information */}
       <section className="bg-white rounded-xl border shadow-sm">
         <div className="px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Bank Information</h2>

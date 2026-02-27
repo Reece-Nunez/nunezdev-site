@@ -185,7 +185,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
-      {/* Payment Notification Banner */}
       {paymentNotification?.visible && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
           <div className="bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
@@ -205,7 +204,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
         </div>
       )}
 
-      {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -220,7 +218,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
               )}
             </p>
           </div>
-          {/* Quick Actions */}
           <div className="flex flex-wrap gap-2">
             <Link href="/dashboard/invoices/new" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,9 +249,7 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
         </div>
       </div>
 
-      {/* Key Metrics - 4 cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Revenue This Month */}
         <div
           className="bg-white rounded-xl border p-4 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => setModalOpen('thisMonth')}
@@ -269,7 +264,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
           </div>
         </div>
 
-        {/* Outstanding Balance */}
         <div
           className="bg-white rounded-xl border p-4 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => setModalOpen('outstanding')}
@@ -282,7 +276,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
           <div className="text-xs text-gray-500 mt-1">{outstandingInvoices.length} invoice{outstandingInvoices.length !== 1 ? 's' : ''}</div>
         </div>
 
-        {/* Total Revenue */}
         <div
           className="bg-white rounded-xl border p-4 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => setModalOpen('total')}
@@ -295,7 +288,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
           <div className="text-xs text-gray-500 mt-1">{allPayments.length} payment{allPayments.length !== 1 ? 's' : ''}</div>
         </div>
 
-        {/* Avg Payment Time */}
         <div className="bg-white rounded-xl border p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs sm:text-sm text-gray-500">Avg Payment Time</span>
@@ -306,11 +298,8 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
         </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Column - Overdue & Upcoming Invoices */}
         <div className="xl:col-span-2 space-y-6">
-          {/* Overdue Invoices Alert */}
           {overdueInvoices.length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
@@ -342,7 +331,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           )}
 
-          {/* Upcoming Invoices */}
           {upcomingInvoices.length > 0 && (
             <div className="bg-white border rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
@@ -374,13 +362,10 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           )}
 
-          {/* Charts */}
           <DashboardCharts />
         </div>
 
-        {/* Right Column - Top Clients & Recurring */}
         <div className="space-y-6">
-          {/* Business Stats */}
           <div className="bg-white border rounded-xl p-4">
             <h3 className="font-semibold text-gray-800 mb-3">Business Overview</h3>
             <div className="space-y-3">
@@ -403,7 +388,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           </div>
 
-          {/* Top Clients */}
           {topClients.length > 0 && (
             <div className="bg-white border rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
@@ -435,7 +419,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           )}
 
-          {/* Invoice Status Summary */}
           {invoiceStatusSummary.length > 0 && (
             <div className="bg-white border rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
@@ -503,7 +486,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           )}
 
-          {/* Recurring Invoices */}
           {recurringInvoices.length > 0 && (
             <div className="bg-white border rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
@@ -541,7 +523,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           )}
 
-          {/* Recent Activity */}
           <div className="bg-white border rounded-xl p-4">
             <h3 className="font-semibold text-gray-800 mb-2">Recent Activity</h3>
             {activityLoading ? (
@@ -576,7 +557,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
         </div>
       </div>
 
-      {/* Modals */}
       {modalOpen === 'thisMonth' && (
         <MetricDetailModal
           title="Revenue This Month"

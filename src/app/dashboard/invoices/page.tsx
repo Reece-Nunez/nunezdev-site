@@ -493,10 +493,8 @@ export default function DashboardInvoices() {
         </div>
       )}
 
-      {/* Analytics */}
       <InvoiceAnalytics invoices={rows as any} />
 
-      {/* Filters */}
       <div className="rounded-2xl border bg-white p-3 sm:p-4 space-y-3 w-full min-w-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <label className="text-sm min-w-0">
@@ -757,7 +755,6 @@ export default function DashboardInvoices() {
                 <td className="px-3 py-2">{r.issued_at ? new Date(r.issued_at).toLocaleDateString() : '—'}</td>
                 <td className="px-3 py-2">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</td>
 
-                {/* Signed column */}
                 <td className="px-3 py-2">
                   {r.signed_at ? new Date(r.signed_at).toLocaleDateString() : '—'}
                   {!r.signed_at && r.hosted_invoice_url && (
@@ -767,7 +764,6 @@ export default function DashboardInvoices() {
                   )}
                 </td>
 
-                {/* Stripe column */}
                 <td className="px-3 py-2">
                   {r.stripe_invoice_id ? (
                     <a
@@ -781,7 +777,6 @@ export default function DashboardInvoices() {
                   ) : '—'}
                 </td>
 
-                {/* Actions column */}
                 <td className="px-3 py-2">
                   <div className="flex items-center justify-center gap-2">
                     <a
@@ -808,7 +803,6 @@ export default function DashboardInvoices() {
       </div>
     </div>
 
-    {/* Combine Invoices Modal */}
     {showCombineModal && (
       <CombineInvoicesModal
         invoices={selectedInvoicesList.map(inv => ({

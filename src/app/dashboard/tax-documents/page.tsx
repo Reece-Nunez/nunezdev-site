@@ -127,7 +127,6 @@ export default function TaxDocumentsPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tax Documents</h1>
@@ -137,10 +136,8 @@ export default function TaxDocumentsPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="rounded-2xl border bg-white p-3 sm:p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Year Selector */}
           <label className="text-sm">
             <div className="text-gray-600 mb-1">Year</div>
             <select
@@ -154,7 +151,6 @@ export default function TaxDocumentsPage() {
             </select>
           </label>
 
-          {/* Search */}
           <label className="text-sm sm:col-span-2 lg:col-span-3">
             <div className="text-gray-600 mb-1">Search Clients</div>
             <input
@@ -167,7 +163,6 @@ export default function TaxDocumentsPage() {
           </label>
         </div>
 
-        {/* Bulk Actions */}
         {selectedClients.size > 0 && (
           <div className="flex items-center gap-3 pt-3 border-t">
             <span className="text-sm text-gray-600">
@@ -191,7 +186,6 @@ export default function TaxDocumentsPage() {
         )}
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
           <div className="text-xs text-gray-600">Clients with Invoices</div>
@@ -217,7 +211,6 @@ export default function TaxDocumentsPage() {
         </div>
       </div>
 
-      {/* Clients Table */}
       <div className="rounded-2xl border bg-white overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

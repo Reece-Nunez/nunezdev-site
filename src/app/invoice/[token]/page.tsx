@@ -169,7 +169,6 @@ export default function PublicInvoiceView() {
   return (
     <div className="min-h-screen bg-gray-50 py-0 sm:py-4 lg:py-8">
       <div className="w-full sm:max-w-5xl mx-auto px-0 sm:px-3 lg:px-4">
-        {/* Payment Success Message */}
         {paymentSuccess && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
@@ -184,9 +183,7 @@ export default function PublicInvoiceView() {
           </div>
         )}
         
-        {/* Invoice Container */}
         <div className="bg-white rounded-none sm:rounded-lg shadow-none sm:shadow-lg p-1 sm:p-4 lg:p-6 w-full max-w-none overflow-hidden relative">
-          {/* PAID Stamp Overlay */}
           {(invoice.status === 'paid' || paymentSuccess) && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <div 
@@ -201,7 +198,6 @@ export default function PublicInvoiceView() {
               </div>
             </div>
           )}
-          {/* Header with Logo/Branding */}
           <div className="border-b-4 pb-2 sm:pb-4 lg:pb-6 mb-4 sm:mb-6" style={{ borderColor: invoice.brand_primary || '#ffc312' }}>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start sm:gap-4">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -235,7 +231,6 @@ export default function PublicInvoiceView() {
             </div>
           </div>
 
-          {/* Invoice Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div>
               <h3 className="font-semibold mb-1 sm:mb-2 text-xs sm:text-sm" style={{ color: '#111111' }}>From:</h3>
@@ -267,7 +262,6 @@ export default function PublicInvoiceView() {
             </div>
           </div>
 
-          {/* Dates */}
           {(invoice.issued_at || invoice.due_at) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
               <div>
@@ -289,7 +283,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Invoice Title & Description */}
           {(invoice.title || invoice.description) && (
             <div className="mb-8">
               {invoice.title && (
@@ -303,7 +296,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Project Overview */}
           {(invoice as any).project_overview && (
             <div className="mb-8">
               <h3 className="text-xl font-semibold mb-2" style={{ color: '#111111' }}>
@@ -313,7 +305,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Project Dates */}
           {((invoice as any).project_start_date || (invoice as any).delivery_date) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-6 sm:mb-8">
               <div>
@@ -335,7 +326,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Line Items */}
           <div className="mb-6 sm:mb-8">
             {/* Desktop Table - hidden on small screens */}
             <div className="hidden sm:block overflow-x-auto">
@@ -389,7 +379,6 @@ export default function PublicInvoiceView() {
             </div>
           </div>
 
-          {/* Total */}
           <div className="border-t-2 border-gray-200 pt-4 mb-6 sm:mb-8">
             <div className="flex justify-end">
               <div className="w-full max-w-sm space-y-2 text-right">
@@ -411,7 +400,6 @@ export default function PublicInvoiceView() {
             </div>
           </div>
 
-          {/* Notes */}
           {invoice.notes && (
             <div className="mb-6 sm:mb-8">
               <h3 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Notes</h3>
@@ -419,7 +407,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Payment Terms */}
           <div className="mb-6 sm:mb-8">
             <h3 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Payment Terms</h3>
             <div className="text-gray-600">
@@ -427,7 +414,6 @@ export default function PublicInvoiceView() {
             </div>
           </div>
 
-          {/* Terms and Conditions */}
           {(invoice as any).terms_conditions && (
             <div className="mb-6 sm:mb-8">
               <h3 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Terms and Conditions</h3>
@@ -435,7 +421,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Payment Plan */}
           <PaymentPlanDisplay
             invoiceId={invoice.id}
             isPublic={true}
@@ -476,7 +461,6 @@ export default function PublicInvoiceView() {
             }}
           />
 
-          {/* Signature Section */}
           {invoice.signed_at ? (
             <div className="mt-8 pt-6 border-t border-gray-200">
               <h3 className="font-semibold text-gray-800 mb-2">Digital Signature</h3>
@@ -535,7 +519,6 @@ export default function PublicInvoiceView() {
             </div>
           )}
 
-          {/* Payment Completed Message */}
           {(invoice.status === 'paid' || paymentSuccess) && (
             <div className="mt-8 text-center">
               <div className="inline-flex items-center px-4 py-3 bg-green-100 border border-green-300 rounded-lg text-green-800">
@@ -548,7 +531,6 @@ export default function PublicInvoiceView() {
           )}
         </div>
 
-        {/* Footer */}
         <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-gray-500">
           <p>This is a secure invoice link. Do not share with unauthorized parties.</p>
         </div>

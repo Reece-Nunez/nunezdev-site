@@ -95,7 +95,6 @@ export default function InvoiceBuilderPreview({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-2 sm:p-4">
       <div className="w-full max-w-4xl max-h-[95vh] overflow-auto rounded-lg bg-white min-w-0">
-        {/* Modal Header */}
         <div className="sticky top-0 bg-white border-b p-3 sm:p-4 flex justify-between items-center">
           <h2 className="text-base sm:text-lg font-semibold">Invoice Preview</h2>
           <button
@@ -106,16 +105,13 @@ export default function InvoiceBuilderPreview({
           </button>
         </div>
 
-        {/* Invoice Preview Content */}
         <div className="p-3 sm:p-8">
           <div className="max-w-3xl mx-auto bg-white min-w-0">
-            {/* Header */}
             <div className="text-center mb-6 sm:mb-8">
               <h1 className="text-2xl sm:text-4xl font-bold truncate" style={{ color: '#111111' }}>INVOICE</h1>
               <h2 className="text-sm sm:text-xl text-gray-600 mt-2 px-2">{invoiceData.title || 'Custom Website Development Services'}</h2>
             </div>
 
-            {/* Client Information */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Client Information</h3>
               <div className="text-gray-700">
@@ -125,7 +121,6 @@ export default function InvoiceBuilderPreview({
               </div>
             </div>
 
-            {/* Invoice Details */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Invoice Details</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
@@ -167,7 +162,6 @@ export default function InvoiceBuilderPreview({
               </div>
             </div>
 
-            {/* Project Overview */}
             {invoiceData.project_overview && (
               <div className="mb-8">
                 <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Project Overview</h3>
@@ -175,7 +169,6 @@ export default function InvoiceBuilderPreview({
               </div>
             )}
 
-            {/* Service Details */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-4" style={{ color: '#111111' }}>Service Details</h3>
               
@@ -245,7 +238,6 @@ export default function InvoiceBuilderPreview({
               </div>
             </div>
 
-            {/* Totals */}
             <div className="border-t-2 border-gray-300 pt-4 mb-8">
               <div className="flex justify-end">
                 <div className="w-full max-w-md space-y-3">
@@ -273,7 +265,6 @@ export default function InvoiceBuilderPreview({
               </div>
             </div>
 
-            {/* Payment Plan */}
             {paymentPlan?.enabled && paymentPlan.installments.length > 1 && (
               <div className="mb-8">
                 <h3 className="text-lg font-semibold mb-4" style={{ color: '#111111' }}>Payment Schedule</h3>
@@ -337,7 +328,6 @@ export default function InvoiceBuilderPreview({
               </div>
             )}
 
-            {/* Technology Stack */}
             {invoiceData.technology_stack && invoiceData.technology_stack.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Technology Stack</h3>
@@ -353,7 +343,6 @@ export default function InvoiceBuilderPreview({
               </div>
             )}
 
-            {/* Terms & Conditions */}
             <div className="mb-8">
               <h3 className="text-lg font-semibold mb-3" style={{ color: '#111111' }}>Terms & Conditions</h3>
               <div className="space-y-2 text-gray-700 text-sm">
@@ -378,7 +367,6 @@ export default function InvoiceBuilderPreview({
               </div>
             </div>
 
-            {/* Thank You Section */}
             <div className="text-center py-6 border-t border-gray-200">
               <h3 className="text-lg font-semibold mb-2" style={{ color: invoiceData.brand_primary || '#ffc312' }}>
                 Thank you for choosing our development services!
@@ -391,7 +379,6 @@ export default function InvoiceBuilderPreview({
               </div>
             </div>
 
-            {/* Notes */}
             {invoiceData.notes && (
               <div className="mt-6 p-4 bg-gray-50 rounded">
                 <h4 className="font-semibold text-gray-800 mb-2">Additional Notes</h4>

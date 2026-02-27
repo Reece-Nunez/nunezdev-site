@@ -36,7 +36,6 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center text-offwhite  overflow-hidden">
       <ThreeBackground />
 
-      {/* Hero Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -77,7 +76,6 @@ export default function Home() {
         <div className="absolute -bottom left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-yellow to-white rounded-full animate-pulse mb-12" />
       </motion.div>
 
-      {/* Welcome Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -86,7 +84,6 @@ export default function Home() {
         className="relative mt-64 w-full max-w-4xl px-6 z-10"
       >
         <div className="mb-16 relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl">
-          {/* Avatar Floating In */}
           <motion.div
             variants={fadeInUp}
             className="mx-auto -mt-24 mb-4 w-40 h-40 rounded-full overflow-hidden border-4 border-yellow shadow-md bg-offwhite relative z-10"
@@ -130,7 +127,6 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* Services Section - Mobile Friendly */}
       <motion.section
         initial="hidden"
         whileInView="visible"
@@ -215,7 +211,6 @@ export default function Home() {
         </motion.div>
       </motion.section>
 
-      {/* Why Choose Reece Section - Mobile Friendly */}
       <motion.section
         initial="hidden"
         whileInView="visible"
@@ -300,8 +295,6 @@ export default function Home() {
         </motion.div>
       </motion.section>
 
-
-      {/* CTA After Why Choose Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"

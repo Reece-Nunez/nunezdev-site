@@ -74,7 +74,6 @@ export default function PortalUsersTab({
 
   return (
     <div className="space-y-4">
-      {/* Invite Button / Form */}
       <div>
         <button
           onClick={() => setShowInviteForm(!showInviteForm)}
@@ -148,7 +147,6 @@ export default function PortalUsersTab({
         )}
       </div>
 
-      {/* Users List */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">

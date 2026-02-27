@@ -290,7 +290,6 @@ export default function InvoiceBuilder({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Client & Basic Info */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Invoice Details</h2>
         
@@ -346,7 +345,6 @@ export default function InvoiceBuilder({
         </div>
       </div>
 
-      {/* AI Invoice Generator */}
       <div className="rounded-xl border bg-gradient-to-r from-purple-50 to-blue-50 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +426,6 @@ export default function InvoiceBuilder({
         </div>
       </div>
 
-      {/* Line Items */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Line Items</h2>
@@ -628,7 +625,6 @@ export default function InvoiceBuilder({
           ))}
         </div>
 
-        {/* Totals */}
         <div className="mt-4 border-t pt-4">
           <div className="flex justify-end">
             <div className="w-64 space-y-2">
@@ -660,7 +656,6 @@ export default function InvoiceBuilder({
         {errors.total && <p className="text-red-500 text-sm mt-2 text-right">{errors.total}</p>}
       </div>
 
-      {/* Project Details */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Project Details</h2>
         
@@ -700,7 +695,6 @@ export default function InvoiceBuilder({
         </div>
       </div>
 
-      {/* Discount Section */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Project Discount (Optional)</h2>
         
@@ -753,7 +747,6 @@ export default function InvoiceBuilder({
         </div>
       </div>
 
-      {/* Technology Stack */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Technology Stack</h2>
         
@@ -845,11 +838,9 @@ export default function InvoiceBuilder({
         </div>
       </div>
 
-      {/* Enhanced Terms & Conditions */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Terms & Conditions</h2>
-        
-        {/* Default Terms Preview */}
+
         <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
           <h3 className="text-sm font-semibold text-gray-800 mb-2">Default Terms (automatically included):</h3>
           <div className="text-sm text-gray-600 space-y-1">
@@ -882,7 +873,6 @@ Tip: Use bullet points with • or - for better formatting:
         </div>
       </div>
 
-      {/* Payment Plan */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <PaymentPlanBuilder
           totalAmountCents={total}
@@ -892,7 +882,6 @@ Tip: Use bullet points with • or - for better formatting:
         />
       </div>
 
-      {/* Payment Terms & Options */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Payment Terms & Options</h2>
         
@@ -952,7 +941,6 @@ Use bullet points for better formatting:
         </div>
       </div>
 
-      {/* Branding */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold mb-4">Invoice Branding</h2>
         
@@ -990,7 +978,6 @@ Use bullet points for better formatting:
           </div>
         </div>
 
-        {/* Brand Preview */}
         <div className="mt-6 p-4 border rounded-lg bg-gray-50">
           <h3 className="text-sm font-medium mb-3 text-gray-700">Preview</h3>
           <div className="flex items-center gap-3 p-4 bg-white rounded border-b-2" 
@@ -1016,7 +1003,6 @@ Use bullet points for better formatting:
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-3">
         <button
           type="button"
@@ -1057,7 +1043,6 @@ Use bullet points for better formatting:
         </button>
       </div>
 
-      {/* Preview Modal */}
       {showPreview && (
         <InvoiceBuilderPreview
           invoiceData={formData}

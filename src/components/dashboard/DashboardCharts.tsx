@@ -43,7 +43,6 @@ export default function DashboardCharts() {
 
   return (
     <div className="space-y-6">
-      {/* Yearly Revenue Summary */}
       {!isLoading && revenueByYear.length > 0 && (
         <div className="rounded-xl border bg-white">
           <div className="p-4 border-b">
@@ -103,7 +102,6 @@ export default function DashboardCharts() {
         </div>
       )}
 
-      {/* Expense Breakdown by Category */}
       {!isLoading && topExpenseCategories.length > 0 && (
         <div className="rounded-xl border bg-white">
           <div className="p-4 border-b flex items-center justify-between">
@@ -142,7 +140,6 @@ export default function DashboardCharts() {
         </div>
       )}
 
-      {/* Monthly Revenue */}
       <div className="rounded-xl border bg-white">
         <div className="p-4 border-b flex items-center justify-between">
           <h3 className="font-semibold text-gray-800">Monthly Revenue</h3>

@@ -83,7 +83,6 @@ export default function DebugApisPage() {
           </div>
 
           <div className="p-6">
-            {/* Category Filter */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by Category
@@ -100,7 +99,6 @@ export default function DebugApisPage() {
               </select>
             </div>
 
-            {/* Endpoints Grid */}
             <div className="grid gap-4 mb-6">
               {filteredEndpoints.map((endpoint) => (
                 <div key={endpoint.path} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -133,7 +131,6 @@ export default function DebugApisPage() {
               ))}
             </div>
 
-            {/* Response Display */}
             {response && (
               <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-auto max-h-96">
                 <pre>{response}</pre>

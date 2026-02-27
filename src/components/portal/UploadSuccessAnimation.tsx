@@ -24,7 +24,6 @@ export default function UploadSuccessAnimation({
       }}
     >
       <div className="relative">
-        {/* Sonar rings */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           initial={{ scale: 0, opacity: 0 }}
@@ -52,7 +51,6 @@ export default function UploadSuccessAnimation({
           <div className="w-24 h-24 rounded-full border-4 border-green-200" />
         </motion.div>
 
-        {/* Center circle with checkmark */}
         <motion.div
           className="relative w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-2xl"
           initial={{ scale: 0, rotate: -180 }}
@@ -86,7 +84,6 @@ export default function UploadSuccessAnimation({
         </motion.div>
       </div>
 
-      {/* Success text */}
       <motion.div
         className="absolute mt-40 text-center"
         initial={{ opacity: 0, y: 20 }}

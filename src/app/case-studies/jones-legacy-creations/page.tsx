@@ -18,7 +18,6 @@ export default function JonesLegacyCreationsCaseStudy() {
     <main className="flex min-h-screen flex-col items-center justify-start px-4 pt-32 text-left text-offwhite overflow-hidden">
       <ThreeBackground />
 
-      {/* Hero Section */}
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -42,10 +41,8 @@ export default function JonesLegacyCreationsCaseStudy() {
         </a>
       </motion.div>
 
-      {/* Main Content */}
       <div className="relative w-full max-w-4xl px-6 z-10 space-y-12">
 
-        {/* The Challenge */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -85,7 +82,6 @@ export default function JonesLegacyCreationsCaseStudy() {
           </p>
         </motion.section>
 
-        {/* Solution Overview */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -104,7 +100,6 @@ export default function JonesLegacyCreationsCaseStudy() {
           </p>
         </motion.section>
 
-        {/* Key Features */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -144,7 +139,6 @@ export default function JonesLegacyCreationsCaseStudy() {
           </div>
         </motion.section>
 
-        {/* Technology Stack */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -201,7 +195,6 @@ export default function JonesLegacyCreationsCaseStudy() {
           </p>
         </motion.section>
 
-        {/* Business Impact */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -256,7 +249,6 @@ export default function JonesLegacyCreationsCaseStudy() {
           </p>
         </motion.section>
 
-        {/* CTA Section */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -298,7 +290,6 @@ export default function JonesLegacyCreationsCaseStudy() {
           </div>
         </motion.section>
 
-        {/* Back to Case Studies */}
         <motion.div
           initial="hidden"
           whileInView="visible"

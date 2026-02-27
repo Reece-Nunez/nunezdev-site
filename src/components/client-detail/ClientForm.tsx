@@ -185,7 +185,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
       </div>
     </form>
       
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-md rounded-lg bg-white p-6">

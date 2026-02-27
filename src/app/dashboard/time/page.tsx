@@ -259,9 +259,7 @@ export default function TimeTrackingPage() {
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full">
         <h1 className="text-xl sm:text-2xl font-semibold">Time Tracking</h1>
 
-        {/* Timer Card */}
         <div className="bg-white rounded-xl border p-4 sm:p-6">
-          {/* Timer Display */}
           <div className="text-center mb-6">
             <div className={`text-5xl sm:text-6xl font-mono font-bold ${runningEntry ? 'text-emerald-600' : 'text-gray-400'}`}>
               {timerDisplay}
@@ -274,7 +272,6 @@ export default function TimeTrackingPage() {
             )}
           </div>
 
-          {/* Input Fields */}
           {!runningEntry && (
             <div className="space-y-3 mb-4">
               <input
@@ -348,7 +345,6 @@ export default function TimeTrackingPage() {
             </div>
           )}
 
-          {/* Timer Buttons */}
           <div className="flex items-center justify-center gap-4">
             {runningEntry ? (
               <button
@@ -376,7 +372,6 @@ export default function TimeTrackingPage() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white rounded-xl border p-3">
             <div className="text-xs text-gray-500">Today</div>
@@ -396,7 +391,6 @@ export default function TimeTrackingPage() {
           </div>
         </div>
 
-        {/* Generate Invoice Button */}
         {selectedEntries.size > 0 && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
             <span className="text-sm text-emerald-700">
@@ -412,7 +406,6 @@ export default function TimeTrackingPage() {
           </div>
         )}
 
-        {/* Time Entries List */}
         <div className="bg-white rounded-xl border overflow-hidden">
           <div className="px-4 py-3 border-b flex items-center justify-between">
             <h2 className="font-semibold">Recent Time Entries</h2>

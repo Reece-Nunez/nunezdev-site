@@ -554,7 +554,6 @@ export async function sendBusinessNotification(
   }
 
   try {
-    // Check if notifications are enabled for this type
     const supabase = supabaseAdmin();
     const { data: prefs } = await supabase
       .from('notification_preferences')
@@ -604,7 +603,6 @@ export async function sendClientNotification(
 
     console.log(`[notifications] Client notification sent: ${type} to ${data.client_email}`);
     
-    // Log the notification activity
     const supabase = supabaseAdmin();
     await supabase
       .from('client_activity_log')
@@ -643,7 +641,6 @@ export async function sendPaymentReceipt(data: PaymentReceiptData) {
 
     console.log(`[notifications] Payment receipt sent to ${data.client_email} for invoice ${data.invoice_number}`);
 
-    // Log the receipt activity
     const supabase = supabaseAdmin();
     await supabase
       .from('client_activity_log')
@@ -677,7 +674,6 @@ export async function sendUploadNotification(data: {
   }
 
   try {
-    // Check if notifications are enabled for this type
     const supabase = supabaseAdmin();
     const { data: prefs } = await supabase
       .from('notification_preferences')

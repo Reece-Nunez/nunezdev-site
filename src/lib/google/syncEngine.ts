@@ -91,7 +91,6 @@ class SyncEngine {
   ): Promise<void> {
     const now = new Date().toISOString();
 
-    // Build update object - only include fields that should be updated
     const updateData: Record<string, unknown> = {
       org_id: orgId,
       service,
@@ -133,7 +132,6 @@ class SyncEngine {
     };
 
     try {
-      // Get watermark for incremental sync
       const watermark = options.fullSync
         ? null
         : await this.getWatermark(options.orgId, 'contacts');
@@ -151,7 +149,7 @@ class SyncEngine {
       result.conflicts += pullResult.conflicts;
       result.errors.push(...pullResult.errors);
 
-      // Update watermark (always update timestamp, optionally sync token)
+
       await this.updateWatermark(
         options.orgId,
         'contacts',
@@ -206,7 +204,6 @@ class SyncEngine {
           });
 
           if (createResult.success && createResult.googleContactId) {
-            // Update local record with Google ID
             await supabase
               .from('clients')
               .update({
@@ -285,7 +282,6 @@ class SyncEngine {
     };
 
     try {
-      // Fetch contacts from Google
       const { contacts, nextSyncToken } = await contactsService.listContacts(
         1000,
         undefined,
@@ -469,7 +465,7 @@ class SyncEngine {
       this.getWatermark(orgId, 'drive'),
     ]);
 
-    // Get recent sync logs
+
     const { data: logs } = await supabase
       .from('google_sync_log')
       .select('entity_type, sync_direction, sync_status, synced_at')

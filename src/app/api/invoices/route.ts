@@ -26,13 +26,12 @@ async function requireAuthedOrgId() {
 function calculateInvoiceTotals(line_items: InvoiceLineItem[], discount_type?: string, discount_value?: number) {
   const subtotal_cents = line_items.reduce((sum, item) => sum + item.amount_cents, 0);
   
-  // Calculate discount
   let discount_cents = 0;
   if (discount_value && discount_value > 0) {
     if (discount_type === 'percentage') {
       discount_cents = Math.round(subtotal_cents * (discount_value / 100));
     } else if (discount_type === 'fixed') {
-      discount_cents = Math.round(discount_value * 100); // Convert to cents
+      discount_cents = Math.round(discount_value * 100);
     }
   }
   
@@ -63,7 +62,6 @@ async function createStripeInvoice(
 ) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-  // Get or create Stripe customer
   let customerId: string | undefined = client.stripe_customer_id ?? undefined;
   if (!customerId) {
     if (client.email) {
@@ -86,13 +84,12 @@ async function createStripeInvoice(
 
   const daysUntilDue = getPaymentTermsDays(invoiceData.payment_terms);
 
-  // Create draft invoice
   const draft = await stripe.invoices.create({
     customer: customerId!,
     collection_method: "send_invoice",
     days_until_due: daysUntilDue,
     description: invoiceData.description || undefined,
-    auto_advance: !invoiceData.send_immediately, // Don't auto-advance if sending immediately
+    auto_advance: !invoiceData.send_immediately,
     metadata: {
       orgId,
       clientId: client.id,
@@ -101,7 +98,6 @@ async function createStripeInvoice(
     },
   });
 
-  // Add line items to invoice
   for (const item of invoiceData.line_items) {
     await stripe.invoiceItems.create({
       customer: customerId!,
@@ -114,7 +110,6 @@ async function createStripeInvoice(
     });
   }
 
-  // Send invoice if requested
   let finalInvoice = draft;
   if (invoiceData.send_immediately) {
     finalInvoice = await stripe.invoices.sendInvoice(draft.id!);
@@ -123,26 +118,21 @@ async function createStripeInvoice(
   return { invoice: finalInvoice, customerId };
 }
 
-/** POST: Create a new invoice with line items */
 export async function POST(req: Request) {
   try {
     const invoiceData: CreateInvoiceData = await req.json();
 
-    // Validate required fields
     if (!invoiceData.client_id || !invoiceData.line_items || invoiceData.line_items.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Validate line items
     for (const item of invoiceData.line_items) {
       if (!item.description || item.quantity <= 0 || item.rate_cents <= 0) {
         return NextResponse.json({ error: "Invalid line item data" }, { status: 400 });
       }
-      // Ensure amount_cents is calculated correctly
       item.amount_cents = Math.round(item.quantity * item.rate_cents);
     }
 
-    // Calculate totals with discount
     const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
       invoiceData.line_items, 
       invoiceData.discount_type, 
@@ -153,12 +143,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invoice total must be greater than $0" }, { status: 400 });
     }
 
-    // Auth + org
     const gate = await requireAuthedOrgId();
     if (!gate.ok) return NextResponse.json(gate.json, { status: gate.status });
     const { supabase, orgId } = gate;
 
-    // Fetch client
     const { data: client, error: clientErr } = await supabase
       .from("clients")
       .select("id, name, email, stripe_customer_id")
@@ -170,16 +158,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
-    // Generate invoice number and access token
     const invoiceNumber = `INV-${Date.now()}`;
     const accessToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-    
-    // Determine due date
+
     const daysUntilDue = getPaymentTermsDays(invoiceData.payment_terms);
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + daysUntilDue);
 
-    // Create invoice in database first (as draft)
     const insertPayload = {
       org_id: orgId,
       client_id: client.id,
@@ -201,7 +186,6 @@ export async function POST(req: Request) {
       due_at: invoiceData.send_immediately ? dueDate.toISOString() : null,
       brand_logo_url: invoiceData.brand_logo_url,
       brand_primary: invoiceData.brand_primary,
-      // Enhanced invoice fields
       project_overview: invoiceData.project_overview,
       project_start_date: invoiceData.project_start_date,
       delivery_date: invoiceData.delivery_date,
@@ -227,9 +211,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: dbError.message }, { status: 400 });
     }
 
-    // Create payment plan installments if payment plan is enabled
     if (invoiceData.payment_plan_enabled && invoiceData.payment_plan_installments) {
-      // Check if installments already exist for this invoice
       const { data: existingInstallments } = await supabase
         .from("invoice_payment_plans")
         .select("id")
@@ -253,7 +235,6 @@ export async function POST(req: Request) {
 
         if (installmentsError) {
           console.error("Error creating payment plan installments:", installmentsError);
-          // Don't fail the entire invoice creation, just log the error
         }
       }
     }
@@ -261,7 +242,6 @@ export async function POST(req: Request) {
     let stripeInvoiceUrl = null;
     let agreementUrl = null;
 
-    // Create Stripe invoice if sending immediately
     if (invoiceData.send_immediately) {
       try {
         const { invoice: stripeInvoice } = await createStripeInvoice(
@@ -271,7 +251,6 @@ export async function POST(req: Request) {
           orgId
         );
 
-        // Update database with Stripe ID and URL
         await supabase
           .from("invoices")
           .update({ 
@@ -284,15 +263,12 @@ export async function POST(req: Request) {
         stripeInvoiceUrl = stripeInvoice.hosted_invoice_url;
       } catch (stripeError) {
         console.error("Stripe error:", stripeError);
-        // Don't fail the request - invoice is created locally
       }
     }
 
-    // Generate agreement URL if signature required (but don't override Stripe URL)
     if (invoiceData.require_signature) {
       agreementUrl = `/invoices/${dbInvoice.id}/agreement`;
-      
-      // Only update hosted_invoice_url if there's no Stripe URL
+
       if (!stripeInvoiceUrl) {
         await supabase
           .from("invoices")
@@ -319,7 +295,6 @@ export async function POST(req: Request) {
   }
 }
 
-/** GET: List all invoices with filtering */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const status = url.searchParams.get('status') || 'all';
@@ -341,7 +316,6 @@ export async function GET(req: Request) {
     .eq("org_id", gate.orgId)
     .order("created_at", { ascending: false });
 
-  // Apply filters
   if (status !== 'all') {
     query = query.eq('status', status);
   }
@@ -364,7 +338,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  // Apply search filter (client name or email)
   let filteredData = data || [];
   if (search) {
     const searchLower = search.toLowerCase();

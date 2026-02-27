@@ -10,7 +10,6 @@ export async function supabaseServer() {
   }
 
   try {
-    // Await the cookies() promise to get the cookieStore
     const cookieStore = await cookies();
     return createServerClient(url, anon, {
       cookies: {

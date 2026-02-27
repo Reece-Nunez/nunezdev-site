@@ -173,7 +173,6 @@ export default function RecurringInvoicesPage() {
 
   return (
     <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Recurring Invoices</h1>
@@ -212,7 +211,6 @@ export default function RecurringInvoicesPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
       {data && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border shadow-sm p-6">
@@ -246,7 +244,6 @@ export default function RecurringInvoicesPage() {
         </div>
       )}
 
-      {/* Filters */}
       <div className="bg-white rounded-xl border shadow-sm p-4">
         <div className="flex gap-4">
           <div>
@@ -266,7 +263,6 @@ export default function RecurringInvoicesPage() {
         </div>
       </div>
 
-      {/* Recurring Invoices List */}
       <div className="bg-white rounded-xl border shadow-sm">
         {data?.recurring_invoices && data.recurring_invoices.length > 0 ? (
           <div className="overflow-x-auto">
@@ -401,7 +397,6 @@ export default function RecurringInvoicesPage() {
         )}
       </div>
 
-      {/* Activity Log */}
       <div className="bg-white rounded-xl border shadow-sm">
         <button
           onClick={() => setShowLogs(!showLogs)}
@@ -477,7 +472,6 @@ export default function RecurringInvoicesPage() {
         )}
       </div>
 
-      {/* Create/Edit Modals */}
       {showCreateModal && (
         <CreateRecurringInvoiceModal
           today={today}
@@ -604,9 +598,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column */}
             <div className="space-y-4">
-              {/* Client Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Client <span className="text-red-500">*</span>
@@ -625,7 +617,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </select>
               </div>
 
-              {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Invoice Title <span className="text-red-500">*</span>
@@ -639,7 +630,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 />
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
@@ -652,7 +642,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 />
               </div>
 
-              {/* Frequency */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Frequency <span className="text-red-500">*</span>
@@ -669,7 +658,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </select>
               </div>
 
-              {/* Day of Month (for monthly) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Day of Month (for monthly billing)
@@ -685,7 +673,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 />
               </div>
 
-              {/* Dates */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -711,7 +698,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </div>
               </div>
 
-              {/* Payment Terms */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Payment Terms
@@ -728,7 +714,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </select>
               </div>
 
-              {/* Require Signature */}
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -742,7 +727,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
               </div>
             </div>
 
-            {/* Right Column - Line Items */}
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-lg font-medium text-gray-900">Line Items</h4>
@@ -793,7 +777,6 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 ))}
               </div>
 
-              {/* Total */}
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-medium text-gray-900">Total:</span>
@@ -893,7 +876,6 @@ function EditRecurringInvoiceModal({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -957,7 +939,6 @@ function EditRecurringInvoiceModal({
               </div>
             </div>
 
-            {/* Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Amount (USD)</label>
               <input
@@ -971,7 +952,6 @@ function EditRecurringInvoiceModal({
               />
             </div>
 
-            {/* Dates */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>

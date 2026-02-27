@@ -236,7 +236,6 @@ export default function FixStripePaymentPage() {
               Link a Stripe payment to an invoice in your system. Enter the payment intent ID from Stripe to get started.
             </p>
 
-            {/* Payment Intent Input */}
             <div className="mt-4 space-y-3">
               <div>
                 <label htmlFor="payment-intent" className="block text-sm font-medium text-gray-700">
@@ -290,7 +289,6 @@ export default function FixStripePaymentPage() {
                 </div>
               )}
 
-              {/* Payment Details Section */}
               {searchResult && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 p-4 bg-gray-50 rounded-lg">
                   <div>
@@ -343,7 +341,6 @@ export default function FixStripePaymentPage() {
 
             {searchResult && (
               <div className="space-y-6">
-                {/* Analysis Summary */}
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h3 className="font-semibold text-blue-900 mb-2">Analysis</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -359,7 +356,6 @@ export default function FixStripePaymentPage() {
                   </div>
                 </div>
 
-                {/* Existing Payment Records */}
                 {searchResult.search_results.existing_payment_records.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-3">✅ Existing Payment Records</h3>
@@ -377,7 +373,6 @@ export default function FixStripePaymentPage() {
                   </div>
                 )}
 
-                {/* Invoice with Payment Intent */}
                 {searchResult.search_results.invoice_with_payment_intent.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-3">🔗 Invoice Already Linked</h3>
@@ -410,7 +405,6 @@ export default function FixStripePaymentPage() {
                   </div>
                 )}
 
-                {/* Potential Matches */}
                 {searchResult.search_results.potential_invoice_matches.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-3">🎯 Potential Invoice Matches</h3>
@@ -418,7 +412,6 @@ export default function FixStripePaymentPage() {
                       Showing invoices and their remaining balance after applying ${searchResult.target_amount_usd} payment
                     </p>
 
-                    {/* Invoice Search/Filter */}
                     <div className="mb-4">
                       <label htmlFor="invoice-filter" className="block text-sm font-medium text-gray-700 mb-1">
                         Filter Invoices
@@ -478,7 +471,6 @@ export default function FixStripePaymentPage() {
                               <p><strong>Currently Paid:</strong> ${((invoice.total_paid_cents || 0) / 100).toFixed(2)}</p>
                               <p><strong>Current Balance Due:</strong> ${((invoice.remaining_balance_cents || 0) / 100).toFixed(2)}</p>
                               
-                              {/* Enhanced payment preview */}
                               <div className="mt-3 p-3 bg-gray-50 rounded border-l-4 border-blue-400">
                                 <p className="text-sm font-medium text-gray-800 mb-1">After applying ${searchResult.target_amount_usd} payment:</p>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -559,7 +551,6 @@ export default function FixStripePaymentPage() {
                   </div>
                 )}
 
-                {/* No matches found */}
                 {searchResult.search_results.potential_invoice_matches.length === 0 &&
                   !searchResult.analysis.payment_already_recorded && (
                     <div className="text-center py-8">

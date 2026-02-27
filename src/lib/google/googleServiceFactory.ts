@@ -98,7 +98,6 @@ class GoogleServiceFactory {
       const { google } = await import('googleapis');
       this.googleModule = google;
 
-      // Parse service account credentials
       const credentials = JSON.parse(serviceAccountKey);
 
       // Create JWT auth client with domain-wide delegation (impersonation)
@@ -109,7 +108,6 @@ class GoogleServiceFactory {
         subject: impersonationEmail, // This enables domain-wide delegation
       });
 
-      // Authorize the client
       await auth.authorize();
 
       this.authClient = auth;
@@ -132,12 +130,10 @@ class GoogleServiceFactory {
         return null;
       }
 
-      // Return cached client if available
       if (this.clients[serviceName]) {
         return this.clients[serviceName];
       }
 
-      // Create new client
       const config = SERVICE_CONFIGS[serviceName];
       const client = this.googleModule[serviceName]({
         version: config.version,
@@ -173,7 +169,6 @@ class GoogleServiceFactory {
     return this.getClient('tasks');
   }
 
-  // Check if a specific service is available
   isAvailable(): boolean {
     return !!(
       process.env.GOOGLE_SERVICE_ACCOUNT_KEY &&
@@ -181,7 +176,6 @@ class GoogleServiceFactory {
     );
   }
 
-  // Get initialization status
   getStatus(): { initialized: boolean; available: boolean } {
     return {
       initialized: this.isInitialized,
@@ -189,7 +183,6 @@ class GoogleServiceFactory {
     };
   }
 
-  // Reset for testing
   reset(): void {
     this.clients = {};
     this.googleModule = null;

@@ -282,13 +282,11 @@ export default function PricingClient() {
 
   return (
     <main className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
-      {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-blue-600/20 to-transparent rounded-full blur-3xl" />
         <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-gradient-to-tl from-purple-600/20 to-transparent rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-r from-yellow-500/5 via-transparent to-yellow-500/5" />
 
-        {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -299,7 +297,6 @@ export default function PricingClient() {
       </div>
 
       <div className="relative z-10 py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -332,7 +329,6 @@ export default function PricingClient() {
           </p>
         </motion.div>
 
-        {/* Category Tabs */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -370,7 +366,6 @@ export default function PricingClient() {
           })}
         </motion.div>
 
-        {/* Section Header */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeCategory + "-header"}
@@ -387,7 +382,6 @@ export default function PricingClient() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Pricing Cards */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeCategory}
@@ -419,7 +413,6 @@ export default function PricingClient() {
                     }
                   `}
                 >
-                  {/* Popular Badge */}
                   {plan.popular && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2 z-20">
                       <div className="bg-yellow text-brand-black text-xs font-bold px-4 py-1 rounded-b-lg">
@@ -428,12 +421,9 @@ export default function PricingClient() {
                     </div>
                   )}
 
-                  {/* Card Content */}
                   <div className="relative bg-[#12121a] rounded-2xl p-6 h-full flex flex-col">
-                    {/* Glow effect on hover */}
                     <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl bg-gradient-to-br ${plan.accent} blur-xl -z-10`} style={{ transform: 'scale(0.9)' }} />
 
-                    {/* Header */}
                     <div className="mb-6">
                       <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${plan.accent} mb-4`}>
                         <Icon className="w-6 h-6 text-white" />
@@ -448,7 +438,6 @@ export default function PricingClient() {
                       </div>
                     </div>
 
-                    {/* Features */}
                     <ul className="space-y-3 flex-grow mb-6">
                       {plan.features.map((feature, idx) => (
                         <motion.li
@@ -466,7 +455,6 @@ export default function PricingClient() {
                       ))}
                     </ul>
 
-                    {/* CTA Button */}
                     <a
                       href="/contact"
                       className={`
@@ -486,7 +474,6 @@ export default function PricingClient() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -508,7 +495,6 @@ export default function PricingClient() {
           </div>
         </motion.div>
 
-        {/* Trust indicators */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}

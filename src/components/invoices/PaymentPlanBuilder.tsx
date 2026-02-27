@@ -252,7 +252,6 @@ export default function PaymentPlanBuilder({
       <div>
         <h3 className="text-lg font-semibold mb-4">Payment Plan</h3>
 
-        {/* Payment Plan Type Selection */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
           {[
             { value: 'full', label: 'Full Payment' },
@@ -276,14 +275,12 @@ export default function PaymentPlanBuilder({
         </div>
       </div>
 
-      {/* Payment Plan Details */}
       {localPlan.enabled && (
         <div className="space-y-4">
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-medium">Payment Installments</h4>
               <div className="flex items-center gap-2">
-                {/* Input Mode Toggle */}
                 {localPlan.type === 'custom' && (
                   <>
                     <div className="flex rounded border border-gray-300 overflow-hidden text-xs">
@@ -426,7 +423,6 @@ export default function PaymentPlanBuilder({
               ))}
             </div>
 
-            {/* Summary */}
             <div className="mt-4 p-3 bg-blue-50 rounded">
               <div className="flex justify-between text-sm">
                 <span>Total Invoice:</span>

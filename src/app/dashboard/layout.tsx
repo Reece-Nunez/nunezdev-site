@@ -16,17 +16,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <DashboardClient>
       <div className="min-h-screen bg-gray-100">
-        {/* Mobile Navigation */}
         <MobileNavigation />
-        
-        {/* Desktop Layout */}
+
         <div className="flex">
-          {/* Desktop Sidebar - hidden on mobile */}
           <div className="hidden lg:block">
             <Sidebar />
           </div>
-          
-          {/* Main Content */}
+
           <main className="flex-1 pt-32 lg:pt-6 max-w-full overflow-hidden">
             {children}
           </main>

@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
 
-// Only initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 interface SendInvoiceEmailParams {
@@ -24,7 +23,6 @@ export async function sendInvoiceEmail({
   dueDate,
   requiresSignature
 }: SendInvoiceEmailParams) {
-  // If no Resend API key, just log the email content and return success
   if (!resend) {
     console.log('📧 EMAIL WOULD BE SENT:');
     console.log(`To: ${to}`);
@@ -256,7 +254,6 @@ export async function sendInvoiceEmail({
       html,
     };
 
-    // Add CC recipients if provided
     if (cc && cc.length > 0) {
       emailOptions.cc = cc;
     }

@@ -251,7 +251,6 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
           className="bg-gray-900 rounded-2xl border border-offwhite/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
-          {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-offwhite/10">
             <h2 className="text-2xl font-bold text-yellow">Schedule a Meeting</h2>
             <button
@@ -262,7 +261,6 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
             </button>
           </div>
 
-          {/* Content */}
           <div className="p-6">
             {step === 'select-type' && (
               <motion.div
@@ -556,7 +554,6 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
         </motion.div>
       </motion.div>
 
-      {/* Toast notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </AnimatePresence>
   );

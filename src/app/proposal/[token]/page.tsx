@@ -162,7 +162,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -185,7 +184,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
             </div>
           </div>
 
-          {/* Status Banner */}
           {isAccepted && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2 text-emerald-700">
@@ -215,7 +213,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           )}
         </div>
 
-        {/* Line Items */}
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
           <h2 className="font-semibold text-lg mb-4">Scope of Work</h2>
           <table className="w-full">
@@ -256,7 +253,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           </table>
         </div>
 
-        {/* Project Details */}
         {(proposal.project_overview || proposal.project_start_date || proposal.technology_stack) && (
           <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
             <h2 className="font-semibold text-lg mb-4">Project Details</h2>
@@ -292,7 +288,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           </div>
         )}
 
-        {/* Terms */}
         {proposal.terms_conditions && (
           <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
             <h2 className="font-semibold text-lg mb-4">Terms & Conditions</h2>
@@ -300,7 +295,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           </div>
         )}
 
-        {/* Signature Section */}
         {showSignature && canAct && (
           <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
             <h2 className="font-semibold text-lg mb-4">Sign to Accept</h2>
@@ -347,7 +341,6 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           </div>
         )}
 
-        {/* Actions */}
         {canAct && (
           <div className="bg-white rounded-xl shadow-sm border p-6">
             {actionError && (
@@ -375,13 +368,11 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           </div>
         )}
 
-        {/* Footer */}
         <div className="text-center text-sm text-gray-500 mt-8">
           Powered by <span className="font-medium">NunezDev</span>
         </div>
       </div>
 
-      {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
