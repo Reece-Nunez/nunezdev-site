@@ -312,11 +312,17 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       const { data: invoiceDetails } = await supabase
         .from('invoices')
         .select(`
+          org_id,
+          client_id,
           invoice_number,
           clients!inner(name, email)
         `)
         .eq('id', invoiceId)
         .single();
+
+      // Fallback: use org_id/client_id from invoice if not in payment intent metadata
+      const effectiveOrgId = orgId || invoiceDetails?.org_id;
+      const effectiveClientId = clientId || invoiceDetails?.client_id;
 
       // Get installment details if this was an installment payment
       let installmentLabel = 'Payment';
@@ -378,7 +384,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         .from('client_activity_log')
         .insert({
           invoice_id: invoiceId,
-          client_id: clientId,
+          client_id: effectiveClientId,
           activity_type: 'payment_completed',
           activity_data: {
             amount_cents: paymentIntent.amount,
@@ -388,11 +394,11 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         });
 
       // Create in-app notification
-      if (orgId && invoiceDetails) {
+      if (effectiveOrgId && invoiceDetails) {
         const clientName = (invoiceDetails.clients as any).name;
         const amountFmt = `$${(paymentIntent.amount / 100).toFixed(2)}`;
         createNotification({
-          orgId,
+          orgId: effectiveOrgId,
           type: 'invoice_paid',
           title: `Payment received from ${clientName}`,
           body: `${invoiceDetails.invoice_number}${installmentLabel ? ` - ${installmentLabel}` : ''} - ${amountFmt}`,
@@ -401,14 +407,14 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       }
 
       // Emit realtime event for SSE subscribers
-      if (orgId) {
+      if (effectiveOrgId) {
         await supabase
           .from('realtime_events')
           .insert({
-            org_id: orgId,
+            org_id: effectiveOrgId,
             event_type: installmentId ? 'installment_paid' : 'payment_received',
             invoice_id: invoiceId,
-            client_id: clientId,
+            client_id: effectiveClientId,
             event_data: {
               invoice_id: invoiceId,
               invoice_number: invoiceDetails?.invoice_number,

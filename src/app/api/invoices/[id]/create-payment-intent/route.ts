@@ -59,6 +59,7 @@ export async function POST(
     let description = `Invoice ${invoice.invoice_number || invoice.id.split('-')[0]}`;
     let metadata: Record<string, string> = {
       invoice_id: invoice.id,
+      org_id: invoice.org_id,
       client_id: invoice.client_id,
       invoice_number: invoice.invoice_number || '',
       client_email: invoice.clients?.email || '',
