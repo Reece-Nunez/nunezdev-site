@@ -2,8 +2,8 @@
 
 import { TypewriterText } from "@/components/Typewriter";
 import { motion, Variants } from "framer-motion";
-import Image from "next/image";
 import ScrollCue from "@/components/ScrollCue";
+import ParticleLogo from "@/components/ParticleLogo";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -29,15 +29,8 @@ export default function Hero() {
         variants={stagger}
         className="flex flex-col items-center space-y-8"
       >
-        <motion.div variants={fadeInUp}>
-          <Image
-            src="/n-logo.svg"
-            alt="NunezDev logo"
-            width={120}
-            height={120}
-            priority
-            className="mx-auto drop-shadow-lg"
-          />
+        <motion.div variants={fadeInUp} className="flex justify-center">
+          <ParticleLogo src="/n-logo-big.svg" width={280} height={280} />
         </motion.div>
 
         <motion.h1

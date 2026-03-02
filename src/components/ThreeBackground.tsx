@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 
 function ParticleField({ burst }: { burst: boolean }) {
   const ref = useRef<THREE.Points>(null);
+  const matRef = useRef<THREE.PointsMaterial>(null);
   const count = 8000;
   const originalPositions = useRef<Float32Array | null>(null);
   const burstStart = useRef<number | null>(null);
@@ -33,6 +34,11 @@ function ParticleField({ burst }: { burst: boolean }) {
 
     // Idle spin
     if (ref.current) ref.current.rotation.y += 0.0013;
+
+    // Breathing glow — oscillate particle size
+    if (matRef.current) {
+      matRef.current.size = 0.08 + Math.sin(performance.now() * 0.001) * 0.02;
+    }
 
     if (burstStart.current !== null) {
       const elapsed = performance.now() - burstStart.current;
@@ -74,12 +80,13 @@ function ParticleField({ burst }: { burst: boolean }) {
   return (
     <points ref={ref} geometry={geometry}>
       <pointsMaterial
+        ref={matRef}
         color="#5b7c99"
-        size={0.05}
+        size={0.08}
         sizeAttenuation
         transparent
         blending={THREE.AdditiveBlending}
-        opacity={0.8}
+        opacity={1.0}
         depthWrite={false}
         map={texture}
         alphaTest={0.1}
