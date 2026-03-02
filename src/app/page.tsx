@@ -1,10 +1,9 @@
 "use client";
 
-import { TypewriterText } from "@/components/Typewriter";
 import { motion } from "framer-motion";
 import ThreeBackground from "@/components/ThreeBackground";
 import Image from "next/image";
-import ScrollCue from "@/components/ScrollCue";
+import Hero from "@/components/Hero";
 import { Variants } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -33,55 +32,17 @@ const fadeInUp: Variants = {
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 text-center text-offwhite  overflow-hidden">
+    <main className="flex min-h-screen flex-col items-center text-center text-offwhite overflow-hidden">
       <ThreeBackground />
 
-      <motion.div
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.4 }}
-        variants={fadeInUp}
-        className="space-y-6 mb-28"
-      >
-        <h1 className="text-yellow text-4xl md:text-6xl font-bold mt-64">
-          <TypewriterText />
-        </h1>
-
-        <motion.p
-          variants={fadeInUp}
-          className="max-w-xl text-yellow mx-auto text-lg md:text-xl"
-        >
-          I build full-stack websites, dashboards, and internal tools that help
-          small businesses run smoother.
-        </motion.p>
-
-        <motion.div
-          variants={fadeInUp}
-          className="flex justify-center gap-4 pt-6"
-        >
-          <a
-            href="/pricing"
-            className="text-lg text-white border border-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-blue hover:text-gray-800 transition"
-          >
-            View Pricing
-          </a>
-          <a
-            href="/contact"
-            className="text-lg text-white border border-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-gray-800 hover:text-blue transition"
-          >
-            Contact Me
-          </a>
-        </motion.div>
-
-        <div className="absolute -bottom left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-yellow to-white rounded-full animate-pulse mb-12" />
-      </motion.div>
+      <Hero />
 
       <motion.div
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.4 }}
         variants={fadeInUp}
-        className="relative mt-64 w-full max-w-4xl px-6 z-10"
+        className="relative w-full max-w-4xl px-6 z-10 py-24"
       >
         <div className="mb-16 relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl">
           <motion.div
@@ -132,7 +93,7 @@ export default function Home() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
         variants={fadeInUp}
-        className="relative mt-64 w-full px-6 z-10"
+        className="relative w-full px-6 z-10 py-24"
       >
         <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-10 text-center">
           What I Can Build For You
@@ -216,7 +177,7 @@ export default function Home() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
         variants={fadeInUp}
-        className="relative mt-64 w-full px-6 z-10"
+        className="relative w-full px-6 z-10 py-24"
       >
         <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-10 text-center">
           Why Choose Reece?
@@ -325,7 +286,6 @@ export default function Home() {
         </div>
       </motion.div>
 
-      <ScrollCue />
     </main>
   );
 }

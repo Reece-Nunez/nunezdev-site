@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Montserrat, Roboto } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk, Lora } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import StructuredData from "@/components/StructuredData";
@@ -17,13 +17,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const roboto = Roboto ({
-  variable: "--font-roboto",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
-const montserrat = Montserrat ({
-  variable: "--font-montserrat",
+const lora = Lora({
+  variable: "--font-lora",
   subsets: ["latin"],
 });
 
@@ -129,7 +129,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body
-        className={`${roboto.variable} ${montserrat.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
+        className={`${spaceGrotesk.variable} ${lora.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
         <Navbar />
         <Providers>{children}</Providers>
