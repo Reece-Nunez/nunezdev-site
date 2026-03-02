@@ -20,6 +20,7 @@ import {
   ChevronDownIcon,
   PlusIcon,
   DocumentArrowDownIcon,
+  DocumentChartBarIcon,
   CalendarIcon,
   CloudArrowUpIcon,
   Cog6ToothIcon,
@@ -36,6 +37,7 @@ const items = [
   { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices', icon: ArrowPathIcon },
   { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
   { href: '/dashboard/tax-documents', label: 'Tax Documents', icon: DocumentArrowDownIcon },
+  { href: '/dashboard/client-reports', label: 'Client Reports', icon: DocumentChartBarIcon },
   { href: '/dashboard/client-portal', label: 'Client Portal', icon: CloudArrowUpIcon },
   { href: '/dashboard/settings', label: 'Business Profile', icon: Cog6ToothIcon },
 ];
