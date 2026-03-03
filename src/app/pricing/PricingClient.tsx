@@ -313,7 +313,7 @@ export default function PricingClient() {
             <span className="text-sm font-medium text-yellow">Transparent Pricing</span>
           </motion.div>
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-6">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
               Invest in Your
             </span>

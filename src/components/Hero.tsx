@@ -30,12 +30,17 @@ export default function Hero() {
         className="flex flex-col items-center space-y-8"
       >
         <motion.div variants={fadeInUp} className="flex justify-center">
-          <ParticleLogo src="/n-logo-big.svg" width={280} height={280} />
+          <div className="hidden sm:block">
+            <ParticleLogo src="/n-logo-big.svg" width={280} height={280} />
+          </div>
+          <div className="block sm:hidden">
+            <ParticleLogo src="/n-logo-big.svg" width={160} height={160} />
+          </div>
         </motion.div>
 
         <motion.h1
           variants={fadeInUp}
-          className="text-yellow text-5xl md:text-7xl font-bold tracking-tight leading-tight"
+          className="text-yellow text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-tight"
         >
           Code That Builds
           <br />
@@ -44,7 +49,7 @@ export default function Hero() {
 
         <motion.div
           variants={fadeInUp}
-          className="text-white/90 text-2xl md:text-3xl font-medium h-10"
+          className="text-white/90 text-lg sm:text-2xl md:text-3xl font-medium h-8 sm:h-10"
         >
           <TypewriterText />
         </motion.div>
@@ -63,13 +68,13 @@ export default function Hero() {
         >
           <a
             href="/pricing"
-            className="bg-yellow text-blue font-semibold px-8 py-3.5 rounded-lg shadow hover:bg-yellow/80 transition-all text-lg"
+            className="bg-yellow text-blue font-semibold px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg shadow hover:bg-yellow/80 transition-all text-base sm:text-lg"
           >
             View Pricing
           </a>
           <a
             href="/contact"
-            className="text-lg text-white border border-white/40 px-8 py-3.5 rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition"
+            className="text-base sm:text-lg text-white border border-white/40 px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition"
           >
             Contact Me
           </a>

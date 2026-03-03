@@ -85,9 +85,9 @@ export default function Footer() {
           hidden: {},
           visible: { transition: { staggerChildren: 0.1 } },
         }}
-        className="max-w-7xl mx-auto px-6 pt-16 pb-12"
+        className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-10 sm:pb-12"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-8">
           {/* Brand column */}
           <motion.div variants={fadeInUp} className="lg:col-span-1">
             <button

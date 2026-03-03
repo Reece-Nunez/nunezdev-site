@@ -50,7 +50,7 @@ export default function Portfolio() {
         </motion.p>
         <motion.h1
           variants={fadeInUp}
-          className="text-yellow text-4xl md:text-6xl font-bold tracking-tight mb-6"
+          className="text-yellow text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6"
         >
           Work That Speaks for Itself
         </motion.h1>
@@ -107,7 +107,7 @@ export default function Portfolio() {
           }}
           className="relative w-full max-w-5xl z-10 mb-16"
         >
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 hover:border-yellow/30 transition-all duration-300">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 hover:border-yellow/30 transition-all duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div className="text-left">
                 <motion.span
@@ -255,7 +255,7 @@ export default function Portfolio() {
         }}
         className="w-full max-w-5xl z-10 mb-12"
       >
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12">
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12">
           <motion.h3
             variants={fadeInUp}
             className="text-2xl md:text-3xl font-bold text-yellow mb-8 text-center"

@@ -55,7 +55,7 @@ export default function AboutClient() {
         </motion.p>
         <motion.h1
           variants={fadeInUp}
-          className="text-yellow text-4xl md:text-6xl font-bold tracking-tight mb-6"
+          className="text-yellow text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6"
         >
           Meet Reece Nunez
         </motion.h1>
@@ -78,14 +78,14 @@ export default function AboutClient() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.15 } },
           }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-10 md:p-16"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 sm:p-10 md:p-16"
         >
           <div className="flex flex-col md:flex-row gap-10 md:gap-16 items-center md:items-start">
             <motion.div
               variants={fadeInUp}
               className="flex flex-col items-center shrink-0"
             >
-              <div className="w-44 h-44 rounded-full overflow-hidden border-4 border-yellow animate-pulse-glow">
+              <div className="w-32 sm:w-40 md:w-44 h-32 sm:h-40 md:h-44 rounded-full overflow-hidden border-4 border-yellow animate-pulse-glow">
                 <Image
                   src="/reece-avatar.png"
                   alt="Reece Nunez"
@@ -138,7 +138,7 @@ export default function AboutClient() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.12 } },
           }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12"
         >
           <motion.h2
             variants={fadeInUp}
@@ -193,7 +193,7 @@ export default function AboutClient() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.12 } },
           }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12"
         >
           <motion.h2
             variants={fadeInUp}
@@ -226,7 +226,7 @@ export default function AboutClient() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             Who I Work With
@@ -249,7 +249,7 @@ export default function AboutClient() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.04 } },
           }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12"
         >
           <motion.h2
             variants={fadeInUp}

@@ -98,7 +98,7 @@ export default function ContactClient() {
         </motion.p>
         <motion.h1
           variants={fadeInUp}
-          className="text-yellow text-4xl md:text-6xl font-bold tracking-tight mb-6"
+          className="text-yellow text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6"
         >
           Let&apos;s Build Something Great
         </motion.h1>
@@ -121,7 +121,7 @@ export default function ContactClient() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.1 } },
           }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 text-center"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 text-center"
         >
           <motion.div
             variants={fadeInUp}

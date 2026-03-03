@@ -43,16 +43,16 @@ export default function Home() {
           hidden: {},
           visible: { transition: { staggerChildren: 0.15 } },
         }}
-        className="relative w-full max-w-5xl px-6 z-10 py-24"
+        className="relative w-full max-w-5xl px-4 sm:px-6 z-10 py-16 sm:py-24"
       >
-        <div className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-10 md:p-16 shadow-xl">
-          <div className="flex flex-col md:flex-row gap-10 md:gap-16 items-center md:items-start">
+        <div className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 sm:p-10 md:p-16 shadow-xl">
+          <div className="flex flex-col md:flex-row gap-8 md:gap-16 items-center md:items-start">
             {/* Left — Avatar */}
             <motion.div
               variants={fadeInUp}
               className="flex flex-col items-center shrink-0"
             >
-              <div className="w-44 h-44 rounded-full overflow-hidden border-4 border-yellow shadow-[0_0_30px_rgba(255,195,18,0.3)] animate-pulse-glow">
+              <div className="w-32 sm:w-40 md:w-44 h-32 sm:h-40 md:h-44 rounded-full overflow-hidden border-4 border-yellow shadow-[0_0_30px_rgba(255,195,18,0.3)] animate-pulse-glow">
                 <Image
                   src="/reece-avatar.png"
                   alt="Reece Nunez"
@@ -81,7 +81,7 @@ export default function Home() {
 
               <motion.h2
                 variants={fadeInUp}
-                className="text-3xl md:text-4xl font-bold text-yellow mb-6 tracking-tight"
+                className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow mb-6 tracking-tight"
               >
                 Built Different.
                 <br />
@@ -127,7 +127,7 @@ export default function Home() {
           hidden: {},
           visible: { transition: { staggerChildren: 0.1 } },
         }}
-        className="relative w-full max-w-6xl px-6 z-10 py-24"
+        className="relative w-full max-w-6xl px-4 sm:px-6 z-10 py-16 sm:py-24"
       >
         <motion.p
           variants={fadeInUp}
@@ -137,7 +137,7 @@ export default function Home() {
         </motion.p>
         <motion.h2
           variants={fadeInUp}
-          className="text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+          className="text-2xl sm:text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
         >
           What I Can Build For You
         </motion.h2>
@@ -212,7 +212,7 @@ export default function Home() {
           hidden: {},
           visible: { transition: { staggerChildren: 0.1 } },
         }}
-        className="relative w-full max-w-6xl px-6 z-10 py-24"
+        className="relative w-full max-w-6xl px-4 sm:px-6 z-10 py-16 sm:py-24"
       >
         <motion.p
           variants={fadeInUp}
@@ -222,7 +222,7 @@ export default function Home() {
         </motion.p>
         <motion.h2
           variants={fadeInUp}
-          className="text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+          className="text-2xl sm:text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
         >
           Why Choose Reece?
         </motion.h2>
@@ -328,7 +328,7 @@ export default function Home() {
           hidden: {},
           visible: { transition: { staggerChildren: 0.1 } },
         }}
-        className="relative w-full max-w-6xl px-6 z-10 py-24"
+        className="relative w-full max-w-6xl px-4 sm:px-6 z-10 py-16 sm:py-24"
       >
         <motion.p
           variants={fadeInUp}
@@ -338,7 +338,7 @@ export default function Home() {
         </motion.p>
         <motion.h2
           variants={fadeInUp}
-          className="text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+          className="text-2xl sm:text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
         >
           Recent Projects
         </motion.h2>
@@ -355,7 +355,7 @@ export default function Home() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.08 } },
           }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
         >
           {projects.slice(0, 4).map((project) => (
             <motion.div

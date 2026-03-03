@@ -26,7 +26,7 @@ export default function GoldmanFinancialCaseStudy() {
         variants={fadeInUp}
         className="space-y-6 mb-16 max-w-4xl text-center"
       >
-        <h1 className="text-yellow text-3xl md:text-5xl font-bold leading-tight">
+        <h1 className="text-yellow text-2xl sm:text-3xl md:text-5xl font-bold leading-tight">
           Goldman Financial: A Modern Financial Services Platform
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
@@ -49,7 +49,7 @@ export default function GoldmanFinancialCaseStudy() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             The Challenge: A Paper-Heavy Process in a Digital World
@@ -88,7 +88,7 @@ export default function GoldmanFinancialCaseStudy() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             The Solution: A Full Digital Platform
@@ -106,7 +106,7 @@ export default function GoldmanFinancialCaseStudy() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             Key Features Delivered
@@ -150,7 +150,7 @@ export default function GoldmanFinancialCaseStudy() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             Technology Behind the Scenes
@@ -216,7 +216,7 @@ export default function GoldmanFinancialCaseStudy() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 shadow-xl hover:border-yellow/30 transition-all duration-300"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             Business Impact: Results That Matter
@@ -270,7 +270,7 @@ export default function GoldmanFinancialCaseStudy() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
           variants={fadeInUp}
-          className="bg-gradient-to-r from-yellow/10 to-yellow/5 backdrop-blur-sm border border-yellow/50 rounded-2xl p-8 md:p-12 shadow-xl text-center"
+          className="bg-gradient-to-r from-yellow/10 to-yellow/5 backdrop-blur-sm border border-yellow/50 rounded-2xl p-5 sm:p-8 md:p-12 shadow-xl text-center"
         >
           <h2 className="text-2xl md:text-3xl font-bold text-yellow mb-6">
             Ready to Transform Your Business?

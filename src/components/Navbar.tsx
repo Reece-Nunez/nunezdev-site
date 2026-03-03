@@ -360,7 +360,7 @@ export default function Navbar() {
                           setMobileServicesOpen(!mobileServicesOpen)
                         }
                         className={cn(
-                          "text-3xl font-medium tracking-wide transition-colors duration-200 flex items-center gap-2",
+                          "text-2xl sm:text-3xl font-medium tracking-wide transition-colors duration-200 flex items-center gap-2",
                           isActive ? "text-yellow" : "text-white/80"
                         )}
                       >
@@ -434,7 +434,7 @@ export default function Navbar() {
                       href={item.href}
                       onClick={() => setIsOpen(false)}
                       className={cn(
-                        "text-3xl font-medium tracking-wide transition-colors duration-200",
+                        "text-2xl sm:text-3xl font-medium tracking-wide transition-colors duration-200",
                         isActive ? "text-yellow" : "text-white/80"
                       )}
                     >

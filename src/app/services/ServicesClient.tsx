@@ -38,7 +38,7 @@ export default function ServicesClient() {
         </motion.p>
         <motion.h1
           variants={fadeInUp}
-          className="text-yellow text-4xl md:text-6xl font-bold tracking-tight mb-6"
+          className="text-yellow text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6"
         >
           Full-Stack Development Services
         </motion.h1>

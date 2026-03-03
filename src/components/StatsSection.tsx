@@ -68,15 +68,15 @@ export default function StatsSection() {
         hidden: {},
         visible: { transition: { staggerChildren: 0.1 } },
       }}
-      className="w-full max-w-5xl z-10 grid grid-cols-2 md:grid-cols-4 gap-6 px-6"
+      className="w-full max-w-5xl z-10 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 px-4 sm:px-6"
     >
       {stats.map((stat) => (
         <motion.div
           key={stat.label}
           variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 sm:p-6 text-center"
         >
-          <div className="text-yellow text-3xl md:text-4xl font-bold mb-1">
+          <div className="text-yellow text-2xl sm:text-3xl md:text-4xl font-bold mb-1">
             <AnimatedCounter target={stat.value} suffix={stat.suffix} />
           </div>
           <div className="text-white/50 text-sm">{stat.label}</div>
