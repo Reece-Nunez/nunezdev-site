@@ -18,12 +18,12 @@ select
   coalesce(sum(case when i.status in ('sent','paid','overdue','partially_paid') then i.amount_cents else 0 end), 0) as total_invoiced_cents,
   coalesce(sum(coalesce(p.total_payments, 0)), 0) as total_paid_cents,
   coalesce(sum(case when i.status in ('sent','overdue','partially_paid') then i.amount_cents else 0 end), 0)
-    - coalesce(sum(coalesce(p.total_payments, 0)), 0) as balance_due_cents,
+    - coalesce(sum(case when i.status in ('sent','overdue','partially_paid') then coalesce(p.total_payments, 0) else 0 end), 0) as balance_due_cents,
   coalesce(sum(case when i.status = 'draft' then i.amount_cents else 0 end), 0) as draft_invoiced_cents
 from clients c
 left join invoices i on i.client_id = c.id
 left join (
-  select 
+  select
     ip.invoice_id,
     sum(ip.amount_cents) as total_payments
   from invoice_payments ip

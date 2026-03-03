@@ -58,8 +58,8 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <aside className={`${isCollapsed ? 'w-16' : 'w-56'} shrink-0 border-r bg-white h-screen sticky top-0 transition-all duration-300`}>
-      <div className={`${isCollapsed ? 'p-3' : 'p-6'} flex items-center justify-center border-b border-gray-100 relative`}>
+    <aside className={`${isCollapsed ? 'w-16' : 'w-56'} shrink-0 border-r bg-white h-screen sticky top-0 transition-all duration-300 flex flex-col`}>
+      <div className={`${isCollapsed ? 'p-3' : 'p-6'} flex items-center justify-center border-b border-gray-100 relative shrink-0`}>
         {!isCollapsed ? (
           <Image
             src="/logo.png"
@@ -91,10 +91,11 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-3 py-2 border-b border-gray-100`}>
+      <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-3 py-2 border-b border-gray-100 shrink-0`}>
         <NotificationBell collapsed={isCollapsed} />
       </div>
 
+      <div className="flex-1 overflow-y-auto">
       <nav className="p-2 space-y-1">
         {items.map((it) => {
           const Icon = it.icon;
@@ -156,8 +157,9 @@ export default function Sidebar() {
           )}
         </div>
       )}
+      </div>
 
-      <div className="p-2 pt-3 space-y-2">
+      <div className="p-2 pt-3 space-y-2 shrink-0 border-t border-gray-100">
         <Link
           href="/dashboard/clients/new"
           className={`w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-3 py-2 text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${

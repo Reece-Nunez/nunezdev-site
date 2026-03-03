@@ -35,7 +35,8 @@ export async function POST(
           id,
           name,
           email,
-          company
+          company,
+          stripe_customer_id
         )
       `)
       .eq("id", invoiceId)
@@ -100,6 +101,34 @@ export async function POST(
       metadata.installment_number = inst.installment_number.toString();
     }
 
+    // --- Get or create Stripe customer for card saving ---
+    let customerId: string | undefined = invoice.clients?.stripe_customer_id ?? undefined;
+    if (!customerId && invoice.clients) {
+      // Try to find existing Stripe customer by email
+      if (invoice.clients.email) {
+        try {
+          const found = await stripe.customers.search({ query: `email:'${invoice.clients.email}'`, limit: 1 });
+          customerId = found.data[0]?.id;
+        } catch {
+          /* ignore search errors */
+        }
+      }
+      // Create new Stripe customer if none found
+      if (!customerId) {
+        const created = await stripe.customers.create({
+          email: invoice.clients.email ?? undefined,
+          name: invoice.clients.name ?? undefined,
+          metadata: { orgId: invoice.org_id, app_client_id: invoice.clients.id },
+        });
+        customerId = created.id;
+      }
+      // Persist stripe_customer_id back to client
+      await supabase
+        .from("clients")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", invoice.client_id);
+    }
+
     // --- Try to reuse an existing payment intent from the DB ---
     const existingIntentId = installment
       ? installment.stripe_payment_intent_id
@@ -109,7 +138,8 @@ export async function POST(
       try {
         const existing = await stripe.paymentIntents.retrieve(existingIntentId);
 
-        if (REUSABLE_STATUSES.has(existing.status) && existing.amount === amount) {
+        const customerMatch = !customerId || existing.customer === customerId;
+        if (REUSABLE_STATUSES.has(existing.status) && existing.amount === amount && customerMatch) {
           console.log(`[create-payment-intent] Reusing existing intent ${existing.id} for invoice ${invoiceId}`);
           return NextResponse.json({
             clientSecret: existing.client_secret,
@@ -118,9 +148,9 @@ export async function POST(
           });
         }
 
-        // If the amount changed, cancel the stale intent and create a fresh one
-        if (REUSABLE_STATUSES.has(existing.status) && existing.amount !== amount) {
-          console.log(`[create-payment-intent] Canceling stale intent ${existing.id} (amount mismatch: ${existing.amount} vs ${amount})`);
+        // If the amount or customer changed, cancel the stale intent and create a fresh one
+        if (REUSABLE_STATUSES.has(existing.status) && (existing.amount !== amount || !customerMatch)) {
+          console.log(`[create-payment-intent] Canceling stale intent ${existing.id} (amount: ${existing.amount} vs ${amount}, customer match: ${customerMatch})`);
           await stripe.paymentIntents.cancel(existing.id);
         }
       } catch (retrieveError: any) {
@@ -133,6 +163,8 @@ export async function POST(
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: 'usd',
+      ...(customerId && { customer: customerId }),
+      setup_future_usage: 'off_session',
       description,
       metadata,
       automatic_payment_methods: {

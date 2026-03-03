@@ -9,6 +9,7 @@ import EditInvoice from '@/components/client-detail/EditInvoice';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import { useToast } from '@/components/ui/Toast';
 import PaymentPlanDisplay from '@/components/invoices/PaymentPlanDisplay';
+import ChargeCardModal from '@/components/payments/ChargeCardModal';
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents';
 import type { InvoiceLite } from '@/types/client_detail';
 
@@ -120,6 +121,7 @@ export default function InvoiceDetailPage() {
   const [showSendModal, setShowSendModal] = useState(false);
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [ccInput, setCcInput] = useState('');
+  const [showChargeModal, setShowChargeModal] = useState(false);
   const { showToast, ToastContainer } = useToast();
 
   const { data: invoice, error, mutate } = useSWR<Invoice>(
@@ -322,7 +324,17 @@ export default function InvoiceDetailPage() {
             {(invoice.remaining_balance_cents !== undefined && invoice.remaining_balance_cents > 0) && (
               <div>
                 <label className="text-sm font-medium text-gray-600">Remaining Balance</label>
-                <div className="text-lg font-semibold text-amber-600">{currency(invoice.remaining_balance_cents)}</div>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-semibold text-amber-600">{currency(invoice.remaining_balance_cents)}</span>
+                  {!invoice.payment_plan_enabled && invoice.status !== 'paid' && (
+                    <button
+                      onClick={() => setShowChargeModal(true)}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                    >
+                      Charge Card
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             {invoice.payment_plan_enabled && invoice.payment_plan_type && (
@@ -767,6 +779,20 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
       )}
+      {/* Charge Saved Card Modal (for non-payment-plan invoices) */}
+      {showChargeModal && invoice.client_id && invoice.remaining_balance_cents && (
+        <ChargeCardModal
+          clientId={invoice.client_id}
+          invoiceId={invoice.id}
+          amountCents={invoice.remaining_balance_cents}
+          label={invoice.invoice_number || `Invoice #${invoice.id.split('-')[0]}`}
+          onCharged={() => {
+            mutate();
+            setShowChargeModal(false);
+          }}
+          onClose={() => setShowChargeModal(false)}
+        />
+      )}
     </div>
     </>
   );
@@ -973,8 +999,9 @@ function InvoicePreviewContent({ invoice }: { invoice: Invoice }) {
         </div>
       </div>
 
-      <PaymentPlanDisplay 
-        invoiceId={invoice.id} 
+      <PaymentPlanDisplay
+        invoiceId={invoice.id}
+        clientId={invoice.client_id}
         isPublic={false}
         className="mb-8"
       />

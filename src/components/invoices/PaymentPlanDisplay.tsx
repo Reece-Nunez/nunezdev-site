@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import ChargeCardModal from '@/components/payments/ChargeCardModal';
 
 interface PaymentInstallment {
   id: string;
@@ -17,6 +18,7 @@ interface PaymentInstallment {
 
 interface PaymentPlanDisplayProps {
   invoiceId: string;
+  clientId?: string; // Required for admin charge card functionality
   isPublic?: boolean; // Whether this is being viewed by the client (public) or owner (private)
   accessToken?: string; // Access token for public access
   onPaymentClick?: (installment: PaymentInstallment) => void;
@@ -28,6 +30,7 @@ interface PaymentPlanDisplayProps {
 
 export default function PaymentPlanDisplay({
   invoiceId,
+  clientId,
   isPublic = false,
   accessToken,
   onPaymentClick,
@@ -40,6 +43,7 @@ export default function PaymentPlanDisplay({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [recalculating, setRecalculating] = useState(false);
+  const [chargingInstallment, setChargingInstallment] = useState<PaymentInstallment | null>(null);
 
   useEffect(() => {
     fetchPaymentPlan();
@@ -257,8 +261,17 @@ export default function PaymentPlanDisplay({
                   </div>
                 )}
 
+                {!isPublic && clientId && installment.status === 'pending' && (
+                  <button
+                    onClick={() => setChargingInstallment(installment)}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                  >
+                    Charge Card
+                  </button>
+                )}
+
                 {installment.status === 'pending' && !installment.stripe_payment_link_url && !isPublic && (
-                  <button 
+                  <button
                     className="text-sm text-blue-600 hover:text-blue-800"
                     onClick={() => generatePaymentLinks()}
                   >
@@ -295,6 +308,22 @@ export default function PaymentPlanDisplay({
             </span>
           </div>
         </div>
+      )}
+
+      {/* Charge Saved Card Modal */}
+      {chargingInstallment && clientId && (
+        <ChargeCardModal
+          clientId={clientId}
+          invoiceId={invoiceId}
+          amountCents={chargingInstallment.amount_cents}
+          installmentId={chargingInstallment.id}
+          label={chargingInstallment.installment_label}
+          onCharged={() => {
+            fetchPaymentPlan();
+            setChargingInstallment(null);
+          }}
+          onClose={() => setChargingInstallment(null)}
+        />
       )}
 
       {/* Signature Required Notice - only show if signature is required but not completed */}

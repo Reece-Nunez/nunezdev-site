@@ -450,6 +450,26 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   } else {
     console.warn(`[stripe-webhook] could not match payment intent ${paymentIntent.id} to any invoice`);
   }
+
+  // Track card-on-file consent when a card is saved for future use
+  if (paymentIntent.setup_future_usage === 'off_session' && paymentIntent.customer) {
+    try {
+      const consentStripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      const custId = typeof paymentIntent.customer === 'string'
+        ? paymentIntent.customer
+        : paymentIntent.customer.id;
+      await consentStripe.customers.update(custId, {
+        metadata: {
+          card_on_file_consent: 'true',
+          card_on_file_consent_date: new Date().toISOString(),
+          card_on_file_consent_source: 'invoice_payment',
+        },
+      });
+      console.log(`[stripe-webhook] Updated card-on-file consent for customer ${custId}`);
+    } catch (consentErr) {
+      console.warn('[stripe-webhook] Failed to update card-on-file consent:', consentErr);
+    }
+  }
 }
 
 async function handleChargeSucceeded(charge: Stripe.Charge, stripe: Stripe) {
@@ -596,6 +616,7 @@ export async function POST(req: Request) {
       "payment_intent.succeeded",
       "payment_intent.payment_failed",
       "charge.succeeded",
+      "checkout.session.completed",
     ]);
 
     if (!interesting.has(event.type)) {
@@ -604,6 +625,48 @@ export async function POST(req: Request) {
     }
 
     console.log("[stripe-webhook] Processing event:", event.type);
+
+    // Handle checkout session completed (payment link payments carry metadata here, not on payment_intent)
+    if (event.type === "checkout.session.completed") {
+      console.log('[stripe-webhook] Handling checkout.session.completed');
+      const session = event.data.object as Stripe.Checkout.Session;
+      const sessionMetadata = session.metadata || {};
+      const installmentId = sessionMetadata.installment_id;
+
+      if (installmentId) {
+        const supabase = supabaseAdmin();
+        const { error: installmentError } = await supabase
+          .from('invoice_payment_plans')
+          .update({
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            stripe_payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
+          })
+          .eq('id', installmentId);
+
+        if (!installmentError) {
+          console.log(`[stripe-webhook] checkout.session.completed: updated installment ${installmentId} as paid`);
+        } else {
+          console.error('[stripe-webhook] checkout.session.completed: failed to update installment:', installmentError);
+        }
+      }
+
+      // Also propagate metadata to the payment intent so payment_intent.succeeded can find the invoice
+      if (session.payment_intent && sessionMetadata.invoice_id) {
+        try {
+          const piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
+          await stripe.paymentIntents.update(piId, {
+            metadata: sessionMetadata,
+          });
+          console.log(`[stripe-webhook] checkout.session.completed: propagated metadata to payment intent ${piId}`);
+        } catch (metaErr) {
+          console.warn('[stripe-webhook] checkout.session.completed: failed to propagate metadata:', metaErr);
+        }
+      }
+
+      console.log('[stripe-webhook] checkout.session.completed handled successfully');
+      return NextResponse.json({ ok: true });
+    }
 
     // Handle payment intents (for HubSpot quote payments)
     if (event.type === "payment_intent.succeeded") {
