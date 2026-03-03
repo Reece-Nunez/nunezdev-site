@@ -16,6 +16,7 @@ import {
   faThumbsUp,
 } from "@fortawesome/free-solid-svg-icons";
 import { services } from "@/data/services";
+import { projects } from "@/data/projects";
 import StatsSection from "@/components/StatsSection";
 
 const fadeInUp: Variants = {
@@ -314,6 +315,102 @@ export default function Home() {
             >
               Learn More About Me
             </a>
+          </motion.div>
+        </motion.div>
+      </motion.section>
+
+      {/* Recent Projects */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.1 } },
+        }}
+        className="relative w-full max-w-6xl px-6 z-10 py-24"
+      >
+        <motion.p
+          variants={fadeInUp}
+          className="text-yellow/70 text-sm uppercase tracking-widest font-medium text-center mb-2"
+        >
+          Portfolio
+        </motion.p>
+        <motion.h2
+          variants={fadeInUp}
+          className="text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+        >
+          Recent Projects
+        </motion.h2>
+        <motion.p
+          variants={fadeInUp}
+          className="text-white/50 text-base md:text-lg text-center max-w-2xl mx-auto mb-14"
+        >
+          A look at some of the custom solutions I&apos;ve built for businesses
+          across the country.
+        </motion.p>
+
+        <motion.div
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.08 } },
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
+          {projects.slice(0, 4).map((project) => (
+            <motion.div
+              key={project.slug}
+              variants={fadeInUp}
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <Link
+                href={`/portfolio/${project.slug}`}
+                className="block h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden text-left hover:border-yellow/50 hover:shadow-[0_0_25px_rgba(255,195,18,0.15)] transition-all duration-300 group"
+              >
+                <div className="h-2 bg-gradient-to-r from-yellow to-yellow/40" />
+                <div className="p-6">
+                  <span className="text-yellow/60 text-xs font-semibold uppercase tracking-wider">
+                    {project.category}
+                  </span>
+                  <h3 className="text-white font-semibold text-lg mt-2 mb-3 group-hover:text-yellow transition-colors">
+                    {project.title}
+                  </h3>
+                  <p className="text-white/60 text-sm leading-relaxed mb-4">
+                    {project.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {project.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-yellow/10 text-yellow/80 px-2 py-1 rounded-full border border-yellow/20"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-yellow text-sm font-medium">
+                    View Project &rarr;
+                  </span>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.div variants={fadeInUp} className="text-center mt-12">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="inline-block"
+          >
+            <Link
+              href="/portfolio"
+              className="inline-block bg-yellow text-gray-900 font-semibold px-7 py-3 rounded-lg shadow hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
+            >
+              View Full Portfolio
+            </Link>
           </motion.div>
         </motion.div>
       </motion.section>
