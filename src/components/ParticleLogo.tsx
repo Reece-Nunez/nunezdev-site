@@ -61,6 +61,9 @@ export default function ParticleLogo({ src, width, height }: ParticleLogoProps) 
             const r = data[i];
             const g = data[i + 1];
             const b = data[i + 2];
+            // Detect warm (yellow) vs cool (blue) pixels from the original image
+            const warmth = (r + g) / 2 - b;
+            const color = warmth > 30 ? "#ffc312" : "#5b7c99";
             particles.push({
               originX: x + padding,
               originY: y + padding,
@@ -68,7 +71,7 @@ export default function ParticleLogo({ src, width, height }: ParticleLogoProps) 
               y: y + padding,
               vx: 0,
               vy: 0,
-              color: `rgb(${r},${g},${b})`,
+              color,
               size: 2 + Math.random() * 1.5,
             });
           }
@@ -196,7 +199,7 @@ export default function ParticleLogo({ src, width, height }: ParticleLogoProps) 
         // Draw with glow
         ctx.save();
         ctx.shadowBlur = 6;
-        ctx.shadowColor = "#ffc312";
+        ctx.shadowColor = p.color;
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         ctx.restore();

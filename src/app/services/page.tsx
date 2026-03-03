@@ -4,16 +4,16 @@ import ServicesClient from './ServicesClient';
 export const metadata = {
     title: "Custom Web & Software Development Services | NunezDev",
     description:
-        "Full-stack web development services tailored for business growth. From starter websites to advanced CRM dashboards and client portals — NunezDev builds it all, from scratch.",
+        "Custom full-stack web development services — websites, web apps, dashboards, APIs, automation, and ongoing support. Hand-coded, no templates.",
     keywords: [
-        "web development services Oklahoma",
+        "full-stack web development services",
         "custom website development",
-        "small business website design",
-        "web app developer Ponca City",
-        "CRM development",
+        "web application developer",
+        "API development services",
+        "dashboard development",
         "client portal software",
         "Next.js developer services",
-        "NunezDev service packages"
+        "NunezDev services"
     ],
     alternates: {
         canonical: "https://www.nunezdev.com/services",

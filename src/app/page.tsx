@@ -3,16 +3,11 @@
 import { motion } from "framer-motion";
 import ThreeBackground from "@/components/ThreeBackground";
 import Image from "next/image";
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import { Variants } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faLaptopCode,
-  faCubes,
-  faChartBar,
-  faCogs,
-  faArrowTrendUp,
-  faShieldAlt,
   faBolt,
   faHandshake,
   faWrench,
@@ -20,6 +15,8 @@ import {
   faLightbulb,
   faThumbsUp,
 } from "@fortawesome/free-solid-svg-icons";
+import { services } from "@/data/services";
+import StatsSection from "@/components/StatsSection";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -37,222 +34,287 @@ export default function Home() {
 
       <Hero />
 
-      <motion.div
+      <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.4 }}
-        variants={fadeInUp}
-        className="relative w-full max-w-4xl px-6 z-10 py-24"
+        viewport={{ once: true, amount: 0.3 }}
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.15 } },
+        }}
+        className="relative w-full max-w-5xl px-6 z-10 py-24"
       >
-        <div className="mb-16 relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-8 md:p-12 shadow-xl">
-          <motion.div
-            variants={fadeInUp}
-            className="mx-auto -mt-24 mb-4 w-40 h-40 rounded-full overflow-hidden border-4 border-yellow shadow-md bg-offwhite relative z-10"
-          >
-            <Image
-              src="/reece-avatar.png"
-              alt="Reece Nunez"
-              width={160}
-              height={160}
-              className="object-cover w-full h-full"
-              loading="lazy"
-            />
-          </motion.div>
-
-          <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-6 tracking-tight mt-20">
-            Welcome to NunezDev
-          </h2>
-
-          <p className="text-white text-base md:text-lg leading-loose">
-            I’m{" "}
-            <span className="relative inline-block font-semibold text-yellow hover:animate-pulse">
-              Reece Nunez
-              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-yellow animate-glow" />
-            </span>{" "}
-            — a full-stack developer, small business owner, and
-            solutions-focused builder. I founded NunezDev to help businesses
-            like yours go beyond templates and launch with purpose-built tools.
-            Whether it’s a blazing-fast website, a dashboard to manage
-            operations, or automation to save time — I craft systems that make
-            your work life easier.
-          </p>
-
-          <div className="mt-8">
-            <a
-              href="/about"
-              className="inline-block bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+        <div className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-10 md:p-16 shadow-xl">
+          <div className="flex flex-col md:flex-row gap-10 md:gap-16 items-center md:items-start">
+            {/* Left — Avatar */}
+            <motion.div
+              variants={fadeInUp}
+              className="flex flex-col items-center shrink-0"
             >
-              Learn More About Me →
-            </a>
+              <div className="w-44 h-44 rounded-full overflow-hidden border-4 border-yellow shadow-[0_0_30px_rgba(255,195,18,0.3)] animate-pulse-glow">
+                <Image
+                  src="/reece-avatar.png"
+                  alt="Reece Nunez"
+                  width={176}
+                  height={176}
+                  className="object-cover w-full h-full"
+                  loading="lazy"
+                />
+              </div>
+              <h3 className="text-yellow font-bold text-xl mt-4">
+                Reece Nunez
+              </h3>
+              <p className="text-white/60 text-sm tracking-wide uppercase">
+                Full-Stack Developer
+              </p>
+            </motion.div>
+
+            {/* Right — Content */}
+            <div className="flex flex-col text-center md:text-left">
+              <motion.p
+                variants={fadeInUp}
+                className="text-yellow/70 text-sm uppercase tracking-widest font-medium mb-2"
+              >
+                Meet the developer behind NunezDev
+              </motion.p>
+
+              <motion.h2
+                variants={fadeInUp}
+                className="text-3xl md:text-4xl font-bold text-yellow mb-6 tracking-tight"
+              >
+                Built Different.
+                <br />
+                Built to Last.
+              </motion.h2>
+
+              <motion.p
+                variants={fadeInUp}
+                className="text-white/80 text-base md:text-lg leading-relaxed mb-8"
+              >
+                I founded NunezDev to help businesses go beyond templates and
+                launch with purpose-built tools. Whether it&apos;s a blazing-fast
+                website, a dashboard to manage operations, or automation to save
+                time — I craft systems that make your work life easier.
+              </motion.p>
+
+              <motion.div
+                variants={fadeInUp}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                className="self-center md:self-start"
+              >
+                <a
+                  href="/about"
+                  className="inline-block bg-yellow text-gray-900 font-semibold px-7 py-3 rounded-lg shadow hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
+                >
+                  Learn More About Me
+                </a>
+              </motion.div>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </motion.section>
+
+      <StatsSection />
 
       <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={fadeInUp}
-        className="relative w-full px-6 z-10 py-24"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.1 } },
+        }}
+        className="relative w-full max-w-6xl px-6 z-10 py-24"
       >
-        <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-10 text-center">
+        <motion.p
+          variants={fadeInUp}
+          className="text-yellow/70 text-sm uppercase tracking-widest font-medium text-center mb-2"
+        >
+          Services
+        </motion.p>
+        <motion.h2
+          variants={fadeInUp}
+          className="text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+        >
           What I Can Build For You
-        </h2>
+        </motion.h2>
+        <motion.p
+          variants={fadeInUp}
+          className="text-white/50 text-base md:text-lg text-center max-w-2xl mx-auto mb-14"
+        >
+          From concept to launch — every project is custom-built for your
+          business.
+        </motion.p>
+
+        <motion.div
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.08 } },
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {services.map((service) => (
+            <motion.div
+              key={service.slug}
+              variants={fadeInUp}
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <Link
+                href={`/services/${service.slug}`}
+                className="block h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-left hover:border-yellow/50 hover:shadow-[0_0_25px_rgba(255,195,18,0.15)] transition-all duration-300"
+              >
+                <div className="w-12 h-12 rounded-full bg-yellow/10 flex items-center justify-center mb-5">
+                  <FontAwesomeIcon
+                    icon={service.icon}
+                    className="text-yellow text-xl"
+                  />
+                </div>
+                <h3 className="text-white font-semibold text-lg mb-2">
+                  {service.title}
+                </h3>
+                <p className="text-white/60 text-sm leading-relaxed">
+                  {service.shortDescription}
+                </p>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
 
         <motion.div
           variants={fadeInUp}
-          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl"
+          className="text-center mt-12"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-white">
-            {[
-              {
-                icon: faLaptopCode,
-                title: "Custom Websites",
-                description:
-                  "Modern, fast websites built with Next.js & Tailwind. Perfect for marketing or service-based businesses.",
-              },
-              {
-                icon: faCubes,
-                title: "DIY Website Setup",
-                description:
-                  "I’ll build your site in WordPress or Framer and hand it off with full training so you stay in control.",
-              },
-              {
-                icon: faChartBar,
-                title: "Dashboards & Portals",
-                description:
-                  "Custom tools like lead trackers, quote builders, or client portals — tailored to your workflow.",
-              },
-              {
-                icon: faCogs,
-                title: "Automation & Integration",
-                description:
-                  "Stripe, AWS, Zapier, Supabase — I hook up the tech that powers your operations behind the scenes.",
-              },
-              {
-                icon: faArrowTrendUp,
-                title: "SEO & Growth Support",
-                description:
-                  "From local SEO to meta tags and review integration — get found online with smart optimization.",
-              },
-              {
-                icon: faShieldAlt,
-                title: "Ongoing Support",
-                description:
-                  "Monthly care plans to keep your site secure, updated, and evolving with your business.",
-              },
-            ].map((service) => (
-              <motion.div
-                key={service.title}
-                variants={fadeInUp}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
-              >
-                <FontAwesomeIcon
-                  icon={service.icon}
-                  className="text-yellow text-3xl mb-4"
-                />
-                <h3 className="text-yellow font-semibold text-xl mb-2">
-                  {service.title}
-                </h3>
-                <p className="text-base leading-relaxed">{service.description}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="inline-block"
+          >
             <a
               href="/services"
-              className="inline-block bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+              className="inline-block bg-yellow text-gray-900 font-semibold px-7 py-3 rounded-lg shadow hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
             >
-              See Full Service Breakdown →
+              See Full Service Breakdown
             </a>
-          </div>
+          </motion.div>
         </motion.div>
       </motion.section>
 
       <motion.section
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, amount: 0.2 }}
-        variants={fadeInUp}
-        className="relative w-full px-6 z-10 py-24"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.1 } },
+        }}
+        className="relative w-full max-w-6xl px-6 z-10 py-24"
       >
-        <h2 className="text-3xl md:text-4xl font-bold text-yellow mb-10 text-center">
+        <motion.p
+          variants={fadeInUp}
+          className="text-yellow/70 text-sm uppercase tracking-widest font-medium text-center mb-2"
+        >
+          Why NunezDev
+        </motion.p>
+        <motion.h2
+          variants={fadeInUp}
+          className="text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+        >
           Why Choose Reece?
-        </h2>
+        </motion.h2>
+        <motion.p
+          variants={fadeInUp}
+          className="text-white/50 text-base md:text-lg text-center max-w-2xl mx-auto mb-14"
+        >
+          No agencies, no middlemen, no templates — just a senior developer who
+          ships quality work on time.
+        </motion.p>
 
         <motion.div
-          variants={fadeInUp}
-          className="relative bg-white/5 backdrop-blur-lg border border-yellow/30 rounded-2xl p-6 md:p-10 shadow-xl"
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.08 } },
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          <div className="grid text-white grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: faBolt,
-                title: "Fast & Efficient",
-                description:
-                  "Quick turnarounds, optimized performance, and clean code that scales with your business.",
-              },
-              {
-                icon: faHandshake,
-                title: "Client-First Approach",
-                description:
-                  "I listen first, build second. Every project is custom-fit to your goals, not a template.",
-              },
-              {
-                icon: faWrench,
-                title: "Custom Built Tools",
-                description:
-                  "I specialize in dashboards, CRMs, portals, and backend automations that solve real problems.",
-              },
-              {
-                icon: faRocket,
-                title: "Growth-Oriented",
-                description:
-                  "Your site isn’t just pretty — it’s built to convert, retain clients, and grow with your brand.",
-              },
-              {
-                icon: faLightbulb,
-                title: "Creative & Technical",
-                description:
-                  "I blend great design with strong dev skills. No cookie-cutter solutions — just smart, creative builds.",
-              },
-              {
-                icon: faThumbsUp,
-                title: "Reliable & Honest",
-                description:
-                  "No upselling. No fluff. Just clear communication, transparent pricing, and results that work.",
-              },
-            ].map((point) => (
-              <motion.div
-                key={point.title}
-                variants={fadeInUp}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="bg-black/30 border border-yellow/20 rounded-xl p-6 text-left text-offwhite shadow hover:shadow-yellow transition-shadow duration-300"
-              >
+          {[
+            {
+              icon: faBolt,
+              title: "Fast & Efficient",
+              description:
+                "Quick turnarounds, optimized performance, and clean code that scales with your business.",
+            },
+            {
+              icon: faHandshake,
+              title: "Client-First Approach",
+              description:
+                "I listen first, build second. Every project is custom-fit to your goals, not a template.",
+            },
+            {
+              icon: faWrench,
+              title: "Custom Built Tools",
+              description:
+                "I specialize in dashboards, CRMs, portals, and backend automations that solve real problems.",
+            },
+            {
+              icon: faRocket,
+              title: "Growth-Oriented",
+              description:
+                "Your site isn’t just pretty — it’s built to convert, retain clients, and grow with your brand.",
+            },
+            {
+              icon: faLightbulb,
+              title: "Creative & Technical",
+              description:
+                "I blend great design with strong dev skills. No cookie-cutter solutions — just smart, creative builds.",
+            },
+            {
+              icon: faThumbsUp,
+              title: "Reliable & Honest",
+              description:
+                "No upselling. No fluff. Just clear communication, transparent pricing, and results that work.",
+            },
+          ].map((point) => (
+            <motion.div
+              key={point.title}
+              variants={fadeInUp}
+              whileHover={{ scale: 1.03 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-left hover:border-yellow/50 hover:shadow-[0_0_25px_rgba(255,195,18,0.15)] transition-all duration-300"
+            >
+              <div className="w-12 h-12 rounded-full bg-yellow/10 flex items-center justify-center mb-5">
                 <FontAwesomeIcon
                   icon={point.icon}
-                  className="text-yellow text-3xl mb-4"
+                  className="text-yellow text-xl"
                 />
-                <h3 className="text-yellow font-semibold text-xl mb-2">
-                  {point.title}
-                </h3>
-                <p className="text-base leading-relaxed">{point.description}</p>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+              <h3 className="text-white font-semibold text-lg mb-2">
+                {point.title}
+              </h3>
+              <p className="text-white/60 text-sm leading-relaxed">
+                {point.description}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
 
-          <div className="text-center mt-8">
+        <motion.div variants={fadeInUp} className="text-center mt-12">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="inline-block"
+          >
             <a
               href="/about"
-              className="inline-block bg-yellow text-blue font-semibold px-6 py-3 rounded-lg shadow hover:bg-yellow/80 transition-all"
+              className="inline-block bg-yellow text-gray-900 font-semibold px-7 py-3 rounded-lg shadow hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
             >
-              Learn More About Me →
+              Learn More About Me
             </a>
-          </div>
+          </motion.div>
         </motion.div>
       </motion.section>
 

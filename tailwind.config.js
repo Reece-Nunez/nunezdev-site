@@ -32,6 +32,13 @@ module.exports = {
           '0%': { opacity: 0.2 },
           '100%': { opacity: 1 },
         },
+        '.animate-pulse-glow': {
+          animation: 'pulse-glow 2s ease-in-out infinite',
+        },
+        '@keyframes pulse-glow': {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(255, 195, 18, 0.2)' },
+          '50%': { boxShadow: '0 0 40px rgba(255, 195, 18, 0.5)' },
+        },
       });
     }),
   ],
