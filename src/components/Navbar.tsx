@@ -90,227 +90,236 @@ export default function Navbar() {
   }
 
   return (
-    <motion.nav
-      initial={{ y: 0 }}
-      animate={{ y: isVisible || isOpen ? 0 : "-100%" }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isAtTop && !isOpen
-          ? "bg-transparent"
-          : "bg-gray-900/80 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/10"
-      )}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <Link
-              href="/"
-              className="flex items-center gap-1.5"
-              onDoubleClick={handleLogoDoubleClick}
-            >
-              <Image
-                src="/n-logo.svg"
-                alt="NunezDev Logo"
-                width={44}
-                height={44}
-                priority
-              />
-              <div className="flex flex-col leading-none">
-                <span className="text-yellow font-bold text-lg tracking-tight">
-                  UNEZDEV
-                </span>
-                <span className="text-yellow/50 text-[9px] uppercase tracking-[0.2em]">
-                  Software Solutions
-                </span>
-              </div>
-            </Link>
-          </motion.div>
-
-          {/* Desktop Nav Links — Center */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => {
-              const isActive =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname?.startsWith(item.href);
-
-              if (item.hasDropdown) {
-                return (
-                  <div
-                    key={item.href}
-                    className="relative"
-                    onMouseEnter={openDropdown}
-                    onMouseLeave={closeDropdown}
-                  >
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors duration-200",
-                        isActive
-                          ? "text-yellow"
-                          : "text-white/80 hover:text-yellow"
-                      )}
-                    >
-                      {item.label}
-                      <svg
-                        className={cn(
-                          "inline-block ml-1 w-3 h-3 transition-transform duration-200",
-                          servicesDropdownOpen ? "rotate-180" : ""
-                        )}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                      {isActive && (
-                        <motion.span
-                          layoutId="nav-underline"
-                          className="absolute bottom-0 left-2 right-2 h-0.5 bg-yellow rounded-full"
-                          transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 30,
-                          }}
-                        />
-                      )}
-                    </Link>
-
-                    <AnimatePresence>
-                      {servicesDropdownOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/30 overflow-hidden"
-                        >
-                          <div className="p-2">
-                            {services.map((service) => (
-                              <Link
-                                key={service.slug}
-                                href={`/services/${service.slug}`}
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group"
-                              >
-                                <div className="w-8 h-8 rounded-full bg-yellow/10 flex items-center justify-center shrink-0 group-hover:bg-yellow/20 transition-colors">
-                                  <FontAwesomeIcon
-                                    icon={service.icon}
-                                    className="text-yellow text-xs"
-                                  />
-                                </div>
-                                <span className="text-white/80 text-sm font-medium group-hover:text-white transition-colors">
-                                  {service.title}
-                                </span>
-                              </Link>
-                            ))}
-                            <div className="border-t border-white/5 mt-1 pt-1">
-                              <Link
-                                href="/services"
-                                className="block px-3 py-2.5 rounded-lg text-yellow/70 text-sm font-medium hover:bg-white/5 hover:text-yellow transition-colors"
-                              >
-                                View All Services &rarr;
-                              </Link>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              }
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors duration-200",
-                    isActive
-                      ? "text-yellow"
-                      : "text-white/80 hover:text-yellow"
-                  )}
-                >
-                  {item.label}
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-underline"
-                      className="absolute bottom-0 left-2 right-2 h-0.5 bg-yellow rounded-full"
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Desktop Right — CTA */}
-          <div className="hidden lg:flex items-center gap-6">
-            <Link
-              href="/portal/login"
-              className="text-sm text-white/70 hover:text-white transition-colors duration-200"
-            >
-              Client Login
-            </Link>
+    <>
+      {/* Navbar Bar */}
+      <motion.nav
+        initial={{ y: 0 }}
+        animate={{ y: isVisible || isOpen ? 0 : "-100%" }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className={cn(
+          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+          isAtTop && !isOpen
+            ? "bg-transparent"
+            : "bg-gray-900/80 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/10"
+        )}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
             <motion.div
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <Link
-                href="/contact"
-                className="inline-block bg-yellow text-gray-900 font-semibold text-sm px-6 py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
+                href="/"
+                className="flex items-center gap-1.5"
+                onDoubleClick={handleLogoDoubleClick}
               >
-                Let&apos;s get building
+                <Image
+                  src="/n-logo.svg"
+                  alt="NunezDev Logo"
+                  width={44}
+                  height={44}
+                  priority
+                />
+                <div className="flex flex-col leading-none">
+                  <span className="text-yellow font-bold text-lg tracking-tight">
+                    UNEZDEV
+                  </span>
+                  <span className="text-yellow/50 text-[9px] uppercase tracking-[0.2em]">
+                    Software Solutions
+                  </span>
+                </div>
               </Link>
             </motion.div>
+
+            {/* Desktop Nav Links — Center */}
+            <div className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => {
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname?.startsWith(item.href);
+
+                if (item.hasDropdown) {
+                  return (
+                    <div
+                      key={item.href}
+                      className="relative"
+                      onMouseEnter={openDropdown}
+                      onMouseLeave={closeDropdown}
+                    >
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors duration-200",
+                          isActive
+                            ? "text-yellow"
+                            : "text-white/80 hover:text-yellow"
+                        )}
+                      >
+                        {item.label}
+                        <svg
+                          className={cn(
+                            "inline-block ml-1 w-3 h-3 transition-transform duration-200",
+                            servicesDropdownOpen ? "rotate-180" : ""
+                          )}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                        {isActive && (
+                          <motion.span
+                            layoutId="nav-underline"
+                            className="absolute bottom-0 left-2 right-2 h-0.5 bg-yellow rounded-full"
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 30,
+                            }}
+                          />
+                        )}
+                      </Link>
+
+                      <AnimatePresence>
+                        {servicesDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 8 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/30 overflow-hidden"
+                          >
+                            <div className="p-2">
+                              {services.map((service) => (
+                                <Link
+                                  key={service.slug}
+                                  href={`/services/${service.slug}`}
+                                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group"
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-yellow/10 flex items-center justify-center shrink-0 group-hover:bg-yellow/20 transition-colors">
+                                    <FontAwesomeIcon
+                                      icon={service.icon}
+                                      className="text-yellow text-xs"
+                                    />
+                                  </div>
+                                  <span className="text-white/80 text-sm font-medium group-hover:text-white transition-colors">
+                                    {service.title}
+                                  </span>
+                                </Link>
+                              ))}
+                              <div className="border-t border-white/5 mt-1 pt-1">
+                                <Link
+                                  href="/services"
+                                  className="block px-3 py-2.5 rounded-lg text-yellow/70 text-sm font-medium hover:bg-white/5 hover:text-yellow transition-colors"
+                                >
+                                  View All Services &rarr;
+                                </Link>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors duration-200",
+                      isActive
+                        ? "text-yellow"
+                        : "text-white/80 hover:text-yellow"
+                    )}
+                  >
+                    {item.label}
+                    {isActive && (
+                      <motion.span
+                        layoutId="nav-underline"
+                        className="absolute bottom-0 left-2 right-2 h-0.5 bg-yellow rounded-full"
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 30,
+                        }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Desktop Right — CTA */}
+            <div className="hidden lg:flex items-center gap-6">
+              <Link
+                href="/portal/login"
+                className="text-sm text-white/70 hover:text-white transition-colors duration-200"
+              >
+                Client Login
+              </Link>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+              >
+                <Link
+                  href="/contact"
+                  className="inline-block bg-yellow text-gray-900 font-semibold text-sm px-6 py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
+                >
+                  Let&apos;s get building
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Spacer for hamburger so layout doesn't shift */}
+            <div className="w-10 h-10 lg:hidden" />
           </div>
-
-          {/* Mobile Hamburger */}
-          <button
-            className="lg:hidden flex flex-col justify-center items-center w-10 h-10 z-[60]"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle Menu"
-          >
-            <motion.span
-              animate={{
-                rotate: isOpen ? 45 : 0,
-                y: isOpen ? 5 : 0,
-              }}
-              className="w-6 h-0.5 bg-yellow mb-1 block"
-              transition={{ duration: 0.3 }}
-            />
-            <motion.span
-              animate={{ opacity: isOpen ? 0 : 1 }}
-              className="w-6 h-0.5 bg-yellow mb-1 block"
-              transition={{ duration: 0.3 }}
-            />
-            <motion.span
-              animate={{
-                rotate: isOpen ? -45 : 0,
-                y: isOpen ? -8 : 0,
-              }}
-              className="w-6 h-0.5 bg-yellow block"
-              transition={{ duration: 0.3 }}
-            />
-          </button>
         </div>
-      </div>
+      </motion.nav>
 
-      {/* Mobile Full-Screen Overlay */}
+      {/* Mobile Hamburger — fixed outside nav so it stays above the overlay */}
+      <button
+        className="lg:hidden fixed top-5 right-4 sm:right-6 flex flex-col justify-center items-center w-10 h-10 z-[60]"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle Menu"
+      >
+        <motion.span
+          animate={{
+            rotate: isOpen ? 45 : 0,
+            y: isOpen ? 7 : 0,
+          }}
+          className="w-6 h-0.5 bg-yellow block absolute"
+          style={{ top: "calc(50% - 7px)" }}
+          transition={{ duration: 0.3 }}
+        />
+        <motion.span
+          animate={{ opacity: isOpen ? 0 : 1 }}
+          className="w-6 h-0.5 bg-yellow block absolute"
+          style={{ top: "calc(50%)" }}
+          transition={{ duration: 0.3 }}
+        />
+        <motion.span
+          animate={{
+            rotate: isOpen ? -45 : 0,
+            y: isOpen ? -7 : 0,
+          }}
+          className="w-6 h-0.5 bg-yellow block absolute"
+          style={{ top: "calc(50% + 7px)" }}
+          transition={{ duration: 0.3 }}
+        />
+      </button>
+
+      {/* Mobile Full-Screen Overlay — outside nav to avoid transform stacking context issues */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -318,7 +327,7 @@ export default function Navbar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 top-0 bg-gray-900/95 backdrop-blur-xl z-40 flex flex-col items-center justify-center lg:hidden"
+            className="fixed inset-0 bg-gray-900/98 backdrop-blur-xl z-[55] flex flex-col items-center justify-center lg:hidden overflow-y-auto"
           >
             <motion.div
               initial="hidden"
@@ -330,7 +339,7 @@ export default function Navbar() {
                   transition: { staggerChildren: 0.06, delayChildren: 0.1 },
                 },
               }}
-              className="flex flex-col items-center gap-6"
+              className="flex flex-col items-center gap-5 py-24 px-6 w-full max-w-md"
             >
               {navItems.map((item) => {
                 const isActive =
@@ -353,7 +362,7 @@ export default function Navbar() {
                           },
                         },
                       }}
-                      className="flex flex-col items-center"
+                      className="flex flex-col items-center w-full"
                     >
                       <button
                         onClick={() =>
@@ -389,14 +398,14 @@ export default function Navbar() {
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="overflow-hidden flex flex-col items-center gap-3 mt-4"
+                            className="overflow-hidden flex flex-col items-center gap-2 mt-3 w-full"
                           >
                             {services.map((service) => (
                               <Link
                                 key={service.slug}
                                 href={`/services/${service.slug}`}
                                 onClick={() => setIsOpen(false)}
-                                className="text-white/60 text-lg hover:text-yellow transition-colors"
+                                className="text-white/60 text-base hover:text-yellow transition-colors py-1"
                               >
                                 {service.title}
                               </Link>
@@ -453,7 +462,7 @@ export default function Navbar() {
                     transition: { duration: 0.4, ease: "easeOut" as const },
                   },
                 }}
-                className="flex flex-col items-center gap-6 mt-8"
+                className="flex flex-col items-center gap-6 mt-8 w-full"
               >
                 <Link
                   href="/portal/login"
@@ -465,7 +474,7 @@ export default function Navbar() {
                 <Link
                   href="/contact"
                   onClick={() => setIsOpen(false)}
-                  className="inline-block bg-yellow text-gray-900 font-semibold text-lg px-8 py-3 rounded-lg"
+                  className="inline-block bg-yellow text-gray-900 font-semibold text-lg px-8 py-3 rounded-lg hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
                 >
                   Let&apos;s get building
                 </Link>
@@ -474,6 +483,6 @@ export default function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 }
