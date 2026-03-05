@@ -199,24 +199,25 @@ export const services: Service[] = [
   },
   {
     slug: "ongoing-support",
-    title: "Ongoing Support & Maintenance",
+    title: "Hosting & Maintenance",
     shortDescription:
-      "Monthly care plans to keep your site secure, updated, and evolving with your business.",
+      "Reliable hosting starting at $29/mo and optional maintenance plans — keep your site fast, secure, and evolving.",
     icon: faShieldAlt,
     description:
-      "After launch, I don't disappear. I offer monthly retainer plans that cover bug fixes, feature updates, security patches, performance monitoring, and content changes. Your site stays fast, secure, and up-to-date — without you lifting a finger.",
+      "Every site I build needs a home. I offer managed hosting on Vercel and AWS with SSL, uptime monitoring, and automated backups — starting at just $29/mo. For clients who want ongoing development support, I also offer separate maintenance plans with dedicated developer hours, security updates, performance monitoring, and strategic feature planning. Pick hosting alone, or pair it with a maintenance plan — it's up to you.",
     features: [
-      "Monthly bug fixes and updates",
+      "CDN-backed hosting with SSL and uptime monitoring",
+      "Automated daily or monthly backups",
+      "DNS management and domain renewal reminders",
       "Security patches and dependency updates",
-      "Performance monitoring and optimization",
-      "Content updates and minor feature additions",
-      "Uptime monitoring and alerts",
-      "Monthly reports on site health",
-      "Priority response times",
-      "Strategic feature planning",
+      "Dedicated developer hours for content and feature changes",
+      "Performance and Core Web Vitals monitoring",
+      "Monthly site health reports",
+      "Strategic feature planning and priority support",
     ],
     technologies: [
       "Vercel",
+      "AWS",
       "GitHub",
       "Supabase",
       "Sentry",
@@ -224,6 +225,6 @@ export const services: Service[] = [
       "Lighthouse",
     ],
     valueProp:
-      "Software isn't set-and-forget. A maintenance plan means your site keeps working, stays secure, and grows with your business — while you focus on running it.",
+      "Not every client needs a maintenance plan — but every site needs reliable hosting. Choose what fits your business, and scale up when you're ready.",
   },
 ];

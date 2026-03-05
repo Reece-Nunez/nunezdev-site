@@ -12,7 +12,7 @@ export default function PricingStructuredData() {
                     "@type": "WebPage",
                     "name": "Pricing | NunezDev",
                     "url": "https://www.nunezdev.com/pricing",
-                    "description": "Explore pricing for websites, CRMs, and full-stack web applications. Clear packages from $300 to $20,000+ tailored to small businesses.",
+                    "description": "Explore pricing for custom websites, hosting from $29/mo, maintenance plans, and full-stack web applications. Clear packages tailored to small businesses.",
                     "breadcrumb": {
                         "@type": "BreadcrumbList",
                         "itemListElement": [
