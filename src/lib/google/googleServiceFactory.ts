@@ -66,6 +66,7 @@ class GoogleServiceFactory {
   private clients: Partial<GoogleApiClient> = {};
   private googleModule: any = null;
   private authClient: any = null;
+  private analyticsAuthClient: any = null;
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
 
@@ -85,53 +86,70 @@ class GoogleServiceFactory {
   }
 
   private async doInitialize(): Promise<void> {
+    const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    const impersonationEmail = process.env.GOOGLE_IMPERSONATION_EMAIL;
+
+    if (!serviceAccountKey) {
+      console.log('Google integration disabled - no service account key');
+      return;
+    }
+
+    // Dynamic import to prevent build issues
+    const { google } = await import('googleapis');
+    this.googleModule = google;
+
+    const credentials = JSON.parse(serviceAccountKey);
+
+    // 1. Create analytics auth client WITHOUT impersonation
+    // Analytics Data API uses direct service account access, not domain-wide delegation
     try {
-      const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-      const impersonationEmail = process.env.GOOGLE_IMPERSONATION_EMAIL;
-
-      if (!serviceAccountKey) {
-        console.log('Google Workspace integration disabled - no service account key');
-        return;
-      }
-
-      if (!impersonationEmail) {
-        console.log('Google Workspace integration disabled - no impersonation email');
-        return;
-      }
-
-      // Dynamic import to prevent build issues
-      const { google } = await import('googleapis');
-      this.googleModule = google;
-
-      const credentials = JSON.parse(serviceAccountKey);
-
-      // Create JWT auth client with domain-wide delegation (impersonation)
-      const auth = new google.auth.JWT({
+      const analyticsAuth = new google.auth.JWT({
         email: credentials.client_email,
         key: credentials.private_key,
-        scopes: getAllScopes(),
-        subject: impersonationEmail, // This enables domain-wide delegation
+        scopes: SERVICE_CONFIGS.analyticsdata.scopes,
       });
 
-      await auth.authorize();
-
-      this.authClient = auth;
-      this.isInitialized = true;
-
-      console.log('Google Workspace integration initialized successfully');
-      console.log(`Impersonating: ${impersonationEmail}`);
+      await analyticsAuth.authorize();
+      this.analyticsAuthClient = analyticsAuth;
+      console.log('Google Analytics auth initialized successfully');
     } catch (error: any) {
-      console.error('Failed to initialize Google Workspace:', error.message);
-      this.isInitialized = false;
-      throw error;
+      console.error('Failed to initialize Analytics auth:', error.message);
     }
+
+    // 2. Create Workspace auth client WITH domain-wide delegation (impersonation)
+    // Used for Calendar, Drive, Contacts, Sheets, Tasks
+    if (impersonationEmail) {
+      try {
+        const auth = new google.auth.JWT({
+          email: credentials.client_email,
+          key: credentials.private_key,
+          scopes: getAllScopes(),
+          subject: impersonationEmail,
+        });
+
+        await auth.authorize();
+        this.authClient = auth;
+        console.log(`Google Workspace auth initialized (impersonating: ${impersonationEmail})`);
+      } catch (error: any) {
+        console.error('Failed to initialize Workspace auth:', error.message);
+      }
+    }
+
+    this.isInitialized = true;
   }
 
   async getClient<T extends ServiceName>(serviceName: T): Promise<any | null> {
     try {
       await this.initialize();
 
-      if (!this.authClient || !this.googleModule) {
+      if (!this.googleModule) {
+        return null;
+      }
+
+      // Use the non-delegated auth client for Analytics Data API
+      const authForService = serviceName === 'analyticsdata' ? this.analyticsAuthClient : this.authClient;
+      if (!authForService) {
+        console.error(`No auth client available for ${serviceName}`);
         return null;
       }
 
@@ -142,7 +160,7 @@ class GoogleServiceFactory {
       const config = SERVICE_CONFIGS[serviceName];
       const client = this.googleModule[serviceName]({
         version: config.version,
-        auth: this.authClient,
+        auth: authForService,
       });
 
       this.clients[serviceName] = client;
@@ -196,6 +214,7 @@ class GoogleServiceFactory {
     this.clients = {};
     this.googleModule = null;
     this.authClient = null;
+    this.analyticsAuthClient = null;
     this.isInitialized = false;
     this.initPromise = null;
   }
