@@ -2,7 +2,17 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'NunezDev privacy policy — how we collect, use, retain, and disclose personal data.',
+  description: 'NunezDev privacy policy — how we collect, use, retain, and disclose personal data when you use our website, client portal, and services.',
+  alternates: {
+    canonical: 'https://www.nunezdev.com/privacy-policy',
+  },
+  openGraph: {
+    title: 'Privacy Policy | NunezDev',
+    description: 'Read how NunezDev handles your personal data, cookies, and third-party services.',
+    url: 'https://www.nunezdev.com/privacy-policy',
+    siteName: 'NunezDev',
+    type: 'website',
+  },
 };
 
 export default function PrivacyPolicyPage() {

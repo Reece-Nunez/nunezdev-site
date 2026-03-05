@@ -2,6 +2,7 @@ import { services } from "@/data/services";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import ServicePageClient from "./ServicePageClient";
+import BreadcrumbJsonLd from "@/components/BreadcrumbJsonLd";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -37,5 +38,16 @@ export default async function ServicePage({ params }: Props) {
   const service = services.find((s) => s.slug === slug);
   if (!service) notFound();
 
-  return <ServicePageClient service={service} />;
+  return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", url: "https://www.nunezdev.com" },
+          { name: "Services", url: "https://www.nunezdev.com/services" },
+          { name: service.title, url: `https://www.nunezdev.com/services/${service.slug}` },
+        ]}
+      />
+      <ServicePageClient service={service} />
+    </>
+  );
 }

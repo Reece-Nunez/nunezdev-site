@@ -56,6 +56,12 @@ export async function POST(req: Request) {
     );
   }
 
+  console.log("[automate] Client automation fields:", {
+    website_url: client.website_url,
+    ga4_property_id: client.ga4_property_id,
+    vercel_project_id: client.vercel_project_id,
+  });
+
   try {
     const result = await runAllAutomation({
       websiteUrl: client.website_url,

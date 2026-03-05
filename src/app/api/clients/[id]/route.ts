@@ -15,16 +15,47 @@ export async function GET(_req: Request, ctx: Ctx) {
   const orgId = memberships?.[0]?.org_id;
   if (!orgId) return NextResponse.json({ error: "No org" }, { status: 403 });
 
-  // Pull from the overview view so we get financials and stage
-  const { data, error } = await supabase
-    .from("clients_overview")
+  // Pull from clients table directly (overview view may not have all columns)
+  const { data: client, error } = await supabase
+    .from("clients")
     .select("*")
     .eq("org_id", orgId)
     .eq("id", id)
     .single();
 
-  if (error || !data) return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
-  return NextResponse.json({ client: data });
+  if (error || !client) return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
+
+  // Compute financials inline
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, status, amount_cents")
+    .eq("client_id", id)
+    .eq("org_id", orgId);
+
+  const inv = invoices || [];
+  const invoiceIds = inv.map(i => i.id);
+
+  const { data: payments } = invoiceIds.length
+    ? await supabase
+        .from("invoice_payments")
+        .select("amount_cents")
+        .in("invoice_id", invoiceIds)
+    : { data: [] };
+
+  const totalPaidCents = (payments || []).reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+  const totalInvoicedCents = inv
+    .filter(i => ["sent", "paid", "overdue", "partially_paid"].includes(i.status))
+    .reduce((sum, i) => sum + (i.amount_cents || 0), 0);
+  const balanceDueCents = totalInvoicedCents - totalPaidCents;
+
+  return NextResponse.json({
+    client: {
+      ...client,
+      total_invoiced_cents: totalInvoicedCents,
+      total_paid_cents: totalPaidCents,
+      balance_due_cents: balanceDueCents,
+    },
+  });
 }
 
 export async function PATCH(req: Request, ctx: Ctx) {

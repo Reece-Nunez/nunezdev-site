@@ -1,9 +1,23 @@
 {
   "name": "NunezDev",
   "short_name": "NunezDev",
+  "description": "Custom Web & Software Development by NunezDev",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b2a4a",
   "theme_color": "#f5c518",
-  "icons": []
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
