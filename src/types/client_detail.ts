@@ -8,6 +8,9 @@ export type Client = {
   status: 'Lead' | 'Prospect' | 'Active' | 'Past';
   tags: string[];
   created_at: string;
+  website_url: string | null;
+  ga4_property_id: string | null;
+  vercel_project_id: string | null;
 };
 
 export type ClientOverview = Client & {

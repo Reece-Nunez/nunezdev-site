@@ -39,7 +39,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!orgId) return NextResponse.json({ error: "No org" }, { status: 403 });
 
   // Allow partial updates; none of the fields are required
-  const allowed = ["name", "email", "phone", "company", "status", "tags"];
+  const allowed = ["name", "email", "phone", "company", "status", "tags", "website_url", "ga4_property_id", "vercel_project_id"];
   type Patch = {
     name?: string;
     email?: string;
@@ -47,6 +47,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     company?: string;
     status?: string;
     tags?: string[];
+    website_url?: string;
+    ga4_property_id?: string;
+    vercel_project_id?: string;
   };
   const patch: Patch = {};
   for (const k of allowed) if (k in body) patch[k as keyof Patch] = body[k];

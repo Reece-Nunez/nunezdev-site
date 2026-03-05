@@ -30,7 +30,10 @@ export default function ClientForm({ clientId }: { clientId: string }) {
     phone: '',
     company: '',
     status: 'Lead' as ClientStatus,
-    tags: [] as string[]
+    tags: [] as string[],
+    website_url: '',
+    ga4_property_id: '',
+    vercel_project_id: '',
   });
   
   const [hasChanges, setHasChanges] = useState(false);
@@ -44,7 +47,10 @@ export default function ClientForm({ clientId }: { clientId: string }) {
         phone: client.phone ?? '',
         company: client.company ?? '',
         status: client.status as ClientStatus,
-        tags: client.tags ?? []
+        tags: client.tags ?? [],
+        website_url: client.website_url ?? '',
+        ga4_property_id: client.ga4_property_id ?? '',
+        vercel_project_id: client.vercel_project_id ?? '',
       });
     }
   }, [client]);
@@ -157,6 +163,27 @@ export default function ClientForm({ clientId }: { clientId: string }) {
           value={formData.tags.join(', ')}
           onChange={(v) => updateField('tags', v.split(',').map(s => s.trim()).filter(Boolean))}
         />
+      </div>
+
+      <div className="pt-2 border-t">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">Report Automation</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Field
+            label="Website URL"
+            value={formData.website_url}
+            onChange={(v) => updateField('website_url', v)}
+          />
+          <Field
+            label="GA4 Property ID"
+            value={formData.ga4_property_id}
+            onChange={(v) => updateField('ga4_property_id', v)}
+          />
+          <Field
+            label="Vercel Project ID"
+            value={formData.vercel_project_id}
+            onChange={(v) => updateField('vercel_project_id', v)}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm">

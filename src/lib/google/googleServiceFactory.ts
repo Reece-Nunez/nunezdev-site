@@ -7,6 +7,7 @@ type GoogleApiClient = {
   drive: any;
   sheets: any;
   tasks: any;
+  analyticsdata: any;
 };
 
 type ServiceName = keyof GoogleApiClient;
@@ -44,6 +45,10 @@ const SERVICE_CONFIGS: Record<ServiceName, ServiceConfig> = {
   tasks: {
     version: 'v1',
     scopes: ['https://www.googleapis.com/auth/tasks'],
+  },
+  analyticsdata: {
+    version: 'v1beta',
+    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
   },
 };
 
@@ -167,6 +172,10 @@ class GoogleServiceFactory {
 
   async getTasksClient() {
     return this.getClient('tasks');
+  }
+
+  async getAnalyticsDataClient() {
+    return this.getClient('analyticsdata');
   }
 
   isAvailable(): boolean {

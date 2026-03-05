@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import useSWR from 'swr';
 import type { SectionStatus, ChecklistItem, ReportSection, PerformanceMetrics, AnalyticsMetrics } from '@/lib/pdf-templates/client-report';
+import type { AutomationResult } from '@/lib/report-automation/types';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -171,6 +172,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [automating, setAutomating] = useState(false);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -196,6 +198,70 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       [sectionKey]: { ...prev[sectionKey], status },
     }));
   }, []);
+
+  const applyAutomationResults = useCallback((result: AutomationResult) => {
+    const sectionKeys = ['siteHealth', 'performance', 'security', 'seo', 'forms', 'analytics', 'content', 'hosting'] as const;
+
+    setSectionStates(prev => {
+      const next = { ...prev };
+      for (const key of sectionKeys) {
+        const sectionResult = result[key];
+        if (sectionResult && next[key]) {
+          next[key] = {
+            items: sectionResult.items,
+            notes: sectionResult.notes || prev[key].notes,
+            status: sectionResult.status || prev[key].status,
+          };
+        }
+      }
+      return next;
+    });
+
+    if (result.performance?.perfMetrics) {
+      setPerfMetrics(result.performance.perfMetrics);
+    }
+
+    if (result.analytics?.analyticsMetrics) {
+      setAnalyticsMetrics(result.analytics.analyticsMetrics);
+    }
+
+    if (result.overallStatus) {
+      setOverallStatus(result.overallStatus);
+    }
+
+    if (result.recommendations?.length) {
+      const recs = [...result.recommendations];
+      while (recs.length < 3) recs.push('');
+      setRecommendations(recs.slice(0, 3));
+    }
+  }, []);
+
+  const handleAutoFill = async () => {
+    if (!clientId) {
+      setMessage({ type: 'error', text: 'Please select a client first' });
+      return;
+    }
+    setAutomating(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/client-reports/automate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId, report_month: reportMonth }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Automation failed');
+      }
+      const result: AutomationResult = await res.json();
+      applyAutomationResults(result);
+      setMessage({ type: 'success', text: 'Report auto-filled! Review and adjust as needed.' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Automation failed' });
+    } finally {
+      setAutomating(false);
+    }
+  };
 
   const buildReportData = () => {
     const sections: Record<string, ReportSection & { metrics?: PerformanceMetrics | AnalyticsMetrics }> = {};
@@ -408,6 +474,29 @@ export default function ReportBuilder({ onReportSaved }: Props) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <button
+            onClick={handleAutoFill}
+            disabled={automating || !clientId}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 text-white px-4 py-3 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {automating ? (
+              <>
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Running Automated Checks...
+              </>
+            ) : (
+              'Auto-Fill Report'
+            )}
+          </button>
+          <p className="text-xs text-gray-500 mt-1 text-center">
+            Runs site health, performance, SEO, analytics, and hosting checks automatically
+          </p>
         </div>
       </div>
 

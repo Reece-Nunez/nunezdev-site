@@ -46,6 +46,9 @@ export async function POST(req: Request) {
     company?: string;
     status?: string;
     tags?: string[] | string;
+    website_url?: string;
+    ga4_property_id?: string;
+    vercel_project_id?: string;
   };
 
   const raw: ClientRequestBody = await req.json().catch(() => ({} as ClientRequestBody));
@@ -78,6 +81,10 @@ export async function POST(req: Request) {
     if (tags.length === 0) tags = null;
   }
 
+  const website_url = typeof raw.website_url === "string" && raw.website_url.trim() ? raw.website_url.trim() : null;
+  const ga4_property_id = typeof raw.ga4_property_id === "string" && raw.ga4_property_id.trim() ? raw.ga4_property_id.trim() : null;
+  const vercel_project_id = typeof raw.vercel_project_id === "string" && raw.vercel_project_id.trim() ? raw.vercel_project_id.trim() : null;
+
   const insert = {
     org_id: orgId,
     name,
@@ -86,6 +93,9 @@ export async function POST(req: Request) {
     company,
     status,
     tags, // text[] or null
+    website_url,
+    ga4_property_id,
+    vercel_project_id,
   };
 
   const { data, error } = await supabase
