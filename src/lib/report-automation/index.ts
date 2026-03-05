@@ -21,6 +21,7 @@ interface AutomationInput {
   ga4PropertyId: string | null;
   vercelProjectId: string | null;
   reportMonth: string;
+  orgId: string;
   supabase: SupabaseClient;
 }
 
@@ -108,7 +109,7 @@ function generateRecommendations(result: Omit<AutomationResult, 'overallStatus' 
 }
 
 export async function runAllAutomation(input: AutomationInput): Promise<AutomationResult> {
-  const { websiteUrl, ga4PropertyId, vercelProjectId, reportMonth, supabase } = input;
+  const { websiteUrl, ga4PropertyId, vercelProjectId, reportMonth, orgId, supabase } = input;
 
   // Run all checks in parallel
   const [
@@ -124,7 +125,7 @@ export async function runAllAutomation(input: AutomationInput): Promise<Automati
     checkPerformance(websiteUrl),
     checkSecurity(websiteUrl),
     checkSEO(websiteUrl),
-    checkForms(reportMonth, supabase),
+    checkForms(reportMonth, orgId, supabase),
     checkContent(websiteUrl),
     vercelProjectId
       ? checkHosting(vercelProjectId)

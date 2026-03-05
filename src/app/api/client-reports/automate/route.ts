@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       ga4PropertyId: client.ga4_property_id,
       vercelProjectId: client.vercel_project_id,
       reportMonth: report_month,
+      orgId,
       supabase,
     });
 

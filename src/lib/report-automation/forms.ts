@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export async function checkForms(
   reportMonth: string,
+  orgId: string,
   supabase: SupabaseClient,
 ): Promise<FormsAutomationResult> {
   // Items: [test inquiry, email delivery, spam filter, form errors] — all manual
@@ -22,6 +23,7 @@ export async function checkForms(
     const { count } = await supabase
       .from('leads')
       .select('id', { count: 'exact', head: true })
+      .eq('org_id', orgId)
       .gte('created_at', startDate)
       .lt('created_at', endDate);
 
