@@ -145,7 +145,7 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     .eq("invoices.org_id", orgId)
     .order("paid_at", { ascending: false });
 
-  // Get outstanding invoices with remaining balances
+  // Get outstanding invoices with remaining balances (exclude suspended)
   const { data: outstandingInvoicesRaw } = await supabase
     .from("invoices")
     .select(`
@@ -159,6 +159,7 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
       invoice_payments(amount_cents)
     `)
     .eq("org_id", orgId)
+    .eq("is_suspended", false)
     .in("status", ["sent", "overdue", "partially_paid"])
     .order("due_at", { ascending: true });
 
@@ -178,7 +179,7 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
     .eq("org_id", orgId)
     .order("next_run_at", { ascending: true });
 
-  // Get all invoices for status summary
+  // Get all invoices for status summary (exclude suspended)
   const { data: allInvoicesRaw } = await supabase
     .from("invoices")
     .select(`
@@ -186,7 +187,8 @@ export async function getAnalytics(orgId: string): Promise<AnalyticsData> {
       status,
       amount_cents
     `)
-    .eq("org_id", orgId);
+    .eq("org_id", orgId)
+    .eq("is_suspended", false);
 
   const { count: clientsCount } = await supabase
     .from("clients")
