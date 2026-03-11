@@ -85,6 +85,10 @@ export interface Invoice {
   // Stripe integration
   stripe_payment_intent_id?: string;
   stripe_charge_id?: string;
+
+  // Suspension
+  is_suspended?: boolean;
+  suspended_at?: string;
 }
 
 export interface CreateInvoiceData {
@@ -126,4 +130,5 @@ export interface InvoiceFilters {
   to_date?: string;
   search?: string;
   payment_overdue?: boolean;
+  include_suspended?: boolean;
 }

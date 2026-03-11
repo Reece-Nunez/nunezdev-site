@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import useSWR from 'swr';
-import { useToast } from '@/components/ui/Toast';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -41,6 +41,7 @@ export default function TimeTrackingPage() {
   const { data: runningData, mutate: mutateRunning } = useSWR<{ entry: TimeEntry | null }>('/api/time-entries/running', fetcher, { refreshInterval: 1000 });
   const { data: clientsData } = useSWR<{ clients: Client[] }>('/api/clients', fetcher);
   const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
 
   const entries = entriesData?.entries ?? [];
   const runningEntry = runningData?.entry;
@@ -185,7 +186,13 @@ export default function TimeTrackingPage() {
   };
 
   const deleteEntry = async (id: string) => {
-    if (!confirm('Delete this time entry?')) return;
+    const ok = await confirm({
+      title: 'Delete Entry',
+      message: 'Delete this time entry?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/time-entries/${id}`, { method: 'DELETE' });
@@ -256,6 +263,7 @@ export default function TimeTrackingPage() {
   return (
     <>
       <ToastContainer />
+      <ConfirmContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full">
         <h1 className="text-xl sm:text-2xl font-semibold">Time Tracking</h1>
 

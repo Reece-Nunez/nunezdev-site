@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -58,6 +59,7 @@ export default function CalendarPage() {
   });
   const [creating, setCreating] = useState(false);
   const calendarRef = useRef<any>(null);
+  const { showToast, ToastContainer } = useToast();
 
   // Initial fetch happens via datesSet callback when calendar first renders
   // Don't fetch without dates as Google Calendar API requires timeMin with orderBy: startTime
@@ -190,7 +192,7 @@ export default function CalendarPage() {
         fetchEvents(api.view.activeStart, api.view.activeEnd);
       }
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error');
     } finally {
       setCreating(false);
     }
@@ -198,6 +200,7 @@ export default function CalendarPage() {
 
   return (
     <div className="p-6">
+      <ToastContainer />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Calendar</h1>
         <button

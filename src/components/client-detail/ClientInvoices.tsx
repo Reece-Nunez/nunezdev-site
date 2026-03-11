@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { useState } from 'react';
 import type { InvoiceLite } from '@/types/client_detail';
 import { currency, prettyDate } from '@/lib/ui';
+import { useConfirm } from '@/components/ui/Toast';
 
 export default function ClientInvoices({ clientId }: { clientId: string }) {
   const { data, mutate } = useSWR<{ invoices: InvoiceLite[] }>(
@@ -25,6 +26,7 @@ export default function ClientInvoices({ clientId }: { clientId: string }) {
   }
   // ---------------------------------------------------------
 
+  const { confirm, ConfirmContainer } = useConfirm();
   const [amount, setAmount] = useState<string>('');
   const [desc, setDesc] = useState<string>('Services');
   const [days, setDays] = useState<string>('7');
@@ -64,7 +66,8 @@ export default function ClientInvoices({ clientId }: { clientId: string }) {
     const [err, setErr] = useState<string | null>(null);
 
     async function handleDelete() {
-      if (!confirm('Delete this invoice? This will void/delete it in Stripe.')) return;
+      const confirmed = await confirm({ title: 'Delete Invoice', message: 'Delete this invoice? This will void/delete it in Stripe.', confirmLabel: 'Delete', variant: 'danger' });
+      if (!confirmed) return;
       setBusy(true);
       setErr(null);
       try {
@@ -99,6 +102,7 @@ export default function ClientInvoices({ clientId }: { clientId: string }) {
 
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
+      <ConfirmContainer />
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Invoices</h2>
         <a href="/dashboard/invoices" className="text-sm text-blue-600 hover:underline">

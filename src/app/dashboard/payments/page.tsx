@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 import Link from 'next/link';
 import { currency, prettyDate } from '@/lib/ui';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 
 interface Payment {
   id: string;
@@ -41,6 +42,8 @@ interface MonthlyData {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function PaymentsPage() {
+  const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'client'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterBy, setFilterBy] = useState<'all' | 'manual' | 'stripe' | 'cash'>('all');
@@ -281,7 +284,7 @@ export default function PaymentsPage() {
       mutate(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`);
       closeModals();
     } catch (error) {
-      alert('Failed to delete payment');
+      showToast('Failed to delete payment', 'error');
     } finally {
       setActionLoading('');
     }
@@ -313,7 +316,7 @@ export default function PaymentsPage() {
       // Refresh data
       mutate(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`);
     } catch (error) {
-      alert('Failed to duplicate payment');
+      showToast('Failed to duplicate payment', 'error');
     } finally {
       setActionLoading('');
     }
@@ -987,7 +990,7 @@ export default function PaymentsPage() {
               const paidAt = formData.get('paid_at') as string;
               
               if (isNaN(amount) || amount <= 0) {
-                alert('Please enter a valid amount');
+                showToast('Please enter a valid amount', 'error');
                 return;
               }
               
@@ -1009,9 +1012,9 @@ export default function PaymentsPage() {
                 // Refresh data
                 mutate(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`);
                 closeModals();
-                alert('Payment updated successfully');
+                showToast('Payment updated successfully', 'success');
               } catch (error) {
-                alert('Failed to update payment');
+                showToast('Failed to update payment', 'error');
               } finally {
                 setActionLoading('');
               }
@@ -1098,7 +1101,7 @@ export default function PaymentsPage() {
             <form onSubmit={(e) => {
               e.preventDefault();
               // TODO: Implement add note functionality
-              alert('Add note functionality to be implemented');
+              showToast('Add note functionality to be implemented', 'info');
               closeModals();
             }}>
               <div className="space-y-4">
@@ -1139,7 +1142,7 @@ export default function PaymentsPage() {
       )}
 
       {showAddPaymentModal && (
-        <AddManualPaymentModal 
+        <AddManualPaymentModal
           onClose={closeModals}
           onSuccess={() => {
             mutate(`/api/payments?sort=${sortBy}&order=${sortOrder}&filter=${filterBy}&client=${clientFilter}`);
@@ -1147,12 +1150,16 @@ export default function PaymentsPage() {
           }}
         />
       )}
+
+      <ToastContainer />
+      <ConfirmContainer />
     </div>
   );
 }
 
 // Add Manual Payment Modal Component
 function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const { showToast, ToastContainer: AddPaymentToastContainer } = useToast();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -1217,25 +1224,25 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
     const description = formData.get('description') as string;
 
     if (!amount || amount <= 0) {
-      alert('Please enter a valid payment amount');
+      showToast('Please enter a valid payment amount', 'error');
       setLoading(false);
       return;
     }
 
     if (!selectedClient) {
-      alert('Please select a client');
+      showToast('Please select a client', 'error');
       setLoading(false);
       return;
     }
 
     if (!isStandalonePayment && !selectedInvoice) {
-      alert('Please select an invoice or check "Standalone payment"');
+      showToast('Please select an invoice or check "Standalone payment"', 'error');
       setLoading(false);
       return;
     }
 
     if (isStandalonePayment && !description) {
-      alert('Please enter a description for the standalone payment');
+      showToast('Please enter a description for the standalone payment', 'error');
       setLoading(false);
       return;
     }
@@ -1279,7 +1286,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
       onSuccess();
     } catch (error: any) {
       console.error('Payment creation failed:', error);
-      alert(`Failed to create payment: ${error.message}`);
+      showToast(`Failed to create payment: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -1477,6 +1484,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
             </button>
           </div>
         </form>
+        <AddPaymentToastContainer />
       </div>
     </div>
   );

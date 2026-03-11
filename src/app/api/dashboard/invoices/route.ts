@@ -15,10 +15,12 @@ export async function GET(req: Request) {
   const q = url.searchParams.get('q');           // client name/email contains
   const limit = Number(url.searchParams.get('limit') ?? 50);
 
+  const suspended = url.searchParams.get('suspended'); // 'true' to include suspended
+
   // Base query - include payment data for accurate calculations
   let query = supabase.from("invoices")
     .select(`
-      id, client_id, invoice_number, title, status, amount_cents, issued_at, due_at, stripe_invoice_id, signed_at, hosted_invoice_url,
+      id, client_id, invoice_number, title, status, amount_cents, issued_at, due_at, stripe_invoice_id, signed_at, hosted_invoice_url, is_suspended, suspended_at,
       clients(id,name,email),
       invoice_payments(amount_cents, payment_method, paid_at)
     `)
@@ -26,7 +28,14 @@ export async function GET(req: Request) {
     .order("issued_at", { ascending: false })
     .limit(limit);
 
-  if (status && status !== 'all') {
+  // Filter suspended invoices (show by default when status=suspended, hide otherwise unless requested)
+  if (status === 'suspended') {
+    query = query.eq("is_suspended", true);
+  } else if (suspended !== 'true') {
+    query = query.eq("is_suspended", false);
+  }
+
+  if (status && status !== 'all' && status !== 'suspended') {
     if (status === 'overdue') {
       // Overdue = past due date AND not fully paid (not 'paid' or 'void')
       query = query

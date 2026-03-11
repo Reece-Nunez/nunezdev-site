@@ -66,7 +66,7 @@ export class InvoiceFollowupService {
     try {
       console.log('Processing overdue invoices...');
 
-      // Get overdue invoices that haven't been fully paid
+      // Get overdue invoices that haven't been fully paid (exclude suspended)
       const { data: overdueInvoices, error } = await this.supabase
         .from('invoices')
         .select(`
@@ -75,6 +75,7 @@ export class InvoiceFollowupService {
           invoice_payments(amount_cents, paid_at)
         `)
         .eq('status', 'sent')
+        .eq('is_suspended', false)
         .lt('due_at', new Date().toISOString())
         .order('due_at', { ascending: true });
 

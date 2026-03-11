@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useToast } from '@/components/ui/Toast';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 const currency = (cents?: number | null) =>
@@ -45,6 +45,7 @@ const statusLabels: Record<string, string> = {
 export default function ProposalsPage() {
   const { data, error, mutate } = useSWR<{ proposals: Proposal[] }>('/api/proposals', fetcher);
   const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [statusFilter, setStatusFilter] = useState('all');
   const [sending, setSending] = useState<string | null>(null);
   const [converting, setConverting] = useState<string | null>(null);
@@ -86,7 +87,8 @@ export default function ProposalsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this proposal?')) return;
+    const confirmed = await confirm({ title: 'Delete Proposal', message: 'Are you sure you want to delete this proposal?', confirmLabel: 'Delete', variant: 'danger' });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
@@ -111,6 +113,7 @@ export default function ProposalsPage() {
   return (
     <>
       <ToastContainer />
+      <ConfirmContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl sm:text-2xl font-semibold">Proposals</h1>

@@ -1,10 +1,12 @@
 interface StatusBadgeProps {
   status: string;
+  isSuspended?: boolean;
   className?: string;
 }
 
-export function InvoiceStatusBadge({ status, className = "" }: StatusBadgeProps) {
+export function InvoiceStatusBadge({ status, isSuspended, className = "" }: StatusBadgeProps) {
   const getStatusStyles = (status: string) => {
+    if (isSuspended) return 'bg-orange-100 text-orange-800 border-orange-200';
     switch (status?.toLowerCase()) {
       case 'paid':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -24,6 +26,7 @@ export function InvoiceStatusBadge({ status, className = "" }: StatusBadgeProps)
   };
 
   const formatStatus = (status: string) => {
+    if (isSuspended) return 'Suspended';
     switch (status?.toLowerCase()) {
       case 'partially_paid':
         return 'Partially Paid';

@@ -58,7 +58,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
       
     } catch (error) {
       console.error('Failed to delete client:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete client');
+      showToast(error instanceof Error ? error.message : 'Failed to delete client', 'error');
     } finally {
       setDeletingClient(null);
     }

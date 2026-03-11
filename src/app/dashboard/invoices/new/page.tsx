@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import InvoiceBuilder from '@/components/invoices/InvoiceBuilder';
 import type { CreateInvoiceData } from '@/types/invoice';
+import { useToast } from '@/components/ui/Toast';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function NewInvoicePage() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const { showToast, ToastContainer } = useToast();
   
   // Fetch clients for the dropdown
   const { data: clientsData } = useSWR('/api/clients', fetcher);
@@ -36,7 +38,7 @@ export default function NewInvoicePage() {
       router.push(`/dashboard/invoices/${result.invoice.id}`);
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create invoice');
+      showToast(error instanceof Error ? error.message : 'Failed to create invoice', 'error');
     } finally {
       setCreating(false);
     }
@@ -48,6 +50,7 @@ export default function NewInvoicePage() {
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-4 max-w-5xl mx-auto min-w-0">
+      <ToastContainer />
       <div className="mb-6">
         <button
           onClick={handleCancel}

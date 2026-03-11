@@ -273,6 +273,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (body.payment_plan_enabled !== undefined) updatePayload.payment_plan_enabled = body.payment_plan_enabled;
     if (body.payment_plan_type !== undefined) updatePayload.payment_plan_type = body.payment_plan_type;
 
+    // Suspension
+    if (body.is_suspended !== undefined) {
+      updatePayload.is_suspended = body.is_suspended;
+      updatePayload.suspended_at = body.is_suspended ? new Date().toISOString() : null;
+    }
+
     // Handle status changes
     if (body.status === 'paid' && invoice.status !== 'paid') {
       updatePayload.paid_at = new Date().toISOString();

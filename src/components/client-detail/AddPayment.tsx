@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/components/ui/Toast';
 
 interface AddPaymentProps {
   clientId: string;
@@ -10,6 +11,7 @@ interface AddPaymentProps {
 export default function AddPayment({ clientId, onCreated }: AddPaymentProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { showToast, ToastContainer } = useToast();
   const [formData, setFormData] = useState({
     amount_cents: '',
     description: '',
@@ -53,7 +55,7 @@ export default function AddPayment({ clientId, onCreated }: AddPaymentProps) {
       onCreated?.();
     } catch (error) {
       console.error('Error adding payment:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add payment');
+      showToast(error instanceof Error ? error.message : 'Failed to add payment', 'error');
     } finally {
       setLoading(false);
     }
@@ -61,6 +63,7 @@ export default function AddPayment({ clientId, onCreated }: AddPaymentProps) {
 
   return (
     <div>
+      <ToastContainer />
       <button
         type="button"
         onClick={() => setIsOpen(true)}

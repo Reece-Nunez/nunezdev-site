@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import ChargeCardModal from '@/components/payments/ChargeCardModal';
+import { useToast } from '@/components/ui/Toast';
 
 interface PaymentInstallment {
   id: string;
@@ -44,6 +45,7 @@ export default function PaymentPlanDisplay({
   const [error, setError] = useState<string | null>(null);
   const [recalculating, setRecalculating] = useState(false);
   const [chargingInstallment, setChargingInstallment] = useState<PaymentInstallment | null>(null);
+  const { showToast, ToastContainer } = useToast();
 
   useEffect(() => {
     fetchPaymentPlan();
@@ -182,6 +184,7 @@ export default function PaymentPlanDisplay({
 
   return (
     <div className={className}>
+      <ToastContainer />
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Payment Plan</h3>
         {!isPublic && (
@@ -382,11 +385,11 @@ export default function PaymentPlanDisplay({
       } else {
         const errorData = await response.json();
         console.error('Failed to recalculate payment plan:', errorData);
-        alert(`Failed to recalculate: ${errorData.error || 'Unknown error'}`);
+        showToast(`Failed to recalculate: ${errorData.error || 'Unknown error'}`, 'error');
       }
     } catch (err) {
       console.error('Error recalculating payment plan:', err);
-      alert('Error recalculating payment plan');
+      showToast('Error recalculating payment plan', 'error');
     } finally {
       setRecalculating(false);
     }

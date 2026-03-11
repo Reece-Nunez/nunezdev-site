@@ -10,6 +10,7 @@ interface Invoice {
   issued_at?: string;
   due_at?: string;
   created_at: string;
+  is_suspended?: boolean;
   invoice_payments?: Array<{
     amount_cents: number;
     payment_method: string;
@@ -21,8 +22,10 @@ interface InvoiceAnalyticsProps {
   invoices: Invoice[];
 }
 
-export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
+export default function InvoiceAnalytics({ invoices: allInvoices }: InvoiceAnalyticsProps) {
   const analytics = useMemo(() => {
+    // Exclude suspended invoices from all analytics
+    const invoices = allInvoices.filter(inv => !inv.is_suspended);
     const now = new Date();
     // Use UTC dates to avoid timezone issues
     const thisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
@@ -144,8 +147,9 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
       partialPaymentRemaining,
       unpaidInvoices: invoiceCategories.unpaid.length,
       invoiceCategories, // For debugging or advanced features
+      totalInvoices: invoices.length,
     };
-  }, [invoices]);
+  }, [allInvoices]);
 
   const formatCurrency = (cents: number) => 
     (cents / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
@@ -252,7 +256,7 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600 truncate pr-2">Total Invoices:</span>
-            <span className="font-medium flex-shrink-0">{invoices.length}</span>
+            <span className="font-medium flex-shrink-0">{analytics.totalInvoices}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600 truncate pr-2">Avg Invoice:</span>
@@ -261,8 +265,8 @@ export default function InvoiceAnalytics({ invoices }: InvoiceAnalyticsProps) {
           <div className="flex justify-between text-sm">
             <span className="text-gray-600 truncate pr-2">Success Rate:</span>
             <span className="font-medium flex-shrink-0">
-              {invoices.length > 0 
-                ? ((analytics.statusBreakdown.paid || 0) / invoices.length * 100).toFixed(1)
+              {analytics.totalInvoices > 0
+                ? ((analytics.statusBreakdown.paid || 0) / analytics.totalInvoices * 100).toFixed(1)
                 : 0}%
             </span>
           </div>

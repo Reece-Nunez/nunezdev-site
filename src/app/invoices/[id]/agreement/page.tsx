@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import useSWR from 'swr';
 import SignaturePad from 'react-signature-canvas';
 import { currency } from '@/lib/ui';
+import { useToast } from '@/components/ui/Toast';
 
 interface Invoice {
   id: string;
@@ -32,6 +33,7 @@ export default function InvoiceAgreementPage() {
   const { data: session, status } = useSession();
   const invoiceId = params.id as string;
   
+  const { showToast, ToastContainer } = useToast();
   const pad = useRef<SignaturePad>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -105,7 +107,7 @@ export default function InvoiceAgreementPage() {
   const handleSign = async () => {
     const empty = pad.current?.isEmpty();
     if (!name || !email || empty) {
-      alert('Please fill in your name, email, and provide a signature.');
+      showToast('Please fill in your name, email, and provide a signature.', 'error');
       return;
     }
 
@@ -131,11 +133,11 @@ export default function InvoiceAgreementPage() {
 
       setSigned(true);
       // Could redirect to a payment page or success page
-      alert('Invoice signed successfully! You may now proceed with payment.');
+      showToast('Invoice signed successfully! You may now proceed with payment.', 'success');
       
     } catch (error) {
       console.error('Error signing invoice:', error);
-      alert(error instanceof Error ? error.message : 'Failed to sign invoice');
+      showToast(error instanceof Error ? error.message : 'Failed to sign invoice', 'error');
     } finally {
       setSigning(false);
     }
@@ -219,6 +221,7 @@ export default function InvoiceAgreementPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 sm:py-12 lg:py-48">
+      <ToastContainer />
       <div className="max-w-4xl mx-auto px-3 sm:px-4 min-w-0">
         <div className="bg-white rounded-lg shadow-lg mb-4 sm:mb-8 min-w-0">
           <div className="border-b-4 p-4 sm:p-6 lg:p-8" style={{ borderColor: '#ffc312' }}>

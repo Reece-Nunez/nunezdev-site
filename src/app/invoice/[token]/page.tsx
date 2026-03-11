@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { currency } from '@/lib/ui';
 import SignatureCapture from '@/components/invoices/SignatureCapture';
 import PaymentPlanDisplay from '@/components/invoices/PaymentPlanDisplay';
+import { useToast } from '@/components/ui/Toast';
 
 function getPaymentTermsDescription(terms: string): string {
   switch (terms) {
@@ -61,6 +62,7 @@ export default function PublicInvoiceView() {
   const params = useParams();
   const token = params.token as string;
   
+  const { showToast, ToastContainer } = useToast();
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +128,7 @@ export default function PublicInvoiceView() {
       await fetchInvoice();
       setShowSignature(false);
     } catch (err) {
-      alert('Failed to save signature. Please try again.');
+      showToast('Failed to save signature. Please try again.', 'error');
     }
   };
 
@@ -168,6 +170,7 @@ export default function PublicInvoiceView() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-0 sm:py-4 lg:py-8">
+      <ToastContainer />
       <div className="w-full sm:max-w-5xl mx-auto px-0 sm:px-3 lg:px-4">
         {paymentSuccess && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { currency } from '@/lib/ui';
 import EditInvoice from '@/components/client-detail/EditInvoice';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
-import { useToast } from '@/components/ui/Toast';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 import PaymentPlanDisplay from '@/components/invoices/PaymentPlanDisplay';
 import ChargeCardModal from '@/components/payments/ChargeCardModal';
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents';
@@ -84,6 +84,9 @@ interface Invoice extends InvoiceLite {
   payment_plan_type?: string;
   total_paid_cents?: number;
   remaining_balance_cents?: number;
+  // Suspension
+  is_suspended?: boolean;
+  suspended_at?: string;
   clients?: {
     id: string;
     name: string;
@@ -122,7 +125,9 @@ export default function InvoiceDetailPage() {
   const [ccEmails, setCcEmails] = useState<string[]>([]);
   const [ccInput, setCcInput] = useState('');
   const [showChargeModal, setShowChargeModal] = useState(false);
+  const [suspending, setSuspending] = useState(false);
   const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
 
   const { data: invoice, error, mutate } = useSWR<Invoice>(
     invoiceId ? `/api/invoices/${invoiceId}/details` : null,
@@ -197,6 +202,41 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleToggleSuspend = async () => {
+    if (!invoice) return;
+    const action = invoice.is_suspended ? 'reactivate' : 'suspend';
+    const ok = await confirm({
+      title: invoice.is_suspended ? 'Reactivate Invoice' : 'Suspend Invoice',
+      message: invoice.is_suspended
+        ? 'This invoice will be included in analytics and email reminders again.'
+        : 'This invoice will be excluded from analytics, email reminders, and followups.',
+      confirmLabel: invoice.is_suspended ? 'Reactivate' : 'Suspend',
+      variant: invoice.is_suspended ? 'info' : 'warning',
+    });
+    if (!ok) return;
+
+    setSuspending(true);
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_suspended: !invoice.is_suspended }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || `Failed to ${action} invoice`);
+      }
+
+      mutate();
+      showToast(`Invoice ${action}d successfully`, 'success');
+    } catch (error) {
+      console.error(`Error ${action}ing invoice:`, error);
+      showToast(error instanceof Error ? error.message : `Failed to ${action} invoice`, 'error');
+    } finally {
+      setSuspending(false);
+    }
+  };
 
   if (error) {
     return (
@@ -229,6 +269,7 @@ export default function InvoiceDetailPage() {
   return (
     <>
       <ToastContainer />
+      <ConfirmContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-7xl mx-auto min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -272,8 +313,34 @@ export default function InvoiceDetailPage() {
               Resend Invoice
             </button>
           )}
+          <button
+            onClick={handleToggleSuspend}
+            disabled={suspending}
+            className={`px-3 py-2 sm:px-4 text-sm sm:text-base rounded-lg transition-colors disabled:opacity-50 ${
+              invoice.is_suspended
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-orange-500 text-white hover:bg-orange-600'
+            }`}
+          >
+            {suspending ? '...' : invoice.is_suspended ? 'Reactivate Invoice' : 'Suspend Invoice'}
+          </button>
         </div>
       </div>
+
+      {invoice.is_suspended && (
+        <div className="rounded-xl border border-orange-300 bg-orange-50 p-4 flex items-center gap-3">
+          <svg className="w-5 h-5 text-orange-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <p className="font-medium text-orange-800">This invoice is suspended</p>
+            <p className="text-sm text-orange-700">
+              It is excluded from analytics, email reminders, and followups.
+              {invoice.suspended_at && ` Suspended on ${new Date(invoice.suspended_at).toLocaleDateString()}.`}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
@@ -308,7 +375,7 @@ export default function InvoiceDetailPage() {
             <div>
               <label className="text-sm font-medium text-gray-600">Status</label>
               <div className="mt-1">
-                <InvoiceStatusBadge status={invoice.status} />
+                <InvoiceStatusBadge status={invoice.status} isSuspended={invoice.is_suspended} />
               </div>
             </div>
             <div>

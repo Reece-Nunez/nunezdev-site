@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import useSWR from "swr";
-import { useToast } from "@/components/ui/Toast";
+import { useToast, useConfirm } from "@/components/ui/Toast";
 
 interface Expense {
   id: string;
@@ -99,6 +99,7 @@ function currency(cents: number): string {
 
 export default function ExpensesPage() {
   const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [filterCategory, setFilterCategory] = useState("");
@@ -269,7 +270,13 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this expense?")) return;
+    const ok = await confirm({
+      title: "Delete Expense",
+      message: "Delete this expense?",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
@@ -394,7 +401,13 @@ export default function ExpensesPage() {
   };
 
   const handleDeleteRecurring = async (id: string) => {
-    if (!confirm("Delete this recurring expense?")) return;
+    const ok = await confirm({
+      title: "Delete Recurring Expense",
+      message: "Delete this recurring expense?",
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/recurring-expenses/${id}`, { method: "DELETE" });
@@ -438,6 +451,7 @@ export default function ExpensesPage() {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <ToastContainer />
+      <ConfirmContainer />
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>

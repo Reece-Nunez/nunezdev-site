@@ -8,11 +8,13 @@ import ClientTasks from '@/components/client-detail/ClientTasks';
 import { ClientInvoices } from '@/components/client-detail/Related';
 import AddPayment from '@/components/client-detail/AddPayment';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ClientDetailContent({ clientId }: { clientId: string }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isExporting, setIsExporting] = useState(false);
+  const { showToast, ToastContainer } = useToast();
   const bump = () => setRefreshKey((k) => k + 1);
 
   const handleExportTaxPDF = async () => {
@@ -34,7 +36,7 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
       document.body.removeChild(a);
     } catch (err) {
       console.error('Export error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to export PDF');
+      showToast(err instanceof Error ? err.message : 'Failed to export PDF', 'error');
     } finally {
       setIsExporting(false);
     }
@@ -46,6 +48,7 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6">
+      <ToastContainer />
       <div className="flex items-center justify-between">
         <Link href="/dashboard/clients" className="text-sm text-blue-600 hover:underline">
           ← Back to clients

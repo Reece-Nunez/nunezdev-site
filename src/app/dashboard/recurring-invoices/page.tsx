@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
 import Link from 'next/link';
 import { currency, prettyDate } from '@/lib/ui';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 
 interface RecurringInvoice {
   id: string;
@@ -52,6 +53,8 @@ interface InvoiceLog {
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function RecurringInvoicesPage() {
+  const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'cancelled' | 'completed'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<RecurringInvoice | null>(null);
@@ -90,7 +93,7 @@ export default function RecurringInvoicesPage() {
       mutate(`/api/recurring-invoices?status=${statusFilter}`);
     } catch (error) {
       console.error('Failed to update status:', error);
-      alert('Failed to update recurring invoice status');
+      showToast('Failed to update recurring invoice status', 'error');
     } finally {
       setActionLoading('');
     }
@@ -109,9 +112,9 @@ export default function RecurringInvoicesPage() {
       if (!response.ok) throw new Error(result.error || 'Processing failed');
 
       if (result.summary) {
-        alert(`Processing complete! ${result.summary.successful} invoices sent successfully, ${result.summary.errors} errors.`);
+        showToast(`Processing complete! ${result.summary.successful} invoices sent successfully, ${result.summary.errors} errors.`, 'success');
       } else {
-        alert(result.message || 'No recurring invoices due for processing.');
+        showToast(result.message || 'No recurring invoices due for processing.', 'info');
       }
 
       // Refresh data and logs
@@ -119,7 +122,7 @@ export default function RecurringInvoicesPage() {
       if (showLogs) mutateLogs();
     } catch (error) {
       console.error('Failed to process recurring invoices:', error);
-      alert('Failed to process recurring invoices');
+      showToast('Failed to process recurring invoices', 'error');
     } finally {
       setActionLoading('');
     }
@@ -139,10 +142,10 @@ export default function RecurringInvoicesPage() {
       );
 
       // Show success message
-      alert('Data refreshed successfully!');
+      showToast('Data refreshed successfully!', 'success');
     } catch (error) {
       console.error('Failed to refresh data:', error);
-      alert('Failed to refresh data. Please try again or reload the page.');
+      showToast('Failed to refresh data. Please try again or reload the page.', 'error');
     } finally {
       setActionLoading('');
     }
@@ -484,7 +487,7 @@ export default function RecurringInvoicesPage() {
       )}
 
       {showEditModal && selectedInvoice && (
-        <EditRecurringInvoiceModal 
+        <EditRecurringInvoiceModal
           recurringInvoice={selectedInvoice}
           onClose={() => {
             setShowEditModal(false);
@@ -497,12 +500,16 @@ export default function RecurringInvoicesPage() {
           }}
         />
       )}
+
+      <ToastContainer />
+      <ConfirmContainer />
     </div>
   );
 }
 
 // Create Recurring Invoice Modal Component
 function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: string; onClose: () => void; onSuccess: () => void }) {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<any[]>([]);
   const [lineItems, setLineItems] = useState([
@@ -578,7 +585,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
       onSuccess();
     } catch (error: any) {
       console.error('Failed to create recurring invoice:', error);
-      alert(`Failed to create recurring invoice: ${error.message}`);
+      showToast(`Failed to create recurring invoice: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -814,10 +821,11 @@ function EditRecurringInvoiceModal({
   onClose, 
   onSuccess 
 }: { 
-  recurringInvoice: RecurringInvoice; 
-  onClose: () => void; 
-  onSuccess: () => void; 
+  recurringInvoice: RecurringInvoice;
+  onClose: () => void;
+  onSuccess: () => void;
 }) {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -856,7 +864,7 @@ function EditRecurringInvoiceModal({
       onSuccess();
     } catch (error: any) {
       console.error('Failed to update recurring invoice:', error);
-      alert(`Failed to update recurring invoice: ${error.message}`);
+      showToast(`Failed to update recurring invoice: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }

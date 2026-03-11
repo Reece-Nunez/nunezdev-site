@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import type { InvoiceLite } from '@/types/client_detail';
 
 interface EditInvoiceProps {
@@ -11,6 +12,7 @@ interface EditInvoiceProps {
 
 export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoiceProps) {
   const [loading, setLoading] = useState(false);
+  const { showToast, ToastContainer } = useToast();
   const [formData, setFormData] = useState({
     amount_cents: (invoice.amount_cents / 100).toString(), // Convert to dollars
     description: invoice.description || '',
@@ -66,7 +68,7 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
       onUpdated?.();
     } catch (error) {
       console.error('Error updating invoice:', error);
-      alert(error instanceof Error ? error.message : 'Failed to update invoice');
+      showToast(error instanceof Error ? error.message : 'Failed to update invoice', 'error');
     } finally {
       setLoading(false);
     }
@@ -74,6 +76,7 @@ export default function EditInvoice({ invoice, onUpdated, onCancel }: EditInvoic
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <ToastContainer />
       <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6">
         <h3 className="mb-4 text-lg font-semibold">Edit Invoice</h3>
         <form onSubmit={handleSubmit} className="space-y-6">

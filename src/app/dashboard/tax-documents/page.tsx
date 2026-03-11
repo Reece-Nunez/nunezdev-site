@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { currency } from '@/lib/ui';
 import { DocumentArrowDownIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useToast } from '@/components/ui/Toast';
 
 interface Client {
   id: string;
@@ -28,6 +29,7 @@ export default function TaxDocumentsPage() {
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [exportingClients, setExportingClients] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const { showToast, ToastContainer } = useToast();
 
   // Fetch all clients
   const { data: clientsData, isLoading: clientsLoading } = useSWR<{ clients: Client[] }>('/api/clients', fetcher);
@@ -85,7 +87,7 @@ export default function TaxDocumentsPage() {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Export error:', err);
-      alert(err instanceof Error ? err.message : 'Failed to export PDF');
+      showToast(err instanceof Error ? err.message : 'Failed to export PDF', 'error');
     } finally {
       setExportingClients(prev => {
         const next = new Set(prev);
@@ -127,6 +129,7 @@ export default function TaxDocumentsPage() {
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
+      <ToastContainer />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tax Documents</h1>

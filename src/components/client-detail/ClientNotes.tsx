@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import type { Note } from '@/types/client_detail';
 import { useState } from 'react';
 import { prettyDate } from '@/lib/ui';
+import { useConfirm } from '@/components/ui/Toast';
 
 export default function ClientNotes({ clientId }: { clientId: string }) {
   const { data, mutate } = useSWR<{ notes: Note[] }>(
@@ -11,6 +12,7 @@ export default function ClientNotes({ clientId }: { clientId: string }) {
     (u: string) => fetch(u).then((r) => r.json())
   );
   const [text, setText] = useState('');
+  const { confirm, ConfirmContainer } = useConfirm();
 
   async function addNote() {
     if (!text.trim()) return;
@@ -24,7 +26,8 @@ export default function ClientNotes({ clientId }: { clientId: string }) {
   }
 
   async function deleteNote(noteId: string) {
-    if (!confirm('Delete this note?')) return;
+    const confirmed = await confirm({ title: 'Delete Note', message: 'Delete this note?', confirmLabel: 'Delete', variant: 'danger' });
+    if (!confirmed) return;
     await fetch(`/api/clients/${clientId}/notes`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -35,6 +38,7 @@ export default function ClientNotes({ clientId }: { clientId: string }) {
 
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
+      <ConfirmContainer />
       <h2 className="text-lg font-semibold">Notes</h2>
       <div className="flex gap-2">
         <input

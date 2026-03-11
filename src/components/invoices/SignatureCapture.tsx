@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
+import { useToast } from '@/components/ui/Toast';
 
 interface SignatureCaptureProps {
   onSign: (signatureData: string, signerName: string, signerEmail: string) => Promise<void>;
@@ -20,6 +21,7 @@ export default function SignatureCapture({
   const [signerEmail, setSignerEmail] = useState(defaultEmail);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const signatureRef = useRef<SignatureCanvas>(null);
+  const { showToast, ToastContainer } = useToast();
 
   // Fix signature pad coordinates for mobile
   useEffect(() => {
@@ -78,12 +80,12 @@ export default function SignatureCapture({
     e.preventDefault();
     
     if (!signerName.trim() || !signerEmail.trim()) {
-      alert('Please fill in all required fields');
+      showToast('Please fill in all required fields', 'error');
       return;
     }
 
     if (signatureRef.current?.isEmpty()) {
-      alert('Please provide your signature');
+      showToast('Please provide your signature', 'error');
       return;
     }
 
@@ -105,6 +107,7 @@ export default function SignatureCapture({
 
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-4">
+      <ToastContainer />
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
           <div>

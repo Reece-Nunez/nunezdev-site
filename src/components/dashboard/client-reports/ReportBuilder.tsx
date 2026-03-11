@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import useSWR from 'swr';
 import type { SectionStatus, ChecklistItem, ReportSection, PerformanceMetrics, AnalyticsMetrics } from '@/lib/pdf-templates/client-report';
 import type { AutomationResult } from '@/lib/report-automation/types';
+import { useConfirm } from '@/components/ui/Toast';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -175,6 +176,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
   const [automating, setAutomating] = useState(false);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { confirm, ConfirmContainer } = useConfirm();
 
   const toggleItem = useCallback((sectionKey: string, idx: number) => {
     setSectionStates(prev => {
@@ -372,7 +374,8 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       return;
     }
 
-    if (!confirm(`Send the report to ${client.email}?`)) return;
+    const confirmed = await confirm({ title: 'Send Report', message: `Send the report to ${client.email}?`, confirmLabel: 'Send', variant: 'info' });
+    if (!confirmed) return;
 
     setSending(true);
     setMessage(null);
@@ -396,6 +399,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
 
   return (
     <div className="space-y-6">
+      <ConfirmContainer />
       {/* Message */}
       {message && (
         <div className={`rounded-lg px-4 py-3 text-sm font-medium ${

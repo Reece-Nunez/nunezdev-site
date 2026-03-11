@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { DocumentArrowDownIcon, PaperAirplaneIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useConfirm } from '@/components/ui/Toast';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -25,6 +26,7 @@ export default function ReportHistory() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { confirm, ConfirmContainer } = useConfirm();
 
   const reports = data || [];
 
@@ -58,7 +60,8 @@ export default function ReportHistory() {
       return;
     }
 
-    if (!confirm(`Resend report to ${report.clients.email}?`)) return;
+    const confirmed = await confirm({ title: 'Resend Report', message: `Resend report to ${report.clients.email}?`, confirmLabel: 'Resend', variant: 'info' });
+    if (!confirmed) return;
 
     setSendingId(report.id);
     setMessage(null);
@@ -85,6 +88,7 @@ export default function ReportHistory() {
 
   return (
     <div className="space-y-4">
+      <ConfirmContainer />
       {message && (
         <div className={`rounded-lg px-4 py-3 text-sm font-medium ${
           message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'

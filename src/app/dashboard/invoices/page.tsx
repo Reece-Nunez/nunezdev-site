@@ -5,7 +5,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import InvoiceAnalytics from '@/components/invoices/InvoiceAnalytics';
-import { useToast } from '@/components/ui/Toast';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 import { useRealtimeEvents, RealtimeEvent } from '@/hooks/useRealtimeEvents';
 import CombineInvoicesModal from '@/components/invoices/CombineInvoicesModal';
 
@@ -43,6 +43,8 @@ interface Invoice {
   stripe_invoice_id?: string | null;
   signed_at?: string | null;
   hosted_invoice_url?: string | null;
+  is_suspended?: boolean;
+  suspended_at?: string | null;
   invoice_payments?: Array<{
     amount_cents: number;
     payment_method: string;
@@ -170,7 +172,9 @@ export default function DashboardInvoices() {
   const [showCombineModal, setShowCombineModal] = useState(false);
   const [combineLoading, setCombineLoading] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const [suspendingInvoice, setSuspendingInvoice] = useState<string | null>(null);
   const { showToast, ToastContainer } = useToast();
+  const { confirm, ConfirmContainer } = useConfirm();
 
   const url = `/api/dashboard/invoices?status=${status}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(
     to
@@ -198,9 +202,13 @@ export default function DashboardInvoices() {
   });
 
   const handleDeleteInvoice = async (invoiceId: string) => {
-    if (!confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete Invoice',
+      message: 'Are you sure you want to delete this invoice? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     setDeletingInvoice(invoiceId);
     try {
@@ -226,15 +234,54 @@ export default function DashboardInvoices() {
     }
   };
 
+  const handleToggleSuspend = async (invoiceId: string, currentlySuspended: boolean) => {
+    const action = currentlySuspended ? 'reactivate' : 'suspend';
+    const ok = await confirm({
+      title: currentlySuspended ? 'Reactivate Invoice' : 'Suspend Invoice',
+      message: currentlySuspended
+        ? 'This invoice will be included in analytics and email reminders again.'
+        : 'This invoice will be excluded from analytics, email reminders, and followups.',
+      confirmLabel: currentlySuspended ? 'Reactivate' : 'Suspend',
+      variant: currentlySuspended ? 'info' : 'warning',
+    });
+    if (!ok) return;
+
+    setSuspendingInvoice(invoiceId);
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_suspended: !currentlySuspended }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to ${action} invoice`);
+      }
+
+      mutate(url);
+      showToast(`Invoice ${action}d successfully`, 'success');
+    } catch (error) {
+      console.error(`Error ${action}ing invoice:`, error);
+      showToast(error instanceof Error ? error.message : `Failed to ${action} invoice`, 'error');
+    } finally {
+      setSuspendingInvoice(null);
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (selectedInvoices.size === 0) {
       showToast('No invoices selected', 'error');
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete ${selectedInvoices.size} invoice(s)? This action cannot be undone.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete Invoices',
+      message: `Are you sure you want to delete ${selectedInvoices.size} invoice(s)? This action cannot be undone.`,
+      confirmLabel: 'Delete All',
+      variant: 'danger',
+    });
+    if (!ok) return;
 
     setBulkDeleting(true);
     try {
@@ -351,11 +398,15 @@ export default function DashboardInvoices() {
   const handleMarkPaid = async () => {
     if (!canMarkPaid) return;
 
-    const confirmMsg = selectedInvoices.size === 1
-      ? 'Mark this invoice as paid?'
-      : `Mark ${selectedInvoices.size} invoices as paid?`;
-
-    if (!confirm(confirmMsg)) return;
+    const ok = await confirm({
+      title: 'Mark as Paid',
+      message: selectedInvoices.size === 1
+        ? 'Mark this invoice as paid?'
+        : `Mark ${selectedInvoices.size} invoices as paid?`,
+      confirmLabel: 'Mark Paid',
+      variant: 'info',
+    });
+    if (!ok) return;
 
     setMarkingPaid(true);
     try {
@@ -402,11 +453,7 @@ export default function DashboardInvoices() {
       setRelinkSummary(json.summary);
       mutate(url); // refresh the list
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        alert(e.message);
-      } else {
-        alert('Relink failed');
-      }
+      showToast(e instanceof Error ? e.message : 'Relink failed', 'error');
     } finally {
       setRelinking(false);
     }
@@ -415,6 +462,7 @@ export default function DashboardInvoices() {
   return (
     <>
       <ToastContainer />
+      <ConfirmContainer />
       <div className="px-3 py-4 sm:p-6 space-y-4 max-w-full min-w-0">
       <div className="flex items-center justify-between gap-3 max-w-full">
         <div className="flex items-center gap-3 min-w-0">
@@ -507,6 +555,7 @@ export default function DashboardInvoices() {
               <option value="overdue">Overdue</option>
               <option value="draft">Draft</option>
               <option value="void">Void</option>
+              <option value="suspended">Suspended</option>
             </select>
           </label>
           <label className="text-sm min-w-0">
@@ -601,10 +650,10 @@ export default function DashboardInvoices() {
                 </div>
               </div>
               <div className="flex-shrink-0">
-                <InvoiceStatusBadge status={r.status} />
+                <InvoiceStatusBadge status={r.status} isSuspended={r.is_suspended} />
               </div>
             </div>
-            
+
             <div className="space-y-1 text-xs">
               <div className="flex justify-between w-full min-w-0">
                 <span className="text-gray-600 flex-shrink-0">Amount:</span>
@@ -644,6 +693,13 @@ export default function DashboardInvoices() {
                 >
                   Edit
                 </a>
+                <button
+                  onClick={() => handleToggleSuspend(r.id, !!r.is_suspended)}
+                  disabled={suspendingInvoice === r.id}
+                  className={`px-2 py-1 text-xs rounded disabled:opacity-50 ${r.is_suspended ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}
+                >
+                  {suspendingInvoice === r.id ? '...' : r.is_suspended ? 'Activate' : 'Suspend'}
+                </button>
                 <button
                   onClick={() => handleDeleteInvoice(r.id)}
                   disabled={deletingInvoice === r.id}
@@ -735,7 +791,7 @@ export default function DashboardInvoices() {
                   <div className="text-xs text-gray-500">{r.clients?.email ?? ''}</div>
                 </td>
                 <td className="px-3 py-2">
-                  <InvoiceStatusBadge status={r.status} />
+                  <InvoiceStatusBadge status={r.status} isSuspended={r.is_suspended} />
                 </td>
                 <td className="px-3 py-2 text-right">
                   <div>
@@ -786,6 +842,14 @@ export default function DashboardInvoices() {
                     >
                       Edit
                     </a>
+                    <button
+                      onClick={() => handleToggleSuspend(r.id, !!r.is_suspended)}
+                      disabled={suspendingInvoice === r.id}
+                      className={`text-sm disabled:opacity-50 disabled:cursor-not-allowed ${r.is_suspended ? 'text-green-600 hover:text-green-800' : 'text-orange-600 hover:text-orange-800'}`}
+                      title={r.is_suspended ? 'Reactivate Invoice' : 'Suspend Invoice'}
+                    >
+                      {suspendingInvoice === r.id ? '...' : r.is_suspended ? 'Activate' : 'Suspend'}
+                    </button>
                     <button
                       onClick={() => handleDeleteInvoice(r.id)}
                       disabled={deletingInvoice === r.id}
