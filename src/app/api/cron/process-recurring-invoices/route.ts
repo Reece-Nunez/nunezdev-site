@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
+    const baseUrl = new URL(request.url).origin;
     const response = await fetch(`${baseUrl}/api/recurring-invoices/process`, {
       method: 'POST',
       headers: {
