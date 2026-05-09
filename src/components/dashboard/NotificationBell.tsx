@@ -156,7 +156,7 @@ export default function NotificationBell({ collapsed = false }: NotificationBell
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 flex flex-col overflow-hidden max-h-[70vh] sm:max-h-[480px] bg-white rounded-lg shadow-lg border border-gray-200 lg:left-full lg:top-0 lg:ml-2 lg:w-80 max-lg:right-0 max-lg:left-auto max-lg:top-full max-lg:mt-2 max-lg:w-[calc(100vw-2rem)] max-lg:max-w-sm">
+        <div className="z-50 flex flex-col overflow-hidden max-h-[70vh] sm:max-h-[480px] bg-white rounded-xl shadow-2xl border border-gray-200 lg:absolute lg:left-full lg:top-0 lg:ml-2 lg:w-80 max-lg:fixed max-lg:top-[calc(env(safe-area-inset-top)_+_68px)] max-lg:right-3 max-lg:left-auto max-lg:w-[calc(100vw-1.5rem)] max-lg:max-w-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
             <h3 className="font-semibold text-sm text-gray-800">Notifications</h3>
             {unreadCount > 0 && (
