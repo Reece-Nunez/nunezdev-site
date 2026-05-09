@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Space_Grotesk, Lora } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -6,6 +6,7 @@ import StructuredData from "@/components/StructuredData";
 import Script from "next/script";
 import Footer from "@/components/Footer";
 import Providers from "./providers";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -75,15 +76,25 @@ export const metadata: Metadata = {
       "From websites to CRMs, NunezDev builds powerful tools for business growth. Based in Ponca City, serving clients nationwide.",
     images: ["https://www.nunezdev.com/logo.png"],
   },
+  manifest: "/site.webmanifest",
+  applicationName: "NunezDev",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "NunezDev",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-    other: [
-      {
-        rel: "manifest",
-        url: "/site.webmanifest",
-      },
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
   robots: {
@@ -104,6 +115,17 @@ export const metadata: Metadata = {
       bing: "YOUR-BING-VERIFICATION-CODE",
     },
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b2a4a" },
+  ],
 };
 
 export default function RootLayout({
@@ -134,6 +156,7 @@ export default function RootLayout({
         <Navbar />
         <Providers>{children}</Providers>
         <Footer />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
