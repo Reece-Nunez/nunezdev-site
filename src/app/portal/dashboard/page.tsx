@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import FileDropzone from '@/components/portal/FileDropzone';
+import toast, { Toaster } from 'react-hot-toast';
+import FileDropzone, { UploadedFileInfo } from '@/components/portal/FileDropzone';
 import UploadProgress, { UploadFile } from '@/components/portal/UploadProgress';
 import UploadSuccessAnimation from '@/components/portal/UploadSuccessAnimation';
 import ProjectCard from '@/components/portal/ProjectCard';
+import { NON_PREVIEWABLE_IMAGE_TYPES, formatBytes } from '@/lib/uploadConstants';
 
 interface Project {
   id: string;
@@ -115,11 +117,22 @@ export default function PortalDashboard() {
   const matchFile = (a: File, b: File) =>
     a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
+  // Holds the FileDropzone's enqueue function so we can retry failed uploads.
+  const retryHandlerRef = useRef<((file: File) => void) | null>(null);
+
   const handleUploadStart = useCallback((file: File) => {
-    setUploads((prev) => [
-      ...prev,
-      { file, progress: 0, status: 'uploading' },
-    ]);
+    setUploads((prev) => {
+      // If a retry of a previously-errored upload, reset its state in place.
+      const existing = prev.find((u) => matchFile(u.file, file));
+      if (existing) {
+        return prev.map((u) =>
+          matchFile(u.file, file)
+            ? { ...u, progress: 0, status: 'uploading', error: undefined }
+            : u
+        );
+      }
+      return [...prev, { file, progress: 0, status: 'uploading' }];
+    });
   }, []);
 
   const handleUploadProgress = useCallback((file: File, progress: number) => {
@@ -130,22 +143,22 @@ export default function PortalDashboard() {
     );
   }, []);
 
-  const handleUploadComplete = useCallback((file: File, url: string) => {
+  const handleUploadComplete = useCallback((file: File, info: UploadedFileInfo) => {
     setUploads((prev) =>
       prev.map((u) =>
-        matchFile(u.file, file) ? { ...u, progress: 100, status: 'complete', url } : u
+        matchFile(u.file, file)
+          ? { ...u, progress: 100, status: 'complete', url: info.url ?? undefined }
+          : u
       )
     );
     setShowSuccess(true);
 
-    // Refresh project uploads after success
-    if (selectedProject) {
-      fetch(`/api/portal/projects/${selectedProject.id}`)
-        .then((res) => res.json())
-        .then((data) => setExistingUploads(data.uploads))
-        .catch(console.error);
-    }
-  }, [selectedProject]);
+    // Append directly to existing uploads — avoids the extra round-trip.
+    setExistingUploads((prev) => {
+      if (prev.some((u) => u.id === info.id)) return prev;
+      return [info, ...prev];
+    });
+  }, []);
 
   const handleUploadError = useCallback((file: File, error: string) => {
     setUploads((prev) => {
@@ -157,10 +170,23 @@ export default function PortalDashboard() {
       }
       return [...prev, { file, progress: 0, status: 'error', error }];
     });
+    // Surface a quick toast so the user notices even if the error appears
+    // far below the dropzone.
+    toast.error(error, { duration: 6000 });
   }, []);
 
   const handleRemoveUpload = useCallback((file: File) => {
     setUploads((prev) => prev.filter((u) => !matchFile(u.file, file)));
+  }, []);
+
+  const handleRetryUpload = useCallback((file: File) => {
+    if (retryHandlerRef.current) {
+      retryHandlerRef.current(file);
+    }
+  }, []);
+
+  const registerRetry = useCallback((handler: (file: File) => void) => {
+    retryHandlerRef.current = handler;
   }, []);
 
   const handleLogout = async () => {
@@ -263,6 +289,16 @@ export default function PortalDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            maxWidth: 480,
+            fontSize: 14,
+            lineHeight: 1.4,
+          },
+        }}
+      />
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -446,11 +482,13 @@ export default function PortalDashboard() {
                     onUploadProgress={handleUploadProgress}
                     onUploadComplete={handleUploadComplete}
                     onUploadError={handleUploadError}
+                    onRetry={registerRetry}
                   />
 
                   <UploadProgress
                     uploads={uploads}
                     onRemove={handleRemoveUpload}
+                    onRetry={handleRetryUpload}
                   />
 
                   {existingUploads.length > 0 && (
@@ -459,15 +497,20 @@ export default function PortalDashboard() {
                         Uploaded Files ({existingUploads.length})
                       </h3>
                       <div className="grid sm:grid-cols-2 gap-4">
-                        {existingUploads.map((upload) => (
+                        {existingUploads.map((upload) => {
+                          const isPreviewable =
+                            upload.mimeType.startsWith('image/') &&
+                            !NON_PREVIEWABLE_IMAGE_TYPES.has(upload.mimeType) &&
+                            !!upload.url;
+                          return (
                           <div
                             key={upload.id}
                             className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3"
                           >
-                            {upload.mimeType.startsWith('image/') && upload.url ? (
+                            {isPreviewable ? (
                               <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
                                 <img
-                                  src={upload.url}
+                                  src={upload.url!}
                                   alt={upload.fileName}
                                   className="w-full h-full object-cover"
                                 />
@@ -494,7 +537,12 @@ export default function PortalDashboard() {
                                 {upload.fileName}
                               </p>
                               <p className="text-xs text-slate-500">
-                                {(upload.fileSize / 1024).toFixed(1)} KB
+                                {formatBytes(upload.fileSize)}
+                                {NON_PREVIEWABLE_IMAGE_TYPES.has(upload.mimeType) && (
+                                  <span className="ml-2 text-amber-600">
+                                    · Preview not supported in browser
+                                  </span>
+                                )}
                               </p>
                             </div>
                             {upload.url && (
@@ -520,7 +568,8 @@ export default function PortalDashboard() {
                               </a>
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

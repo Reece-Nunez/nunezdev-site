@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { formatBytes } from '@/lib/uploadConstants';
 
 export interface UploadFile {
   file: File;
@@ -14,12 +15,7 @@ export interface UploadFile {
 interface UploadProgressProps {
   uploads: UploadFile[];
   onRemove?: (file: File) => void;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  onRetry?: (file: File) => void;
 }
 
 function getFileIcon(type: string): React.ReactElement {
@@ -47,7 +43,7 @@ function getFileIcon(type: string): React.ReactElement {
   );
 }
 
-export default function UploadProgress({ uploads, onRemove }: UploadProgressProps) {
+export default function UploadProgress({ uploads, onRemove, onRetry }: UploadProgressProps) {
   if (uploads.length === 0) return null;
 
   return (
@@ -84,7 +80,7 @@ export default function UploadProgress({ uploads, onRemove }: UploadProgressProp
                 {upload.file.name}
               </p>
               <p className="text-xs text-slate-500">
-                {formatFileSize(upload.file.size)}
+                {formatBytes(upload.file.size)}
                 {upload.status === 'uploading' && ` - ${upload.progress}%`}
               </p>
               {upload.status === 'error' && upload.error && (
@@ -122,20 +118,34 @@ export default function UploadProgress({ uploads, onRemove }: UploadProgressProp
               </motion.div>
             )}
 
-            {upload.status === 'error' && onRemove && (
-              <button
-                onClick={() => onRemove(upload.file)}
-                className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+            {upload.status === 'error' && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {onRetry && upload.file.size > 0 && (
+                  <button
+                    onClick={() => onRetry(upload.file)}
+                    title="Retry upload"
+                    className="px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-100 hover:bg-yellow-200 rounded-lg transition-colors"
+                  >
+                    Retry
+                  </button>
+                )}
+                {onRemove && (
+                  <button
+                    onClick={() => onRemove(upload.file)}
+                    title="Dismiss"
+                    className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

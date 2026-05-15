@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
 import { generatePresignedUploadUrl, buildS3Key } from '@/lib/s3';
+import {
+  MAX_FILE_SIZE,
+  formatBytes,
+  getFileExtension,
+  isFileAllowed,
+  resolveContentType,
+} from '@/lib/uploadConstants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -10,25 +17,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'image/heic',
-  'image/heif',
-  'application/pdf',
-];
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.heic', '.heif', '.pdf'];
-
-function isFileAllowed(fileName: string, fileType: string): boolean {
-  if (ALLOWED_TYPES.includes(fileType)) return true;
-  const name = (fileName || '').toLowerCase();
-  return ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext));
-}
 
 export async function POST(req: Request) {
   try {
@@ -50,13 +38,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
-
     // Validate file size
     if (fileSize > MAX_FILE_SIZE) {
       return NextResponse.json(
         {
-          error: `"${fileName}" is ${mb(fileSize)} — over our 100 MB limit. Please compress or resize the file and try again.`,
+          error: `"${fileName}" is ${formatBytes(fileSize)} — over our 100 MB limit. Please compress or resize the file and try again.`,
         },
         { status: 400 }
       );
@@ -64,29 +50,17 @@ export async function POST(req: Request) {
 
     // Validate file type (with extension fallback for iOS HEIC/empty mime types)
     if (!isFileAllowed(fileName, fileType || '')) {
-      const ext = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0]?.replace('.', '').toUpperCase() || 'unknown';
+      const extLabel = getFileExtension(fileName).replace('.', '').toUpperCase() || 'unknown';
       return NextResponse.json(
         {
-          error: `"${fileName}" is a ${ext} file, which isn't supported. Allowed: JPEG, PNG, GIF, WebP, SVG, HEIC, or PDF.`,
+          error: `"${fileName}" is a ${extLabel} file, which isn't supported. Allowed: JPEG, PNG, GIF, WebP, SVG, HEIC, or PDF.`,
         },
         { status: 400 }
       );
     }
 
     // Normalize content type when client didn't provide one (common on iOS HEIC)
-    const ext = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0];
-    const extToMime: Record<string, string> = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp',
-      '.svg': 'image/svg+xml',
-      '.heic': 'image/heic',
-      '.heif': 'image/heif',
-      '.pdf': 'application/pdf',
-    };
-    const resolvedContentType = fileType || (ext && extToMime[ext]) || 'application/octet-stream';
+    const resolvedContentType = resolveContentType(fileName, fileType || '');
 
     // Verify project belongs to this client and get project name
     const { data: project, error: projectError } = await supabase

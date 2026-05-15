@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
 import { sendUploadNotification, createNotification } from '@/lib/notifications';
+import { generatePresignedDownloadUrl } from '@/lib/s3';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -95,10 +96,30 @@ export async function POST(req: Request) {
       }
     }
 
+    // Return the full upload record (including a fresh signed URL) so the
+    // client can append it to the list without a full project refetch.
+    let signedUrl: string | null = null;
+    if (success && upload.s3_key) {
+      try {
+        signedUrl = await generatePresignedDownloadUrl(upload.s3_key, 3600);
+      } catch (err) {
+        console.error('[upload-complete] Could not generate download URL:', err);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       uploadId,
       status: newStatus,
+      upload: {
+        id: upload.id,
+        fileName: upload.file_name,
+        fileSize: upload.file_size_bytes,
+        mimeType: upload.mime_type,
+        url: signedUrl,
+        status: newStatus,
+        createdAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     console.error('Upload completion error:', error);
