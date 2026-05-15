@@ -86,10 +86,12 @@ export default function UploadProgress({ uploads, onRemove }: UploadProgressProp
               <p className="text-xs text-slate-500">
                 {formatFileSize(upload.file.size)}
                 {upload.status === 'uploading' && ` - ${upload.progress}%`}
-                {upload.status === 'error' && (
-                  <span className="text-red-600 ml-2">{upload.error}</span>
-                )}
               </p>
+              {upload.status === 'error' && upload.error && (
+                <p className="text-sm text-red-700 mt-1.5 leading-snug break-words">
+                  {upload.error}
+                </p>
+              )}
             </div>
 
             {upload.status === 'uploading' && (

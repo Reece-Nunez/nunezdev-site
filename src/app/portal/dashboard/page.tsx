@@ -148,11 +148,15 @@ export default function PortalDashboard() {
   }, [selectedProject]);
 
   const handleUploadError = useCallback((file: File, error: string) => {
-    setUploads((prev) =>
-      prev.map((u) =>
-        matchFile(u.file, file) ? { ...u, status: 'error', error } : u
-      )
-    );
+    setUploads((prev) => {
+      const exists = prev.some((u) => matchFile(u.file, file));
+      if (exists) {
+        return prev.map((u) =>
+          matchFile(u.file, file) ? { ...u, status: 'error', error } : u
+        );
+      }
+      return [...prev, { file, progress: 0, status: 'error', error }];
+    });
   }, []);
 
   const handleRemoveUpload = useCallback((file: File) => {

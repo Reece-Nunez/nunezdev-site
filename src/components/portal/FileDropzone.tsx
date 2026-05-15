@@ -18,8 +18,63 @@ const ALLOWED_TYPES = [
   'image/gif',
   'image/webp',
   'image/svg+xml',
+  'image/heic',
+  'image/heif',
   'application/pdf',
 ];
+
+const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.heic', '.heif', '.pdf'];
+
+function getExtension(fileName: string): string {
+  const match = fileName.toLowerCase().match(/\.[a-z0-9]+$/);
+  return match ? match[0] : '';
+}
+
+function isAllowed(file: File): boolean {
+  if (ALLOWED_TYPES.includes(file.type)) return true;
+  // Fallback for iOS/Android where file.type can be empty for HEIC and some images.
+  return ALLOWED_EXTENSIONS.includes(getExtension(file.name));
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function describeRejection(file: File): string {
+  const ext = getExtension(file.name);
+  const name = file.name || 'this file';
+
+  // Tailored guidance per file family
+  if (ext === '.mov' || ext === '.mp4' || ext === '.avi' || ext === '.mkv' || ext === '.webm' || file.type.startsWith('video/')) {
+    return `"${name}" is a video file. Videos aren't supported yet — please upload a photo or screenshot instead.`;
+  }
+  if (ext === '.doc' || ext === '.docx' || ext === '.pages') {
+    return `"${name}" is a Word document. Please export it as a PDF and upload that instead.`;
+  }
+  if (ext === '.xls' || ext === '.xlsx' || ext === '.numbers' || ext === '.csv') {
+    return `"${name}" is a spreadsheet. Please export it as a PDF and upload that instead.`;
+  }
+  if (ext === '.ppt' || ext === '.pptx' || ext === '.key') {
+    return `"${name}" is a presentation. Please export it as a PDF and upload that instead.`;
+  }
+  if (ext === '.zip' || ext === '.rar' || ext === '.7z' || ext === '.tar' || ext === '.gz') {
+    return `"${name}" is an archive. Please unzip it and upload the individual files.`;
+  }
+  if (ext === '.txt' || ext === '.rtf' || ext === '.md') {
+    return `"${name}" is a text file. Please convert to PDF or paste the contents into a message instead.`;
+  }
+  if (ext === '.bmp' || ext === '.tiff' || ext === '.tif') {
+    return `"${name}" uses an older image format. On a computer, open it and save/export as JPEG or PNG, then upload that.`;
+  }
+  if (!ext && !file.type) {
+    return `"${name}" has no file extension, so we can't tell what type it is. Please rename it with the correct extension (e.g., .jpg) and try again.`;
+  }
+  const what = ext ? ext.toUpperCase().replace('.', '') : (file.type || 'unknown');
+  return `"${name}" is a ${what} file, which isn't supported. Allowed: JPEG, PNG, GIF, WebP, SVG, HEIC, or PDF.`;
+}
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -38,26 +93,50 @@ export default function FileDropzone({
       onUploadStart(file);
 
       try {
-        // Get pre-signed URL
-        const presignRes = await fetch('/api/portal/uploads/presigned-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            projectId,
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-          }),
-        });
-
-        if (!presignRes.ok) {
-          const error = await presignRes.json();
-          throw new Error(error.error || 'Failed to get upload URL');
+        // Step 1: ask our server for a pre-signed S3 URL
+        let presignRes: Response;
+        try {
+          presignRes = await fetch('/api/portal/uploads/presigned-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectId,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+            }),
+          });
+        } catch {
+          throw new Error(`Couldn't reach our server to start the upload — check your internet connection and try again.`);
         }
 
-        const { uploadId, presignedUrl } = await presignRes.json();
+        if (!presignRes.ok) {
+          let serverMessage = '';
+          try {
+            const body = await presignRes.json();
+            serverMessage = body?.error || '';
+          } catch {
+            // ignore — body wasn't JSON
+          }
 
-        // Upload to S3 with progress tracking
+          if (presignRes.status === 401) {
+            throw new Error('Your session expired. Please refresh the page and sign in again.');
+          }
+          if (presignRes.status === 404) {
+            throw new Error('This project is no longer active. Refresh the page or pick a different project.');
+          }
+          if (presignRes.status === 400 && serverMessage) {
+            throw new Error(serverMessage);
+          }
+          if (presignRes.status >= 500) {
+            throw new Error(`Our server hit an error (${presignRes.status}) while preparing the upload. Please try again in a moment.`);
+          }
+          throw new Error(serverMessage || `Couldn't prepare the upload (HTTP ${presignRes.status}). Please try again.`);
+        }
+
+        const { uploadId, presignedUrl, contentType } = await presignRes.json();
+
+        // Step 2: PUT the file directly to S3 with progress tracking
         await new Promise<void>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
 
@@ -71,35 +150,61 @@ export default function FileDropzone({
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve();
+              return;
+            }
+            if (xhr.status === 403) {
+              reject(new Error('The upload link expired before the file finished. Please try uploading again.'));
+            } else if (xhr.status === 413) {
+              reject(new Error(`"${file.name}" is too large for our storage. Try compressing or resizing it first.`));
+            } else if (xhr.status >= 500) {
+              reject(new Error(`Our storage provider returned an error (${xhr.status}). Please try again in a moment.`));
+            } else if (xhr.status === 0) {
+              reject(new Error('The upload was interrupted. Check your internet connection and try again.'));
             } else {
-              reject(new Error(`Upload failed with status ${xhr.status}`));
+              reject(new Error(`Upload failed (HTTP ${xhr.status}). Please try again.`));
             }
           };
 
           xhr.onerror = () => {
-            reject(new Error('Upload failed'));
+            reject(new Error('Your internet connection dropped while uploading. Please reconnect and try again.'));
+          };
+
+          xhr.ontimeout = () => {
+            reject(new Error('The upload took too long and timed out. On a slow connection, try a smaller file or move closer to Wi-Fi.'));
+          };
+
+          xhr.onabort = () => {
+            reject(new Error('Upload was cancelled.'));
           };
 
           xhr.open('PUT', presignedUrl);
-          xhr.setRequestHeader('Content-Type', file.type);
+          xhr.setRequestHeader('Content-Type', contentType || file.type || 'application/octet-stream');
           xhr.send(file);
         });
 
-        // Confirm upload complete
-        const completeRes = await fetch('/api/portal/uploads/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uploadId, success: true }),
-        });
+        // Step 3: confirm completion on our server
+        let completeRes: Response;
+        try {
+          completeRes = await fetch('/api/portal/uploads/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uploadId, success: true }),
+          });
+        } catch {
+          throw new Error(`"${file.name}" uploaded, but we couldn't confirm it with our server. Refresh the page — if you don't see it, please re-upload.`);
+        }
 
         if (!completeRes.ok) {
-          throw new Error('Failed to confirm upload');
+          if (completeRes.status === 401) {
+            throw new Error('Your session expired right after the upload. Please sign in again — your file is safe but not yet linked to the project.');
+          }
+          throw new Error(`"${file.name}" uploaded, but our server couldn't save the record (HTTP ${completeRes.status}). Please try uploading it again.`);
         }
 
         const { url } = await completeRes.json();
         onUploadComplete(file, url);
       } catch (error) {
-        onUploadError(file, error instanceof Error ? error.message : 'Upload failed');
+        onUploadError(file, error instanceof Error ? error.message : `We couldn't upload "${file.name}". Please try again.`);
       }
     },
     [projectId, onUploadStart, onUploadProgress, onUploadComplete, onUploadError]
@@ -110,13 +215,21 @@ export default function FileDropzone({
       if (!files || disabled) return;
 
       Array.from(files).forEach((file) => {
-        if (!ALLOWED_TYPES.includes(file.type)) {
-          onUploadError(file, 'File type not allowed');
+        if (file.size === 0) {
+          onUploadError(file, `"${file.name}" is empty (0 bytes). The file may not have copied correctly — try re-selecting it.`);
+          return;
+        }
+
+        if (!isAllowed(file)) {
+          onUploadError(file, describeRejection(file));
           return;
         }
 
         if (file.size > MAX_FILE_SIZE) {
-          onUploadError(file, 'File too large (max 100MB)');
+          onUploadError(
+            file,
+            `"${file.name}" is ${formatBytes(file.size)} — over the 100MB limit. Please resize or compress the file (try a photo editor or an online compressor) and try again.`
+          );
           return;
         }
 
@@ -160,7 +273,7 @@ export default function FileDropzone({
           const input = document.createElement('input');
           input.type = 'file';
           input.multiple = true;
-          input.accept = ALLOWED_TYPES.join(',');
+          input.accept = [...ALLOWED_TYPES, ...ALLOWED_EXTENSIONS].join(',');
           input.onchange = (e) => {
             const target = e.target as HTMLInputElement;
             handleFiles(target.files);
@@ -231,7 +344,7 @@ export default function FileDropzone({
               or click to browse
             </p>
             <p className="text-slate-400 text-xs mt-3">
-              JPEG, PNG, GIF, WebP, SVG, PDF (max 100MB)
+              JPEG, PNG, GIF, WebP, SVG, HEIC, PDF (max 100MB)
             </p>
           </motion.div>
         )}

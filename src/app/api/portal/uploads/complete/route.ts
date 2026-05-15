@@ -16,13 +16,19 @@ export async function POST(req: Request) {
     const session = await getPortalSessionFromCookie();
 
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Your session expired right after the upload finished. Please sign in again — the file is in storage but not yet linked to the project.' },
+        { status: 401 }
+      );
     }
 
     const { uploadId, success } = await req.json();
 
     if (!uploadId) {
-      return NextResponse.json({ error: 'uploadId is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: `We couldn't confirm the upload because the request was missing the upload ID. Please refresh and try again.` },
+        { status: 400 }
+      );
     }
 
     // Verify upload belongs to this user and fetch details for notification
@@ -40,7 +46,10 @@ export async function POST(req: Request) {
       .single();
 
     if (fetchError || !upload) {
-      return NextResponse.json({ error: 'Upload not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: `We couldn't find this upload record — it may have been removed, or it doesn't belong to your account.` },
+        { status: 404 }
+      );
     }
 
     const newStatus = success ? 'completed' : 'failed';
@@ -55,7 +64,10 @@ export async function POST(req: Request) {
 
     if (updateError) {
       console.error('Error updating upload status:', updateError);
-      return NextResponse.json({ error: 'Failed to update upload status' }, { status: 500 });
+      return NextResponse.json(
+        { error: `Your file uploaded to storage, but we couldn't save the record. Please try uploading it again — if it shows up twice, just delete the duplicate.` },
+        { status: 500 }
+      );
     }
 
     // Send email notification for successful uploads (fire and forget)
@@ -90,6 +102,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Upload completion error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: `Something went wrong on our end while finishing the upload. Please refresh and check if your file appears in the list before re-uploading.` },
+      { status: 500 }
+    );
   }
 }
