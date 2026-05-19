@@ -80,6 +80,9 @@ export async function POST(request: Request) {
     const today = new Date().toISOString().split('T')[0];
 
     // --- Fetch due recurring invoices ---
+    // Skip rows that have been migrated to a Stripe Subscription (auto-pay
+    // enrollment). Stripe owns billing for those schedules now — generating
+    // a parallel invoice would double-bill the client.
     const { data: recurringInvoices, error } = await adminSupabase
       .from('recurring_invoices')
       .select(`
@@ -94,6 +97,7 @@ export async function POST(request: Request) {
         )
       `)
       .eq('status', 'active')
+      .is('stripe_subscription_id', null)
       .lte('next_invoice_date', today);
 
     if (error) {
@@ -324,6 +328,10 @@ export async function POST(request: Request) {
         // --- Send email notification to client ---
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
         const secureInvoiceUrl = `${baseUrl}/invoice/${accessToken}`;
+        // For recurring invoices, surface an Auto-Pay enrollment CTA. The
+        // GET endpoint creates a Stripe Checkout session and 302-redirects
+        // straight to it — single click from the email.
+        const autoPayUrl = `${baseUrl}/api/invoice/${accessToken}/autodraft-checkout`;
 
         try {
           await sendInvoiceEmail({
@@ -336,6 +344,7 @@ export async function POST(request: Request) {
               year: 'numeric', month: 'long', day: 'numeric',
             }),
             requiresSignature: recurring.require_signature || false,
+            autoPayUrl,
           });
 
           log('info', 'Invoice email sent to client', { invoiceId: newInvoice.id, clientEmail: client.email });

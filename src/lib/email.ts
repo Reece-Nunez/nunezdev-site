@@ -11,6 +11,12 @@ interface SendInvoiceEmailParams {
   amount: string;
   dueDate?: string;
   requiresSignature: boolean;
+  /**
+   * Optional: if provided, renders a second "Set Up Auto-Pay" CTA. Only
+   * meaningful for recurring invoices — the link points to the public
+   * autodraft-checkout endpoint and uses the same invoice access token.
+   */
+  autoPayUrl?: string;
 }
 
 export async function sendInvoiceEmail({
@@ -21,7 +27,8 @@ export async function sendInvoiceEmail({
   invoiceUrl,
   amount,
   dueDate,
-  requiresSignature
+  requiresSignature,
+  autoPayUrl,
 }: SendInvoiceEmailParams) {
   if (!resend) {
     console.log('📧 EMAIL WOULD BE SENT:');
@@ -78,18 +85,41 @@ export async function sendInvoiceEmail({
           border: 1px solid #e9ecef;
         }
         
-        .button { 
-          display: inline-block; 
-          padding: 16px 32px; 
-          background: #5b7c99; 
-          color: white !important; 
-          text-decoration: none; 
-          border-radius: 5px; 
-          margin: 20px 0; 
+        .button {
+          display: inline-block;
+          padding: 16px 32px;
+          background: #5b7c99;
+          color: white !important;
+          text-decoration: none;
+          border-radius: 5px;
+          margin: 8px 8px 8px 0;
           font-weight: 500;
           text-align: center;
           min-width: 200px;
           box-sizing: border-box;
+        }
+
+        .button-primary {
+          background: #ffc312;
+          color: #111 !important;
+        }
+
+        .autopay-card {
+          background: #fffbeb;
+          border: 1px solid #ffc312;
+          border-radius: 8px;
+          padding: 16px 18px;
+          margin: 20px 0;
+        }
+        .autopay-card h3 {
+          margin: 0 0 6px;
+          font-size: 16px;
+          color: #111;
+        }
+        .autopay-card p {
+          margin: 4px 0;
+          color: #444;
+          font-size: 14px;
         }
         
         .footer { 
@@ -222,8 +252,21 @@ export async function sendInvoiceEmail({
         ` : ''}
         
         <p>
-          <a href="${invoiceUrl}" class="button">View Invoice</a>
+          <a href="${invoiceUrl}" class="button">View &amp; Pay Invoice</a>
         </p>
+
+        ${autoPayUrl ? `
+        <div class="autopay-card">
+          <h3>✓ Set Up Auto-Pay (recommended)</h3>
+          <p>Save your card once and we'll automatically charge ${amount} for this recurring service each cycle — no more invoices to remember.</p>
+          <p style="margin-top:10px;">
+            <a href="${autoPayUrl}" class="button button-primary">Set Up Auto-Pay</a>
+          </p>
+          <p style="font-size:12px;color:#666;margin-top:8px;">
+            You'll be redirected to Stripe to securely enter your card. You can cancel anytime, and we'll email a receipt after every charge.
+          </p>
+        </div>
+        ` : ''}
         
         <p>If you have any questions about this invoice, please don't hesitate to contact me.</p>
         
