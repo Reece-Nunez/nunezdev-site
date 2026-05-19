@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendBusinessNotification, sendPaymentReceipt, createNotification } from "@/lib/notifications";
+import { syncSubscriptionFromStripe, handleSubscriptionDeleted } from "@/lib/stripeSubscriptionSync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -617,6 +618,12 @@ export async function POST(req: Request) {
       "payment_intent.payment_failed",
       "charge.succeeded",
       "checkout.session.completed",
+      // Subscription lifecycle (Phase 1: mirror state into client_subscriptions)
+      "customer.subscription.created",
+      "customer.subscription.updated",
+      "customer.subscription.deleted",
+      "customer.subscription.paused",
+      "customer.subscription.resumed",
     ]);
 
     if (!interesting.has(event.type)) {
@@ -682,6 +689,30 @@ export async function POST(req: Request) {
       const charge = event.data.object as Stripe.Charge;
       await handleChargeSucceeded(charge, stripe);
       console.log('[stripe-webhook] charge.succeeded handled successfully');
+      return NextResponse.json({ ok: true });
+    }
+
+    // Subscription lifecycle events — mirror state into client_subscriptions.
+    // event.created is the Stripe-side timestamp; we use it to refuse
+    // out-of-order updates (e.g., a stale `created` arriving after `updated`).
+    if (
+      event.type === "customer.subscription.created" ||
+      event.type === "customer.subscription.updated" ||
+      event.type === "customer.subscription.paused" ||
+      event.type === "customer.subscription.resumed"
+    ) {
+      console.log(`[stripe-webhook] Handling ${event.type}`);
+      const sub = event.data.object as Stripe.Subscription;
+      const result = await syncSubscriptionFromStripe(sub, { eventCreatedAt: event.created });
+      console.log(`[stripe-webhook] ${event.type} → ${result}`);
+      return NextResponse.json({ ok: true, result });
+    }
+
+    if (event.type === "customer.subscription.deleted") {
+      console.log('[stripe-webhook] Handling customer.subscription.deleted');
+      const sub = event.data.object as Stripe.Subscription;
+      await handleSubscriptionDeleted(sub, { eventCreatedAt: event.created });
+      console.log('[stripe-webhook] customer.subscription.deleted handled successfully');
       return NextResponse.json({ ok: true });
     }
 
