@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { AnalyticsData, MetricDetail, ClientRevenue, UpcomingInvoice, RecurringInvoiceStatus, InvoiceStatusSummary } from "@/lib/analytics";
 import DashboardCharts from "./DashboardCharts";
 import MrrWidget from "./MrrWidget";
+import MrrHistoryChart from "./MrrHistoryChart";
+import RevenueMixChart from "./RevenueMixChart";
 import { useRealtimeEvents, RealtimeEvent } from "@/hooks/useRealtimeEvents";
 
 interface DashboardClientProps {
@@ -361,6 +363,10 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
               </div>
             </div>
           )}
+
+          <MrrHistoryChart />
+
+          <RevenueMixChart />
 
           <DashboardCharts />
         </div>
