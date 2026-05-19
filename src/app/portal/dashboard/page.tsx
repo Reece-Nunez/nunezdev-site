@@ -336,11 +336,19 @@ export default function PortalDashboard() {
       );
       cancelEditingProject();
       toast.success('Project updated.');
+
       if (nameChanged) {
-        toast(
-          'Heads up: previously uploaded files stay in the original folder in storage. New uploads will use the new name.',
-          { duration: 7000, icon: 'ℹ️' }
-        );
+        const moved = data.movedFiles ?? 0;
+        const failed = data.moveFailures ?? 0;
+        if (moved > 0 && failed === 0) {
+          toast.success(`Moved ${moved} file${moved === 1 ? '' : 's'} to the renamed folder.`);
+        } else if (failed > 0) {
+          toast.error(
+            `Renamed the project, but ${failed} file${failed === 1 ? '' : 's'} couldn't be moved. Please contact support.`,
+            { duration: 8000 }
+          );
+        }
+        // If moved === 0 and failed === 0, no files exist yet — no toast needed.
       }
     } catch (err) {
       console.error('Failed to update project:', err);

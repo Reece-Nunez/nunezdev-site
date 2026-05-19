@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
-import { generatePresignedDownloadUrl, checkFileExists } from '@/lib/s3';
+import { generatePresignedDownloadUrl, checkFileExists, copyS3Object, deleteS3Object } from '@/lib/s3';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +31,7 @@ export async function PATCH(
 
     // Allow updating only the fields the client should control.
     const updates: { name?: string; description?: string | null; s3_prefix?: string } = {};
+    let newS3Prefix: string | null = null;
 
     if (typeof name === 'string') {
       const trimmedName = name.trim();
@@ -47,12 +48,10 @@ export async function PATCH(
         );
       }
       updates.name = trimmedName;
-      // Keep s3_prefix in sync with the new name for consistency. Note: this
-      // only affects where *new* uploads land — already-uploaded S3 objects
-      // stay in the original folder.
       const sanitizedName = trimmedName.replace(/[^a-zA-Z0-9 -]/g, '');
       const sanitizedClient = session.clientName.replace(/[^a-zA-Z0-9 -]/g, '');
-      updates.s3_prefix = `${sanitizedName} - ${sanitizedClient}`;
+      newS3Prefix = `${sanitizedName} - ${sanitizedClient}`;
+      updates.s3_prefix = newS3Prefix;
     }
 
     if (description !== undefined) {
@@ -65,6 +64,15 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // Snapshot the project (incl. current s3_prefix) BEFORE the update so we
+    // know what prefix existing S3 keys live under.
+    const { data: current } = await supabase
+      .from('client_projects')
+      .select('id, s3_prefix, name')
+      .eq('id', projectId)
+      .eq('client_id', session.clientId)
+      .single();
 
     const { data: updated, error } = await supabase
       .from('client_projects')
@@ -82,6 +90,58 @@ export async function PATCH(
       );
     }
 
+    // If the name (and therefore the S3 prefix) actually changed, move all
+    // existing S3 objects into the new folder so storage stays tidy.
+    //
+    // Per-file order matters for safety:
+    //   1. Copy old → new (file exists at both locations)
+    //   2. Update DB s3_key (lookup now points to new location)
+    //   3. Delete old (cleanup; if this fails, only an orphan remains)
+    //
+    // If interrupted between any steps the file is still reachable from
+    // either path.
+    let movedCount = 0;
+    let moveFailures = 0;
+    if (current?.s3_prefix && newS3Prefix && current.s3_prefix !== newS3Prefix) {
+      const { data: uploads } = await supabase
+        .from('client_uploads')
+        .select('id, s3_key')
+        .eq('project_id', projectId);
+
+      const oldPrefix = `${current.s3_prefix}/`;
+      for (const upload of uploads || []) {
+        if (!upload.s3_key?.startsWith(oldPrefix)) continue; // skip non-conforming keys
+        const newKey = `${newS3Prefix}/${upload.s3_key.slice(oldPrefix.length)}`;
+
+        const copied = await copyS3Object(upload.s3_key, newKey);
+        if (!copied) {
+          moveFailures++;
+          continue;
+        }
+
+        const { error: dbErr } = await supabase
+          .from('client_uploads')
+          .update({ s3_key: newKey })
+          .eq('id', upload.id);
+
+        if (dbErr) {
+          console.error('[project-rename] DB s3_key update failed', { uploadId: upload.id, dbErr });
+          moveFailures++;
+          // Leave the copy in place; old key still works via the DB record.
+          continue;
+        }
+
+        // Best-effort cleanup of the original. If this fails the file is just
+        // orphaned at the old key — not user-facing.
+        try {
+          await deleteS3Object(upload.s3_key);
+        } catch (delErr) {
+          console.warn('[project-rename] delete of old key failed', { oldKey: upload.s3_key, delErr });
+        }
+        movedCount++;
+      }
+    }
+
     return NextResponse.json({
       project: {
         id: updated.id,
@@ -90,6 +150,8 @@ export async function PATCH(
         status: updated.status,
         createdAt: updated.created_at,
       },
+      movedFiles: movedCount,
+      moveFailures,
     });
   } catch (error) {
     console.error('Project update error:', error);

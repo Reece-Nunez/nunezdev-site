@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
@@ -78,6 +78,26 @@ export function buildS3Key(
 
 export function getPublicUrl(key: string): string {
   return `https://${BUCKET_NAME}.s3.${process.env.S3_REGION || 'us-east-2'}.amazonaws.com/${key}`;
+}
+
+/**
+ * Copy an S3 object from `fromKey` to `toKey` inside the same bucket.
+ * Returns true on success, false on failure (caller decides whether to retry).
+ */
+export async function copyS3Object(fromKey: string, toKey: string): Promise<boolean> {
+  try {
+    const command = new CopyObjectCommand({
+      Bucket: BUCKET_NAME,
+      CopySource: `${BUCKET_NAME}/${encodeURIComponent(fromKey)}`,
+      Key: toKey,
+      MetadataDirective: 'COPY',
+    });
+    await s3Client.send(command);
+    return true;
+  } catch (err) {
+    console.error('[s3 copyS3Object] failed', { fromKey, toKey, err });
+    return false;
+  }
 }
 
 export async function checkFileExists(key: string): Promise<boolean> {
