@@ -110,6 +110,12 @@ export async function POST(
         mode: 'subscription',
         customer: stripeCustomerId,
         line_items: [{ price: body.priceId, quantity }],
+        // Card only. This bypasses Stripe Link — Link recognizes the
+        // customer's email and tries to SMS-verify their phone for one-tap
+        // checkout, which blocks the admin-driven flow (we don't have the
+        // client's phone). Card-only gives a plain card-entry form that
+        // works for both admin-entering-on-behalf and client-self-pay.
+        payment_method_types: ['card'],
         // Stamp metadata so the webhook can resolve via fallback even if
         // customer linkage is ever cleared/replaced locally. We never trust
         // org_id from metadata on the receiving side — it's pulled from the
