@@ -3,6 +3,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
+interface StripePrice {
+  priceId: string;
+  productId: string;
+  productName: string;
+  amountCents: number | null;
+  currency: string;
+  interval: string;
+  intervalCount: number;
+  nickname: string | null;
+}
+
 interface ActiveSubscription {
   id: string;
   stripe_subscription_id: string;
@@ -100,6 +111,11 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null); // id of sub currently being toggled
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [showNewSub, setShowNewSub] = useState(false);
+  const [prices, setPrices] = useState<StripePrice[] | null>(null);
+  const [pricesLoading, setPricesLoading] = useState(false);
+  const [pricesError, setPricesError] = useState<string | null>(null);
+  const [startingCheckout, setStartingCheckout] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -123,6 +139,16 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // ESC closes the New Subscription modal
+  useEffect(() => {
+    if (!showNewSub) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowNewSub(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showNewSub]);
 
   const handleToggleCancel = async (sub: ActiveSubscription, nextCancel: boolean) => {
     setBusy(sub.id);
@@ -179,6 +205,44 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
     }
   };
 
+  const openNewSub = async () => {
+    setShowNewSub(true);
+    // Lazy-load prices the first time the modal opens
+    if (prices || pricesLoading) return;
+    setPricesLoading(true);
+    setPricesError(null);
+    try {
+      const res = await fetch('/api/admin/stripe/products', { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Failed to load prices');
+      setPrices(json.prices || []);
+    } catch (err) {
+      setPricesError(err instanceof Error ? err.message : 'Failed to load prices');
+    } finally {
+      setPricesLoading(false);
+    }
+  };
+
+  const startCheckout = async (priceId: string) => {
+    setStartingCheckout(priceId);
+    try {
+      const res = await fetch(`/api/clients/${clientId}/subscriptions/checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Could not start checkout');
+      window.open(json.url, '_blank', 'noopener,noreferrer');
+      setShowNewSub(false);
+      toast.success('Checkout opened in a new tab. Subscription will appear here once the client completes payment.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start checkout');
+    } finally {
+      setStartingCheckout(null);
+    }
+  };
+
   if (loading) {
     return (
       <section className="rounded-lg border p-4">
@@ -197,16 +261,25 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
     <section className="rounded-lg border p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <h2 className="font-semibold">Subscriptions</h2>
-        {hasPortal && (
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleOpenPortal}
-            disabled={openingPortal}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
-            title="Open Stripe Customer Portal for this client"
+            onClick={openNewSub}
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-white transition-colors bg-[#ffc312] hover:bg-[#e6ad0f]"
+            title="Create a new subscription via Stripe Checkout"
           >
-            {openingPortal ? 'Opening...' : 'Manage billing in Stripe →'}
+            + New Subscription
           </button>
-        )}
+          {hasPortal && (
+            <button
+              onClick={handleOpenPortal}
+              disabled={openingPortal}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+              title="Open Stripe Customer Portal for this client"
+            >
+              {openingPortal ? 'Opening...' : 'Manage billing in Stripe →'}
+            </button>
+          )}
+        </div>
       </div>
 
       {empty && (
@@ -343,6 +416,91 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
             })}
           </div>
         </details>
+      )}
+
+      {showNewSub && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowNewSub(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">New subscription</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Pick a price. Stripe Checkout opens in a new tab.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowNewSub(false)}
+                className="text-slate-400 hover:text-slate-600"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {pricesLoading && (
+                <p className="text-sm text-slate-500 text-center py-6">Loading prices from Stripe...</p>
+              )}
+              {pricesError && (
+                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+                  {pricesError}
+                </div>
+              )}
+              {!pricesLoading && !pricesError && prices && prices.length === 0 && (
+                <div className="text-sm text-slate-600 text-center py-4">
+                  No active recurring prices found in Stripe. Create a product with a recurring
+                  price at{' '}
+                  <a
+                    href="https://dashboard.stripe.com/products"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    dashboard.stripe.com/products
+                  </a>
+                  , then come back.
+                </div>
+              )}
+              {!pricesLoading && !pricesError && prices && prices.length > 0 && (
+                <div className="space-y-2">
+                  {prices.map((p) => (
+                    <button
+                      key={p.priceId}
+                      onClick={() => startCheckout(p.priceId)}
+                      disabled={startingCheckout !== null}
+                      className="w-full text-left flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-yellow-400 hover:bg-yellow-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-slate-900 truncate">{p.productName}</div>
+                        {p.nickname && (
+                          <div className="text-xs text-slate-500 truncate">{p.nickname}</div>
+                        )}
+                      </div>
+                      <div className="text-right ml-3 flex-shrink-0">
+                        <div className="font-semibold text-slate-900">
+                          {formatMoney(p.amountCents, p.currency)}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {formatInterval(p.interval, p.intervalCount).trim()}
+                        </div>
+                      </div>
+                      {startingCheckout === p.priceId && (
+                        <div className="ml-3 text-xs text-slate-500">Opening...</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );
