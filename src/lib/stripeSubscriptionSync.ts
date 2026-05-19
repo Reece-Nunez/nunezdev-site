@@ -518,6 +518,7 @@ export async function syncSubscriptionScheduleFromStripe(
     released_at: toIsoOrNull(schedule.released_at),
     canceled_at: toIsoOrNull(schedule.canceled_at),
     completed_at: toIsoOrNull(schedule.completed_at),
+    end_behavior: schedule.end_behavior ?? null,
     phases: projectPhasesForStorage(schedule.phases),
     metadata: (schedule.metadata as Record<string, string>) || {},
     last_synced_at: new Date().toISOString(),
