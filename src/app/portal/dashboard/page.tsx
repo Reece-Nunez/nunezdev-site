@@ -52,6 +52,10 @@ export default function PortalDashboard() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [settingPassword, setSettingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [editingProject, setEditingProject] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [savingProject, setSavingProject] = useState(false);
 
   useEffect(() => {
     async function checkSession() {
@@ -113,6 +117,13 @@ export default function PortalDashboard() {
 
     fetchProjectUploads();
   }, [selectedProject]);
+
+  // Cancel any in-progress edit when switching to a different project.
+  useEffect(() => {
+    setEditingProject(false);
+    setEditName('');
+    setEditDescription('');
+  }, [selectedProject?.id]);
 
   const matchFile = (a: File, b: File) =>
     a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
@@ -259,6 +270,83 @@ export default function PortalDashboard() {
       console.error('Failed to create project:', error);
     } finally {
       setCreatingProject(false);
+    }
+  };
+
+  const startEditingProject = () => {
+    if (!selectedProject) return;
+    setEditName(selectedProject.name);
+    setEditDescription(selectedProject.description || '');
+    setEditingProject(true);
+  };
+
+  const cancelEditingProject = () => {
+    setEditingProject(false);
+    setEditName('');
+    setEditDescription('');
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProject || savingProject) return;
+
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      toast.error('Project name can\'t be empty.');
+      return;
+    }
+
+    const nameChanged = trimmedName !== selectedProject.name;
+    const descChanged = (editDescription.trim() || null) !== (selectedProject.description || null);
+    if (!nameChanged && !descChanged) {
+      cancelEditingProject();
+      return;
+    }
+
+    setSavingProject(true);
+    try {
+      const res = await fetch(`/api/portal/projects/${selectedProject.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          description: editDescription.trim() || null,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        toast.error(data?.error || 'Couldn\'t save changes.');
+        return;
+      }
+
+      const updated = data.project;
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === updated.id
+            ? { ...p, name: updated.name, description: updated.description }
+            : p
+        )
+      );
+      setSelectedProject((prev) =>
+        prev && prev.id === updated.id
+          ? { ...prev, name: updated.name, description: updated.description }
+          : prev
+      );
+      cancelEditingProject();
+      toast.success('Project updated.');
+      if (nameChanged) {
+        toast(
+          'Heads up: previously uploaded files stay in the original folder in storage. New uploads will use the new name.',
+          { duration: 7000, icon: 'ℹ️' }
+        );
+      }
+    } catch (err) {
+      console.error('Failed to update project:', err);
+      toast.error('Network error — please try again.');
+    } finally {
+      setSavingProject(false);
     }
   };
 
@@ -463,17 +551,81 @@ export default function PortalDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-900">
-                        {selectedProject.name}
-                      </h2>
-                      {selectedProject.description && (
-                        <p className="text-slate-500 mt-1">
-                          {selectedProject.description}
-                        </p>
-                      )}
-                    </div>
+                  <div className="mb-6">
+                    {editingProject ? (
+                      <form
+                        onSubmit={handleSaveProject}
+                        className="bg-white rounded-xl border border-yellow-300 p-4"
+                      >
+                        <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                          Project name
+                        </label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          maxLength={120}
+                          autoFocus
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-base font-semibold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent mb-3"
+                        />
+                        <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          rows={2}
+                          placeholder="Optional"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent mb-3 resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={savingProject || !editName.trim()}
+                            className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 disabled:bg-slate-200 disabled:text-slate-400 text-slate-900 text-sm font-medium rounded-lg transition-colors"
+                          >
+                            {savingProject ? 'Saving...' : 'Save changes'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditingProject}
+                            disabled={savingProject}
+                            className="px-3 py-2 text-slate-500 hover:text-slate-700 text-sm transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h2 className="text-xl font-semibold text-slate-900 break-words">
+                            {selectedProject.name}
+                          </h2>
+                          {selectedProject.description && (
+                            <p className="text-slate-500 mt-1 break-words">
+                              {selectedProject.description}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={startEditingProject}
+                          title="Edit project details"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          Edit
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <FileDropzone
