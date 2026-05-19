@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnalyticsData, MetricDetail, ClientRevenue, UpcomingInvoice, RecurringInvoiceStatus, InvoiceStatusSummary } from "@/lib/analytics";
 import DashboardCharts from "./DashboardCharts";
+import MrrWidget from "./MrrWidget";
 import { useRealtimeEvents, RealtimeEvent } from "@/hooks/useRealtimeEvents";
 
 interface DashboardClientProps {
@@ -485,6 +486,8 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
               </div>
             </div>
           )}
+
+          <MrrWidget />
 
           {recurringInvoices.length > 0 && (
             <div className="bg-white border rounded-xl p-4">
