@@ -113,6 +113,11 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
   const [openingPortal, setOpeningPortal] = useState(false);
   const [showNewSub, setShowNewSub] = useState(false);
   const [prices, setPrices] = useState<StripePrice[] | null>(null);
+  const [pricesTag, setPricesTag] = useState<string>('nunezdev');
+  const [pricesDiagnostics, setPricesDiagnostics] = useState<{
+    totalRecurringPrices: number;
+    skippedByTag: number;
+  } | null>(null);
   const [pricesLoading, setPricesLoading] = useState(false);
   const [pricesError, setPricesError] = useState<string | null>(null);
   const [startingCheckout, setStartingCheckout] = useState<string | null>(null);
@@ -216,6 +221,8 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Failed to load prices');
       setPrices(json.prices || []);
+      setPricesTag(json.tag || 'nunezdev');
+      setPricesDiagnostics(json.diagnostics || null);
     } catch (err) {
       setPricesError(err instanceof Error ? err.message : 'Failed to load prices');
     } finally {
@@ -454,18 +461,53 @@ export default function SubscriptionsPanel({ clientId }: { clientId: string }) {
                 </div>
               )}
               {!pricesLoading && !pricesError && prices && prices.length === 0 && (
-                <div className="text-sm text-slate-600 text-center py-4">
-                  No active recurring prices found in Stripe. Create a product with a recurring
-                  price at{' '}
-                  <a
-                    href="https://dashboard.stripe.com/products"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    dashboard.stripe.com/products
-                  </a>
-                  , then come back.
+                <div className="text-sm text-slate-600 py-2 space-y-3">
+                  {pricesDiagnostics && pricesDiagnostics.totalRecurringPrices > 0 ? (
+                    <>
+                      <p>
+                        Found <span className="font-medium">{pricesDiagnostics.totalRecurringPrices}</span>{' '}
+                        recurring price{pricesDiagnostics.totalRecurringPrices === 1 ? '' : 's'} in Stripe,
+                        but none are tagged for the CRM.
+                      </p>
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+                        <p className="font-medium text-amber-900 mb-1">
+                          To show a product here, tag it in Stripe:
+                        </p>
+                        <ol className="list-decimal list-inside space-y-1 text-amber-800">
+                          <li>
+                            Open{' '}
+                            <a
+                              href="https://dashboard.stripe.com/products"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              dashboard.stripe.com/products
+                            </a>
+                          </li>
+                          <li>Click a product → scroll to <span className="font-mono">Metadata</span></li>
+                          <li>
+                            Add key <span className="font-mono">app</span>, value{' '}
+                            <span className="font-mono">{pricesTag}</span>
+                          </li>
+                          <li>Save, then reopen this dialog</li>
+                        </ol>
+                      </div>
+                    </>
+                  ) : (
+                    <p>
+                      No active recurring prices found in Stripe. Create one at{' '}
+                      <a
+                        href="https://dashboard.stripe.com/products"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        dashboard.stripe.com/products
+                      </a>
+                      , then come back.
+                    </p>
+                  )}
                 </div>
               )}
               {!pricesLoading && !pricesError && prices && prices.length > 0 && (

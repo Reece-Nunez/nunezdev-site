@@ -2,9 +2,13 @@
  * List Stripe products that have active recurring prices, formatted for the
  * "New Subscription" picker in the CRM.
  *
+ * Filtering: only includes products with metadata `app === STRIPE_PRODUCT_TAG`
+ * (default: 'nunezdev'). Set this on each product in Stripe Dashboard →
+ * Product → Metadata → key: `app`, value: `nunezdev`. This lets you keep
+ * test/personal/unrelated products out of the CRM picker.
+ *
  * Returns a flat list of prices (one product can have multiple — monthly,
- * yearly, etc.). Easier to scan and pick than a nested product → prices tree
- * given that we have a small catalog.
+ * yearly, etc.). Easier to scan and pick than a nested product → prices tree.
  */
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -12,6 +16,8 @@ import { requireOwner } from '@/lib/authz';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+const PRODUCT_TAG = process.env.STRIPE_PRODUCT_TAG || 'nunezdev';
 
 export async function GET() {
   const guard = await requireOwner();
@@ -37,17 +43,28 @@ export async function GET() {
       nickname: string | null;
     }[] = [];
 
+    let totalSeen = 0;
+    let untaggedSkipped = 0;
+
     for await (const price of stripe.prices.list({
       active: true,
       type: 'recurring',
       limit: 100,
       expand: ['data.product'],
     })) {
+      totalSeen += 1;
       if (!price.recurring) continue;
       if (typeof price.product !== 'object') continue;
       if ('deleted' in price.product && price.product.deleted) continue;
       // Skip inactive products
       if (!price.product.active) continue;
+
+      // Tag filter: only include products explicitly marked for the CRM
+      const productAppTag = price.product.metadata?.app;
+      if (productAppTag !== PRODUCT_TAG) {
+        untaggedSkipped += 1;
+        continue;
+      }
 
       prices.push({
         priceId: price.id,
@@ -73,7 +90,13 @@ export async function GET() {
     });
 
     return NextResponse.json(
-      { prices },
+      {
+        prices,
+        tag: PRODUCT_TAG,
+        // Diagnostic: helps the UI explain "I see X recurring prices total,
+        // none have the right tag" if the list comes back empty.
+        diagnostics: { totalRecurringPrices: totalSeen, skippedByTag: untaggedSkipped },
+      },
       { headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (err) {
