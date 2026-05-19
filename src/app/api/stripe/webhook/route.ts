@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendBusinessNotification, sendPaymentReceipt, createNotification } from "@/lib/notifications";
-import { syncSubscriptionFromStripe, handleSubscriptionDeleted } from "@/lib/stripeSubscriptionSync";
+import {
+  syncSubscriptionFromStripe,
+  handleSubscriptionDeleted,
+  syncSubscriptionScheduleFromStripe,
+} from "@/lib/stripeSubscriptionSync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -624,6 +628,13 @@ export async function POST(req: Request) {
       "customer.subscription.deleted",
       "customer.subscription.paused",
       "customer.subscription.resumed",
+      // Subscription Schedule lifecycle (Phase 1.5: future-dated / phased plans)
+      "subscription_schedule.created",
+      "subscription_schedule.updated",
+      "subscription_schedule.released",
+      "subscription_schedule.canceled",
+      "subscription_schedule.completed",
+      "subscription_schedule.expiring",
     ]);
 
     if (!interesting.has(event.type)) {
@@ -714,6 +725,27 @@ export async function POST(req: Request) {
       await handleSubscriptionDeleted(sub, { eventCreatedAt: event.created });
       console.log('[stripe-webhook] customer.subscription.deleted handled successfully');
       return NextResponse.json({ ok: true });
+    }
+
+    // Subscription Schedule lifecycle — all events run through the same
+    // upsert; the schedule object itself carries the current status
+    // (not_started/active/canceled/released/completed), so we don't need
+    // event-type-specific branching.
+    if (
+      event.type === "subscription_schedule.created" ||
+      event.type === "subscription_schedule.updated" ||
+      event.type === "subscription_schedule.released" ||
+      event.type === "subscription_schedule.canceled" ||
+      event.type === "subscription_schedule.completed" ||
+      event.type === "subscription_schedule.expiring"
+    ) {
+      console.log(`[stripe-webhook] Handling ${event.type}`);
+      const schedule = event.data.object as Stripe.SubscriptionSchedule;
+      const result = await syncSubscriptionScheduleFromStripe(schedule, {
+        eventCreatedAt: event.created,
+      });
+      console.log(`[stripe-webhook] ${event.type} → ${result}`);
+      return NextResponse.json({ ok: true, result });
     }
 
     if (event.type === "invoice.deleted") {

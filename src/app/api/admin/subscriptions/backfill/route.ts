@@ -12,7 +12,10 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { requireOwner } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { syncSubscriptionFromStripe } from '@/lib/stripeSubscriptionSync';
+import {
+  syncSubscriptionFromStripe,
+  syncSubscriptionScheduleFromStripe,
+} from '@/lib/stripeSubscriptionSync';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,45 +76,81 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, customers: 0, totals: { synced: 0, skipped: 0, stale: 0 } });
   }
 
-  const results: Record<string, { synced: number; skipped: number; stale: number; error?: string }> = {};
-  const totals = { synced: 0, skipped: 0, stale: 0 };
+  type Stats = { synced: number; skipped: number; stale: number };
+  const newStats = (): Stats => ({ synced: 0, skipped: 0, stale: 0 });
+
+  const results: Record<
+    string,
+    { subscriptions: Stats; schedules: Stats; error?: string }
+  > = {};
+  const totals = {
+    subscriptions: newStats(),
+    schedules: newStats(),
+  };
+
   // Use the current time as the event timestamp — this is a manual backfill,
   // not a real webhook event. The stale guard will still respect any newer
   // last_event_at already in the table from real webhook deliveries.
   const eventCreatedAt = Math.floor(Date.now() / 1000);
 
   for (const customerId of customerIds) {
-    const stats = { synced: 0, skipped: 0, stale: 0 };
+    const subStats = newStats();
+    const schedStats = newStats();
 
     try {
-      // Stripe paginates at 100 by default — sufficient for our scale
-      const subs = await stripe.subscriptions.list({
+      // Subscriptions (active recurring billing). autoPagingEach handles
+      // the cursor loop so we don't cap at 100.
+      for await (const sub of stripe.subscriptions.list({
         customer: customerId,
         status: 'all',
         limit: 100,
-      });
-
-      for (const sub of subs.data) {
+      })) {
         try {
           const result = await syncSubscriptionFromStripe(sub, { eventCreatedAt });
-          stats[result] += 1;
-          totals[result] += 1;
+          subStats[result] += 1;
+          totals.subscriptions[result] += 1;
         } catch (err) {
-          console.error('[backfill] sync failed', {
+          console.error('[backfill] sub sync failed', {
             customerId,
             subscriptionId: sub.id,
             err,
           });
-          stats.skipped += 1;
-          totals.skipped += 1;
+          subStats.skipped += 1;
+          totals.subscriptions.skipped += 1;
         }
       }
 
-      results[customerId] = stats;
+      // Subscription Schedules (future-dated / phased plans)
+      for await (const schedule of stripe.subscriptionSchedules.list({
+        customer: customerId,
+        limit: 100,
+      })) {
+        try {
+          const result = await syncSubscriptionScheduleFromStripe(schedule, {
+            eventCreatedAt,
+          });
+          schedStats[result] += 1;
+          totals.schedules[result] += 1;
+        } catch (err) {
+          console.error('[backfill] schedule sync failed', {
+            customerId,
+            scheduleId: schedule.id,
+            err,
+          });
+          schedStats.skipped += 1;
+          totals.schedules.skipped += 1;
+        }
+      }
+
+      results[customerId] = { subscriptions: subStats, schedules: schedStats };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[backfill] customer fetch failed', { customerId, err: message });
-      results[customerId] = { ...stats, error: message };
+      results[customerId] = {
+        subscriptions: subStats,
+        schedules: schedStats,
+        error: message,
+      };
     }
   }
 
