@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 
 interface MrrData {
+  totalMrrCents: number;
   mrrCents: number;
   activeCount: number;
   trialingCount: number;
   pastDueCount: number;
+  legacyMrrCents: number;
+  legacyCount: number;
   pendingMrrCents: number;
   pendingOneTimeCents: number;
   pendingCount: number;
@@ -68,9 +71,11 @@ export default function MrrWidget() {
 
   if (!data) return null;
 
-  // If nothing is set up yet, show a friendly placeholder rather than $0
-  // (helps distinguish "no subscriptions" from "all canceled")
-  const nothingHere = data.activeCount === 0 && data.pendingCount === 0;
+  // Show empty state when literally nothing is happening anywhere
+  const nothingHere =
+    data.activeCount === 0 &&
+    data.legacyCount === 0 &&
+    data.pendingCount === 0;
 
   return (
     <div className="bg-white border rounded-xl p-4">
@@ -88,20 +93,43 @@ export default function MrrWidget() {
 
       {nothingHere ? (
         <p className="text-sm text-gray-500">
-          No active subscriptions yet. Set one up in Stripe to start tracking MRR.
+          No recurring revenue yet. Set up a subscription or recurring invoice to start tracking.
         </p>
       ) : (
         <>
+          {/* Big number — true MRR (subscriptions + legacy invoices) */}
           <div className="mb-3">
-            <div className="text-2xl font-bold text-gray-900">{fmtCurrency(data.mrrCents)}</div>
-            <div className="text-xs text-gray-500">
-              MRR · {data.activeCount} active subscription{data.activeCount === 1 ? '' : 's'}
+            <div className="text-2xl font-bold text-gray-900">
+              {fmtCurrency(data.totalMrrCents)}
+              <span className="text-sm font-normal text-gray-500"> / mo</span>
             </div>
+            <div className="text-xs text-gray-500">Currently billing</div>
           </div>
 
-          <div className="space-y-1.5 text-sm">
+          {/* Breakdown by source */}
+          <div className="space-y-1.5 text-sm border-t pt-2">
+            {data.mrrCents > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">
+                  Stripe subscriptions
+                  <span className="text-gray-400 text-xs"> · {data.activeCount} active</span>
+                </span>
+                <span className="font-medium text-gray-900">{fmtCurrency(data.mrrCents)}</span>
+              </div>
+            )}
+            {data.legacyMrrCents > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">
+                  Recurring invoices
+                  <span className="text-gray-400 text-xs"> · {data.legacyCount} active</span>
+                </span>
+                <span className="font-medium text-gray-900">{fmtCurrency(data.legacyMrrCents)}</span>
+              </div>
+            )}
+
+            {/* Attention items */}
             {data.trialingCount > 0 && (
-              <div className="flex items-center justify-between text-sky-700">
+              <div className="flex items-center justify-between text-sky-700 pt-1">
                 <span>In trial</span>
                 <span className="font-medium">{data.trialingCount}</span>
               </div>
@@ -112,8 +140,10 @@ export default function MrrWidget() {
                 <span className="font-medium">{data.pastDueCount}</span>
               </div>
             )}
+
+            {/* Pending future revenue */}
             {data.pendingCount > 0 && (
-              <div className="text-indigo-700 pt-1 border-t space-y-0.5">
+              <div className="text-indigo-700 pt-2 border-t mt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span>Scheduled ({data.pendingCount})</span>
                 </div>

@@ -227,12 +227,15 @@ export default function RecurringInvoicesPage() {
             </div>
           </div>
           <div className="bg-white rounded-xl border shadow-sm p-6">
-            <div className="text-sm text-gray-600">Monthly Revenue</div>
+            <div className="text-sm text-gray-600">Invoice MRR</div>
             <div className="text-2xl font-bold text-blue-600">
               {currency(data.recurring_invoices
                 .filter(ri => ri.status === 'active' && ri.frequency === 'monthly')
                 .reduce((sum, ri) => sum + ri.amount_cents, 0)
               )}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              From this table only — see dashboard for total MRR (includes Stripe subscriptions)
             </div>
           </div>
           <div className="bg-white rounded-xl border shadow-sm p-6">

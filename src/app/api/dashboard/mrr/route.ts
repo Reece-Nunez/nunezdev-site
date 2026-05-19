@@ -34,6 +34,31 @@ interface ScheduleRow extends SubRow {
 }
 
 /**
+ * Legacy recurring_invoices rows use 'frequency' instead of (interval, interval_count).
+ * Mapped to a SubRow shape on read so toMonthlyCents can be reused.
+ */
+interface LegacyRecurringRow {
+  amount_cents: number | null;
+  frequency: string | null;
+}
+
+function legacyToSubRow(r: LegacyRecurringRow): SubRow {
+  const map: Record<string, { interval: string; interval_count: number }> = {
+    weekly: { interval: 'week', interval_count: 1 },
+    monthly: { interval: 'month', interval_count: 1 },
+    quarterly: { interval: 'month', interval_count: 3 },
+    annually: { interval: 'year', interval_count: 1 },
+  };
+  const m = map[r.frequency || 'monthly'] || map.monthly;
+  return {
+    status: 'active',
+    amount_cents: r.amount_cents,
+    interval: m.interval,
+    interval_count: m.interval_count,
+  };
+}
+
+/**
  * Normalize a subscription's amount to a monthly cents figure.
  * For day/week we approximate a month as 30.44 days. Yearly divides by 12.
  * Returns 0 when amount is null (tiered/usage pricing) or interval is
@@ -86,7 +111,8 @@ export async function GET() {
 
   const supabase = supabaseAdmin();
 
-  const [activeRes, pendingRes] = await Promise.all([
+  const todayIso = new Date().toISOString();
+  const [activeRes, pendingRes, legacyRes] = await Promise.all([
     supabase
       .from('client_subscriptions')
       .select('status, amount_cents, interval, interval_count')
@@ -97,12 +123,27 @@ export async function GET() {
       .select('status, amount_cents, interval, interval_count, end_behavior, starts_at, ends_at')
       .eq('org_id', guard.orgId)
       .in('status', ['not_started', 'active']),
+    // Legacy recurring_invoices that haven't been migrated to a Stripe sub
+    // and haven't reached their end_date. These still bill via the cron and
+    // contribute to current MRR.
+    supabase
+      .from('recurring_invoices')
+      .select('amount_cents, frequency, end_date')
+      .eq('org_id', guard.orgId)
+      .eq('status', 'active')
+      .is('stripe_subscription_id', null)
+      .or(`end_date.is.null,end_date.gt.${todayIso}`),
   ]);
 
   const activeRows = (activeRes.data || []) as SubRow[];
   const pendingRows = (pendingRes.data || []) as ScheduleRow[];
+  const legacyRows = (legacyRes.data || []) as LegacyRecurringRow[];
 
   const mrrCents = activeRows.reduce((sum, r) => sum + toMonthlyCents(r), 0);
+  const legacyMrrCents = legacyRows.reduce(
+    (sum, r) => sum + toMonthlyCents(legacyToSubRow(r)),
+    0
+  );
 
   // Split pending into recurring (counts toward future MRR) and one-shot
   // (set to cancel after a short window — not real MRR even if scheduled).
@@ -119,11 +160,26 @@ export async function GET() {
   const trialingCount = activeRows.filter((r) => r.status === 'trialing').length;
   const pastDueCount = activeRows.filter((r) => r.status === 'past_due').length;
 
+  // True MRR = Stripe subscriptions + legacy recurring invoices.
+  // Pending schedules are NOT included here because they haven't started
+  // billing yet (would inflate current revenue).
+  const totalMrrCents = mrrCents + legacyMrrCents;
+
   return NextResponse.json({
+    // Consolidated MRR — what the dashboard widget shows prominently
+    totalMrrCents,
+
+    // Stripe subscriptions breakdown (the path forward)
     mrrCents,
     activeCount: activeRows.length,
     trialingCount,
     pastDueCount,
+
+    // Legacy recurring_invoices breakdown (rows that haven't been migrated)
+    legacyMrrCents,
+    legacyCount: legacyRows.length,
+
+    // Pending schedules (future MRR — will start billing at start date)
     pendingMrrCents,
     pendingOneTimeCents,
     pendingCount: pendingRows.length,
