@@ -118,6 +118,13 @@ interface SyncOptions {
    * Used to detect out-of-order delivery and refuse stale updates.
    */
   eventCreatedAt: number;
+  /**
+   * Optional Stripe client. When provided, the schedule sync will fetch
+   * unexpanded price data (Stripe returns price as a string id by default
+   * on schedule payloads, so product_name / amount / interval would be null
+   * without this).
+   */
+  stripe?: import('stripe').default;
 }
 
 /**
@@ -440,7 +447,43 @@ export async function syncSubscriptionScheduleFromStripe(
     return 'stale';
   }
 
-  const snapshot = snapshotPhaseItem(schedule);
+  let snapshot = snapshotPhaseItem(schedule);
+
+  // Stripe returns schedule.phases[].items[].price as a string id by default.
+  // If we have a stripe client, fetch the price (with product) to fill in
+  // the display fields (product_name, amount_cents, interval).
+  if (snapshot.priceId && snapshot.amountCents === null && opts.stripe) {
+    try {
+      const price = await opts.stripe.prices.retrieve(snapshot.priceId, {
+        expand: ['product'],
+      });
+      let prodId: string | null = null;
+      let prodName: string | null = null;
+      if (typeof price.product === 'string') {
+        prodId = price.product;
+      } else if (price.product) {
+        prodId = price.product.id;
+        if ('name' in price.product && typeof price.product.name === 'string') {
+          prodName = price.product.name;
+        }
+      }
+      if (!prodName) prodName = price.nickname || price.id;
+      snapshot = {
+        priceId: price.id,
+        productId: prodId,
+        productName: prodName,
+        amountCents: price.unit_amount ?? null,
+        currency: price.currency || 'usd',
+        interval: price.recurring?.interval ?? null,
+        intervalCount: price.recurring?.interval_count ?? null,
+      };
+    } catch (err) {
+      console.warn('[schedule-sync] Failed to fetch price for display', {
+        priceId: snapshot.priceId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   // Start / end dates across the whole schedule
   const firstPhase = schedule.phases[0];

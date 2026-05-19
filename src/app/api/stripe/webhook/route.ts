@@ -743,6 +743,7 @@ export async function POST(req: Request) {
       const schedule = event.data.object as Stripe.SubscriptionSchedule;
       const result = await syncSubscriptionScheduleFromStripe(schedule, {
         eventCreatedAt: event.created,
+        stripe, // enables price enrichment for display fields
       });
       console.log(`[stripe-webhook] ${event.type} → ${result}`);
       return NextResponse.json({ ok: true, result });

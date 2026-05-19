@@ -128,6 +128,7 @@ export async function POST(req: Request) {
         try {
           const result = await syncSubscriptionScheduleFromStripe(schedule, {
             eventCreatedAt,
+            stripe, // enables price enrichment for product_name / amount / interval
           });
           schedStats[result] += 1;
           totals.schedules[result] += 1;
