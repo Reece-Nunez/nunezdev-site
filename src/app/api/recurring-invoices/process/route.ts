@@ -196,8 +196,34 @@ export async function POST(request: Request) {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + paymentTermsDays);
 
+        // --- Late-bind guard: re-check stripe_subscription_id INSIDE the loop ---
+        // The outer fetch happens once at the start of cron processing. If a
+        // client enrolls in auto-draft mid-run (webhook lands between rows),
+        // we must skip this row to avoid double-billing.
+        const { data: freshState } = await adminSupabase
+          .from('recurring_invoices')
+          .select('stripe_subscription_id')
+          .eq('id', recurringId)
+          .single();
+        if (freshState?.stripe_subscription_id) {
+          log('info', 'Recurring schedule was migrated to subscription mid-run, skipping', {
+            recurringId,
+            stripe_subscription_id: freshState.stripe_subscription_id,
+          });
+          await writeLog(adminSupabase, recurring.org_id, 'skipped', 'skipped',
+            `Skipped invoice for ${client?.name || 'unknown'} — schedule was just migrated to auto-draft`,
+            { recurringInvoiceId: recurringId, metadata: { reason: 'migrated_mid_run' } }
+          );
+          results.push({ recurring_invoice_id: recurringId, status: 'skipped', message: 'Migrated to subscription mid-run' });
+          continue;
+        }
+
         // --- Create invoice in database ---
         const accessToken = generateAccessToken();
+        // billing_period_date pairs with a partial UNIQUE index on
+        // (recurring_invoice_id, billing_period_date) — protects against
+        // parallel cron runs creating two invoices for the same period.
+        const billingPeriodDate = recurring.next_invoice_date; // already YYYY-MM-DD
         const invoiceData = {
           org_id: recurring.org_id,
           client_id: recurring.client_id,
@@ -217,6 +243,7 @@ export async function POST(request: Request) {
           total_paid_cents: 0,
           remaining_balance_cents: recurring.amount_cents,
           access_token: accessToken,
+          billing_period_date: billingPeriodDate,
         };
 
         const { data: newInvoice, error: invoiceError } = await adminSupabase
@@ -226,6 +253,21 @@ export async function POST(request: Request) {
           .single();
 
         if (invoiceError || !newInvoice) {
+          // 23505 = unique_violation. Means another cron run already created
+          // the invoice for this (recurring_invoice_id, billing_period_date).
+          // Treat as success-skip, not an error.
+          if (invoiceError && 'code' in invoiceError && invoiceError.code === '23505') {
+            log('warn', 'Duplicate invoice prevented by unique constraint', {
+              recurringId,
+              billingPeriodDate,
+            });
+            results.push({
+              recurring_invoice_id: recurringId,
+              status: 'skipped',
+              message: 'Already created by a parallel cron run',
+            });
+            continue;
+          }
           throw new Error(`Failed to create invoice: ${invoiceError?.message}`);
         }
 

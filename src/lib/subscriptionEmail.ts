@@ -43,19 +43,25 @@ interface SendResult {
 }
 
 /**
- * Send (or skip if already sent) a branded subscription email.
+ * Send (or skip / retry) a branded subscription email — idempotent and replayable.
  *
- * Idempotency: we INSERT into subscription_email_log FIRST (with the unique
- * event_key constraint). If the insert succeeds we send. If it fails with a
- * unique-violation, it means this notification already went out — we return
- * 'deduplicated' without sending. This prevents the race where two parallel
- * webhook deliveries both check, both find no row, both send.
+ * Status machine on subscription_email_log:
+ *   - insert as 'pending'  → attempt send  → on success update to 'sent'
+ *                                          → on failure update to 'failed'
+ *   - subsequent calls with the same event_key:
+ *       row status='sent'    → skip (deduplicate)
+ *       row status='pending' → retry send (previous attempt died mid-flight)
+ *       row status='failed'  → retry send (Resend failed, webhook retry can fix)
+ *
+ * The pending → sent transition is the durable signal. A row stuck in
+ * 'pending' or 'failed' is a recoverable error: any future webhook retry
+ * for the same event will pick it up and try again.
  */
 async function sendWithIdempotency(record: SendRecord): Promise<SendResult> {
   const supabase = supabaseAdmin();
 
-  // Reserve the slot first. If the insert violates the unique constraint on
-  // event_key, another delivery has already sent this email.
+  // Try to claim a fresh slot. Unique constraint on event_key makes this
+  // race-safe — at most one INSERT wins.
   const { error: insertErr } = await supabase
     .from('subscription_email_log')
     .insert({
@@ -66,19 +72,31 @@ async function sendWithIdempotency(record: SendRecord): Promise<SendResult> {
       client_id: record.clientId ?? null,
       stripe_event_id: record.stripeEventId ?? null,
       metadata: record.metadata ?? {},
+      status: 'pending',
     });
 
-  if (insertErr) {
-    // 23505 = unique_violation
-    if (insertErr.code === '23505') {
+  if (insertErr && insertErr.code === '23505') {
+    // Row exists. Inspect status to decide whether to skip or retry.
+    const { data: existing } = await supabase
+      .from('subscription_email_log')
+      .select('status')
+      .eq('event_key', record.eventKey)
+      .single();
+    if (existing?.status === 'sent') {
       return { status: 'deduplicated' };
     }
+    // pending or failed — fall through to attempt send below.
+  } else if (insertErr) {
     console.error('[subscription-email] log insert failed', insertErr);
     return { status: 'failed', error: insertErr.message };
   }
 
   if (!resend) {
-    // Dev path: log and pretend we sent so the dev flow works without RESEND_API_KEY.
+    // Dev path: mark as sent so dev runs don't leave perpetual pending rows.
+    await supabase
+      .from('subscription_email_log')
+      .update({ status: 'sent' })
+      .eq('event_key', record.eventKey);
     console.log('[subscription-email] (no RESEND_API_KEY) would send', {
       to: record.to,
       subject: record.subject,
@@ -95,19 +113,17 @@ async function sendWithIdempotency(record: SendRecord): Promise<SendResult> {
       html: record.html,
     });
     const messageId = result.data?.id ?? null;
-    // Backfill the resend message id so we can correlate sent emails to log rows.
-    if (messageId) {
-      await supabase
-        .from('subscription_email_log')
-        .update({ resend_message_id: messageId })
-        .eq('event_key', record.eventKey);
-    }
+    await supabase
+      .from('subscription_email_log')
+      .update({ status: 'sent', resend_message_id: messageId ?? null })
+      .eq('event_key', record.eventKey);
     return { status: 'sent', messageId };
   } catch (err) {
     console.error('[subscription-email] resend.send failed', err);
-    // Don't roll back the log row — we already promised to send and the
-    // error may be transient. A separate replay mechanism could re-send;
-    // for now we surface the failure to the caller.
+    await supabase
+      .from('subscription_email_log')
+      .update({ status: 'failed' })
+      .eq('event_key', record.eventKey);
     return {
       status: 'failed',
       error: err instanceof Error ? err.message : String(err),

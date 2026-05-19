@@ -721,10 +721,15 @@ export async function POST(req: Request) {
       console.log(`[stripe-webhook] Handling ${event.type}`);
       const sub = event.data.object as Stripe.Subscription;
       const result = await syncSubscriptionFromStripe(sub, { eventCreatedAt: event.created });
-      // On a fresh `.created` for autodraft enrollments, link the
-      // recurring_invoice and send the enrollment confirmation email.
-      // No-op for subscriptions created any other way (admin-created etc.).
-      if (event.type === "customer.subscription.created") {
+      // Backfill the link + send enrollment email on .created OR .updated.
+      // We can't rely on Stripe to deliver .created first — out-of-order
+      // delivery is allowed. The helper is idempotent via the email log,
+      // so firing twice is safe; firing zero times would silently lose
+      // the notification.
+      if (
+        event.type === "customer.subscription.created" ||
+        event.type === "customer.subscription.updated"
+      ) {
         await maybeHandleEnrollment(sub, event.id).catch((err) =>
           console.error('[stripe-webhook] enrollment side-effect failed', err)
         );
@@ -782,11 +787,27 @@ export async function POST(req: Request) {
     // upsertInvoiceFromStripe path for these — those invoices live in
     // Stripe (not our `invoices` table) so writing a partial row with
     // null client/org would be misleading.
+    // Helper: is this invoice tied to a subscription? Use BOTH the legacy
+    // `subscription` field (present at runtime even when not in SDK types)
+    // and `billing_reason` (which is in stable types) as a belt-and-
+    // suspenders check. Catches the case where SDK type narrowing returns
+    // undefined incorrectly.
+    const isSubscriptionInvoice = (inv: Stripe.Invoice): boolean => {
+      const subId = (inv as Stripe.Invoice & {
+        subscription?: string | Stripe.Subscription | null;
+      }).subscription;
+      if (subId) return true;
+      const reason = (inv as Stripe.Invoice & { billing_reason?: string | null }).billing_reason;
+      return reason === 'subscription_create' ||
+             reason === 'subscription_cycle' ||
+             reason === 'subscription_update' ||
+             reason === 'subscription_threshold' ||
+             reason === 'subscription';
+    };
+
     if (event.type === "invoice.paid" || event.type === "invoice.payment_succeeded") {
       const inv = event.data.object as Stripe.Invoice;
-      // SDK type doesn't expose `subscription` for the current API version, but it's present at runtime.
-      const subId = (inv as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
-      if (subId) {
+      if (isSubscriptionInvoice(inv)) {
         console.log('[stripe-webhook] Handling subscription invoice.paid', { invoiceId: inv.id });
         await handleSubscriptionInvoicePaid(inv, stripe, event.id).catch((err) =>
           console.error('[stripe-webhook] subscription receipt failed', err)
@@ -797,8 +818,7 @@ export async function POST(req: Request) {
 
     if (event.type === "invoice.payment_failed") {
       const inv = event.data.object as Stripe.Invoice;
-      const subId = (inv as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
-      if (subId) {
+      if (isSubscriptionInvoice(inv)) {
         console.log('[stripe-webhook] Handling subscription invoice.payment_failed', { invoiceId: inv.id });
         await handleSubscriptionInvoiceFailed(inv, stripe, event.id).catch((err) =>
           console.error('[stripe-webhook] subscription decline notice failed', err)

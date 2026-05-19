@@ -22,6 +22,7 @@ import {
   sendSubscriptionPaymentFailed,
   sendSubscriptionCanceled,
 } from '@/lib/subscriptionEmail';
+import { buildBillingPortalLink } from '@/lib/billingPortalLink';
 
 // The Stripe SDK type defs for API 2025-07-30.basil have stopped exposing
 // some legacy fields that are still present at runtime. We narrow via an
@@ -80,20 +81,17 @@ async function getCardDetailsFromInvoice(
 }
 
 /**
- * Generate a Stripe Customer Portal URL the client can use to update
- * their card. Returns null if generation fails — emails just omit the
- * "Update payment method" button in that case.
+ * Build a 14-day signed permalink that, on click, mints a FRESH Stripe
+ * Customer Portal session. Avoids the staleness problem of embedding a
+ * one-shot Stripe portal URL directly (those expire in ~3 hours).
+ *
+ * Returns null only if the signing secret isn't available.
  */
-async function makePortalUrl(stripeCustomerId: string, stripe: Stripe): Promise<string | null> {
+function makePortalUrl(stripeCustomerId: string): string | null {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
-    const session = await stripe.billingPortal.sessions.create({
-      customer: stripeCustomerId,
-      return_url: baseUrl,
-    });
-    return session.url;
+    return buildBillingPortalLink(stripeCustomerId);
   } catch (err) {
-    console.warn('[subscription-webhook] Could not generate portal URL', err);
+    console.warn('[subscription-webhook] Could not build portal link', err);
     return null;
   }
 }
@@ -251,7 +249,7 @@ export async function handleSubscriptionInvoiceFailed(
     'NunezDev recurring service';
 
   const { brand, last4 } = await getCardDetailsFromInvoice(inv, stripe);
-  const portalUrl = await makePortalUrl(customerId, stripe);
+  const portalUrl = makePortalUrl(customerId);
 
   await sendSubscriptionPaymentFailed({
     to: client.email,
@@ -287,17 +285,19 @@ export async function maybeSendCancellationEmail(
 
   // Determine cancellation reason. Stripe sets `cancellation_details.reason`
   // on newer API versions; fall back to inferring from status.
+  //
+  // CRITICAL: status='unpaid' means failed payment, NOT user request. Never
+  // tell a client their card-declined cancellation was "at your request."
   const details = (sub as Stripe.Subscription & {
     cancellation_details?: { reason?: string };
   }).cancellation_details;
   let reason: 'unpaid' | 'requested' | 'other' = 'other';
   if (details?.reason === 'payment_failed') reason = 'unpaid';
   else if (details?.reason === 'cancellation_requested') reason = 'requested';
-  else if (sub.status === 'unpaid' || sub.status === 'canceled') {
-    // If we don't have explicit details, infer: missing details + canceled status
-    // most commonly indicates an admin-side or user-requested cancellation.
-    reason = 'requested';
-  }
+  else if (sub.status === 'unpaid') reason = 'unpaid';
+  // 'canceled' without details → leave as 'other' (neutral copy). We do NOT
+  // assume "requested" — admin-driven, system-driven, and inferred cancels
+  // all look the same at the Stripe API level.
 
   const item = sub.items.data[0];
   const price = item?.price;
