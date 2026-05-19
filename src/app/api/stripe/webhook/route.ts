@@ -7,6 +7,12 @@ import {
   handleSubscriptionDeleted,
   syncSubscriptionScheduleFromStripe,
 } from "@/lib/stripeSubscriptionSync";
+import {
+  maybeHandleEnrollment,
+  handleSubscriptionInvoicePaid,
+  handleSubscriptionInvoiceFailed,
+  maybeSendCancellationEmail,
+} from "@/lib/subscriptionWebhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -715,6 +721,14 @@ export async function POST(req: Request) {
       console.log(`[stripe-webhook] Handling ${event.type}`);
       const sub = event.data.object as Stripe.Subscription;
       const result = await syncSubscriptionFromStripe(sub, { eventCreatedAt: event.created });
+      // On a fresh `.created` for autodraft enrollments, link the
+      // recurring_invoice and send the enrollment confirmation email.
+      // No-op for subscriptions created any other way (admin-created etc.).
+      if (event.type === "customer.subscription.created") {
+        await maybeHandleEnrollment(sub, event.id).catch((err) =>
+          console.error('[stripe-webhook] enrollment side-effect failed', err)
+        );
+      }
       console.log(`[stripe-webhook] ${event.type} → ${result}`);
       return NextResponse.json({ ok: true, result });
     }
@@ -723,6 +737,11 @@ export async function POST(req: Request) {
       console.log('[stripe-webhook] Handling customer.subscription.deleted');
       const sub = event.data.object as Stripe.Subscription;
       await handleSubscriptionDeleted(sub, { eventCreatedAt: event.created });
+      // Send branded cancellation email. Errors here don't fail the webhook
+      // (we already mirrored the cancel state in the line above).
+      await maybeSendCancellationEmail(sub, event.id).catch((err) =>
+        console.error('[stripe-webhook] cancellation email failed', err)
+      );
       console.log('[stripe-webhook] customer.subscription.deleted handled successfully');
       return NextResponse.json({ ok: true });
     }
@@ -756,6 +775,36 @@ export async function POST(req: Request) {
       await supabase.from("invoices").delete().eq("stripe_invoice_id", inv.id);
       console.log('[stripe-webhook] invoice.deleted handled successfully');
       return NextResponse.json({ ok: true });
+    }
+
+    // Subscription-mode invoices get branded receipt/declined emails sent
+    // from our own templates. We deliberately skip the legacy
+    // upsertInvoiceFromStripe path for these — those invoices live in
+    // Stripe (not our `invoices` table) so writing a partial row with
+    // null client/org would be misleading.
+    if (event.type === "invoice.paid" || event.type === "invoice.payment_succeeded") {
+      const inv = event.data.object as Stripe.Invoice;
+      // SDK type doesn't expose `subscription` for the current API version, but it's present at runtime.
+      const subId = (inv as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
+      if (subId) {
+        console.log('[stripe-webhook] Handling subscription invoice.paid', { invoiceId: inv.id });
+        await handleSubscriptionInvoicePaid(inv, stripe, event.id).catch((err) =>
+          console.error('[stripe-webhook] subscription receipt failed', err)
+        );
+        return NextResponse.json({ ok: true, kind: 'subscription_invoice_paid' });
+      }
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      const inv = event.data.object as Stripe.Invoice;
+      const subId = (inv as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
+      if (subId) {
+        console.log('[stripe-webhook] Handling subscription invoice.payment_failed', { invoiceId: inv.id });
+        await handleSubscriptionInvoiceFailed(inv, stripe, event.id).catch((err) =>
+          console.error('[stripe-webhook] subscription decline notice failed', err)
+        );
+        return NextResponse.json({ ok: true, kind: 'subscription_invoice_failed' });
+      }
     }
 
     console.log('[stripe-webhook] Handling invoice event');
