@@ -284,9 +284,28 @@ export async function POST(request: Request) {
           try {
             const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
 
-            const paymentLink = await stripe.paymentLinks.create({
-              line_items: [
-                {
+            // Use a single reusable Stripe product for all recurring-invoice
+            // payment links. Stripe creates a new product when `product_data`
+            // is inlined, and those products can't be archived — over time
+            // they accumulate as permanent clutter in the Products list.
+            // Referencing one stable product keeps the catalog tidy.
+            //
+            // Set STRIPE_RECURRING_INVOICE_PRODUCT_ID in env to the product
+            // you created in the Stripe Dashboard (e.g., "NunezDev Recurring
+            // Billing"). If unset, the code falls back to inline product_data
+            // — older behavior, kept as a safety net so a missing env var
+            // doesn't break the cron.
+            const recurringProductId = process.env.STRIPE_RECURRING_INVOICE_PRODUCT_ID;
+            const lineItem: Stripe.PaymentLinkCreateParams.LineItem = recurringProductId
+              ? {
+                  price_data: {
+                    currency: 'usd',
+                    product: recurringProductId,
+                    unit_amount: recurring.amount_cents,
+                  },
+                  quantity: 1,
+                }
+              : {
                   price_data: {
                     currency: 'usd',
                     product_data: {
@@ -301,8 +320,10 @@ export async function POST(request: Request) {
                     unit_amount: recurring.amount_cents,
                   },
                   quantity: 1,
-                },
-              ],
+                };
+
+            const paymentLink = await stripe.paymentLinks.create({
+              line_items: [lineItem],
               metadata: {
                 invoice_id: newInvoice.id,
                 client_id: client.id,
