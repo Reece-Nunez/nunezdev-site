@@ -115,12 +115,20 @@ export async function GET() {
   const [activeRes, pendingRes, legacyRes] = await Promise.all([
     supabase
       .from('client_subscriptions')
-      .select('status, amount_cents, interval, interval_count')
+      .select(
+        `id, client_id, status, product_name, amount_cents, interval, interval_count,
+         current_period_end, cancel_at_period_end,
+         clients!inner(id, name)`
+      )
       .eq('org_id', guard.orgId)
       .in('status', ['active', 'trialing', 'past_due']),
     supabase
       .from('client_subscription_schedules')
-      .select('status, amount_cents, interval, interval_count, end_behavior, starts_at, ends_at')
+      .select(
+        `id, client_id, status, product_name, amount_cents, interval, interval_count,
+         end_behavior, starts_at, ends_at,
+         clients!inner(id, name)`
+      )
       .eq('org_id', guard.orgId)
       .in('status', ['not_started', 'active']),
     // Legacy recurring_invoices that haven't been migrated to a Stripe sub
@@ -128,16 +136,43 @@ export async function GET() {
     // contribute to current MRR.
     supabase
       .from('recurring_invoices')
-      .select('amount_cents, frequency, end_date')
+      .select(
+        `id, client_id, title, amount_cents, frequency, next_invoice_date, end_date,
+         clients!inner(id, name)`
+      )
       .eq('org_id', guard.orgId)
       .eq('status', 'active')
       .is('stripe_subscription_id', null)
       .or(`end_date.is.null,end_date.gt.${todayIso}`),
   ]);
 
-  const activeRows = (activeRes.data || []) as SubRow[];
-  const pendingRows = (pendingRes.data || []) as ScheduleRow[];
-  const legacyRows = (legacyRes.data || []) as LegacyRecurringRow[];
+  // Supabase types `clients` as an array even for !inner FK joins. Cast
+  // through unknown to avoid fighting that and normalize via clientName().
+  type ClientJoin = { id: string; name: string } | { id: string; name: string }[] | null;
+  const clientName = (j: ClientJoin): string => {
+    if (!j) return 'Unknown';
+    if (Array.isArray(j)) return j[0]?.name || 'Unknown';
+    return j.name || 'Unknown';
+  };
+
+  type ActiveRow = SubRow & {
+    id: string; client_id: string; product_name: string | null;
+    current_period_end: string | null; cancel_at_period_end: boolean;
+    clients: ClientJoin;
+  };
+  type PendingRow = ScheduleRow & {
+    id: string; client_id: string; product_name: string | null;
+    clients: ClientJoin;
+  };
+  type LegacyRow = LegacyRecurringRow & {
+    id: string; client_id: string; title: string | null;
+    next_invoice_date: string | null;
+    clients: ClientJoin;
+  };
+
+  const activeRows = ((activeRes.data || []) as unknown) as ActiveRow[];
+  const pendingRows = ((pendingRes.data || []) as unknown) as PendingRow[];
+  const legacyRows = ((legacyRes.data || []) as unknown) as LegacyRow[];
 
   const mrrCents = activeRows.reduce((sum, r) => sum + toMonthlyCents(r), 0);
   const legacyMrrCents = legacyRows.reduce(
@@ -165,6 +200,90 @@ export async function GET() {
   // billing yet (would inflate current revenue).
   const totalMrrCents = mrrCents + legacyMrrCents;
 
+  // ---- Unified arrangement list -----------------------------------------
+  // One flat list of every recurring billing arrangement so the dashboard
+  // can show "Recurring Revenue" as the single source of truth instead of
+  // two competing sections (MRR widget vs. Recurring Invoices list).
+
+  type Source = 'stripe_subscription' | 'stripe_schedule' | 'legacy_invoice';
+
+  interface Arrangement {
+    id: string;
+    source: Source;
+    clientId: string;
+    clientName: string;
+    title: string;
+    amountCents: number | null;
+    monthlyEquivalentCents: number;
+    interval: string | null;
+    intervalCount: number | null;
+    status: string;
+    nextBillAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    isFutureRevenue: boolean;
+  }
+
+  const arrangements: Arrangement[] = [
+    ...activeRows.map<Arrangement>((r) => ({
+      id: r.id,
+      source: 'stripe_subscription',
+      clientId: r.client_id,
+      clientName: clientName(r.clients),
+      title: r.product_name || 'Stripe subscription',
+      amountCents: r.amount_cents,
+      monthlyEquivalentCents: toMonthlyCents(r),
+      interval: r.interval,
+      intervalCount: r.interval_count,
+      status: r.status,
+      nextBillAt: r.current_period_end,
+      cancelAtPeriodEnd: r.cancel_at_period_end ?? false,
+      isFutureRevenue: false,
+    })),
+    ...pendingRows.map<Arrangement>((r) => ({
+      id: r.id,
+      source: 'stripe_schedule',
+      clientId: r.client_id,
+      clientName: clientName(r.clients),
+      title: r.product_name || 'Scheduled subscription',
+      amountCents: r.amount_cents,
+      monthlyEquivalentCents: isRecurringSchedule(r) ? toMonthlyCents(r) : 0,
+      interval: r.interval,
+      intervalCount: r.interval_count,
+      status: r.status,
+      nextBillAt: r.starts_at,
+      cancelAtPeriodEnd: false,
+      isFutureRevenue: true,
+    })),
+    ...legacyRows.map<Arrangement>((r) => {
+      const sub = legacyToSubRow(r);
+      return {
+        id: r.id,
+        source: 'legacy_invoice',
+        clientId: r.client_id,
+        clientName: clientName(r.clients),
+        title: r.title || 'Recurring invoice',
+        amountCents: r.amount_cents,
+        monthlyEquivalentCents: toMonthlyCents(sub),
+        interval: sub.interval,
+        intervalCount: sub.interval_count,
+        status: 'active',
+        nextBillAt: r.next_invoice_date,
+        cancelAtPeriodEnd: false,
+        isFutureRevenue: false,
+      };
+    }),
+  ];
+
+  // Sort: future revenue (scheduled) first (it's the most "exciting"),
+  // then active arrangements by next bill date ascending.
+  arrangements.sort((a, b) => {
+    if (a.isFutureRevenue !== b.isFutureRevenue) return a.isFutureRevenue ? -1 : 1;
+    if (!a.nextBillAt && !b.nextBillAt) return 0;
+    if (!a.nextBillAt) return 1;
+    if (!b.nextBillAt) return -1;
+    return a.nextBillAt.localeCompare(b.nextBillAt);
+  });
+
   return NextResponse.json({
     // Consolidated MRR — what the dashboard widget shows prominently
     totalMrrCents,
@@ -183,6 +302,9 @@ export async function GET() {
     pendingMrrCents,
     pendingOneTimeCents,
     pendingCount: pendingRows.length,
+
+    // Unified list of all recurring billing arrangements
+    arrangements,
   }, {
     headers: { 'Cache-Control': 'no-store' },
   });

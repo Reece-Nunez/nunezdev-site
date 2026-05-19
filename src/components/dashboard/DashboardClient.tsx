@@ -174,7 +174,6 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
     topClients,
     upcomingInvoices,
     overdueInvoices,
-    recurringInvoices,
     invoiceStatusSummary
   } = kpis;
 
@@ -487,44 +486,9 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
             </div>
           )}
 
+          {/* Recurring Revenue widget unifies Stripe subscriptions + legacy
+              recurring_invoices + pending schedules into a single section. */}
           <MrrWidget />
-
-          {recurringInvoices.length > 0 && (
-            <div className="bg-white border rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Recurring Invoices
-                </h3>
-                <Link href="/dashboard/recurring" className="text-sm text-emerald-600 hover:text-emerald-800">
-                  Manage
-                </Link>
-              </div>
-              <div className="space-y-2">
-                {recurringInvoices.slice(0, 4).map((ri) => (
-                  <div
-                    key={ri.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <div className="font-medium text-sm text-gray-900">{ri.clientName}</div>
-                      <div className="text-xs text-gray-500">
-                        {ri.frequency} • Next: {ri.nextRunAt ? formatDate(ri.nextRunAt) : 'N/A'}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-sm">{fmt(ri.amount)}</div>
-                      <div className={`text-xs ${ri.isActive ? 'text-emerald-600' : 'text-gray-400'}`}>
-                        {ri.isActive ? 'Active' : 'Paused'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="bg-white border rounded-xl p-4">
             <h3 className="font-semibold text-gray-800 mb-2">Recent Activity</h3>
