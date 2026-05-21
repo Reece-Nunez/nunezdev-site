@@ -35,6 +35,21 @@ function resolveAuthToken(): string | undefined {
 }
 
 /**
+ * Resolve the "from" phone number from any of the common env var names.
+ * Twilio docs use TWILIO_PHONE_NUMBER, but TWILIO_FROM and TWILIO_NUMBER
+ * are both common in the wild. Accept all so a non-canonical naming
+ * doesn't silently disable SMS.
+ */
+function resolveFromNumber(): string | undefined {
+  return (
+    process.env.TWILIO_PHONE_NUMBER ||
+    process.env.TWILIO_FROM_NUMBER ||
+    process.env.TWILIO_FROM ||
+    process.env.TWILIO_NUMBER
+  );
+}
+
+/**
  * Cheap pre-flight check: are all the env vars necessary to send an SMS
  * present? Useful when you want to fail fast before doing destructive
  * state changes (e.g., voiding invoices in the combine flow) only to
@@ -44,8 +59,65 @@ export function isTwilioConfigured(): boolean {
   if (!resolveAccountSid()) return false;
   const hasApiKey = !!(process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET);
   if (!hasApiKey && !resolveAuthToken()) return false;
-  if (!process.env.TWILIO_PHONE_NUMBER) return false;
+  if (!resolveFromNumber()) return false;
   return true;
+}
+
+/**
+ * Diagnostic: report which Twilio env vars are detected WITHOUT exposing
+ * their values. Used by the admin diagnostic endpoint to debug "why
+ * isn't SMS working?" issues without making the user paste secrets.
+ */
+export function getTwilioConfigSummary(): {
+  ok: boolean;
+  accountSidSource: string | null;
+  authSource: string | null;
+  fromNumberSource: string | null;
+  fromNumberHint: string | null;
+} {
+  const accountSidSource = process.env.TWILIO_ACCOUNT_SID
+    ? 'TWILIO_ACCOUNT_SID'
+    : process.env.TWILIO_SID
+    ? 'TWILIO_SID'
+    : null;
+
+  const authSource = (process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET)
+    ? 'TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET'
+    : process.env.TWILIO_AUTH_TOKEN
+    ? 'TWILIO_AUTH_TOKEN'
+    : process.env.TWILIO_CLIENT_SECRET
+    ? 'TWILIO_CLIENT_SECRET'
+    : null;
+
+  let fromNumberSource: string | null = null;
+  let fromNumberRaw: string | undefined;
+  if (process.env.TWILIO_PHONE_NUMBER) {
+    fromNumberSource = 'TWILIO_PHONE_NUMBER';
+    fromNumberRaw = process.env.TWILIO_PHONE_NUMBER;
+  } else if (process.env.TWILIO_FROM_NUMBER) {
+    fromNumberSource = 'TWILIO_FROM_NUMBER';
+    fromNumberRaw = process.env.TWILIO_FROM_NUMBER;
+  } else if (process.env.TWILIO_FROM) {
+    fromNumberSource = 'TWILIO_FROM';
+    fromNumberRaw = process.env.TWILIO_FROM;
+  } else if (process.env.TWILIO_NUMBER) {
+    fromNumberSource = 'TWILIO_NUMBER';
+    fromNumberRaw = process.env.TWILIO_NUMBER;
+  }
+
+  // Show only last 4 digits of the from number so the operator can confirm
+  // they configured the right one. Never log/return the full number publicly.
+  const fromNumberHint = fromNumberRaw
+    ? `${fromNumberRaw.startsWith('+') ? '+' : ''}…${fromNumberRaw.replace(/\D/g, '').slice(-4)}`
+    : null;
+
+  return {
+    ok: isTwilioConfigured(),
+    accountSidSource,
+    authSource,
+    fromNumberSource,
+    fromNumberHint,
+  };
 }
 
 function getTwilioClient(): Twilio | null {
@@ -100,7 +172,7 @@ export async function sendSms(params: {
   body: string;
 }): Promise<SmsSendResult> {
   const client = getTwilioClient();
-  const from = process.env.TWILIO_PHONE_NUMBER;
+  const from = resolveFromNumber();
 
   if (!client || !from) {
     const missing: string[] = [];
@@ -111,7 +183,7 @@ export async function sendSms(params: {
     ) {
       missing.push('TWILIO_AUTH_TOKEN (or TWILIO_CLIENT_SECRET)');
     }
-    if (!from) missing.push('TWILIO_PHONE_NUMBER');
+    if (!from) missing.push('TWILIO_PHONE_NUMBER (or TWILIO_FROM_NUMBER / TWILIO_FROM / TWILIO_NUMBER)');
     return {
       ok: false,
       error: `Twilio not configured. Missing env: ${missing.join(', ')}`,
