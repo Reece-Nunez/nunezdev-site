@@ -56,6 +56,7 @@ interface Invoice extends InvoiceLite {
   signer_email?: string;
   signature_svg?: string;
   hosted_invoice_url?: string;
+  access_token?: string;
   invoice_number?: string;
   title?: string;
   notes?: string;
@@ -126,6 +127,10 @@ export default function InvoiceDetailPage() {
   const [ccInput, setCcInput] = useState('');
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [suspending, setSuspending] = useState(false);
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsBody, setSmsBody] = useState('');
+  const [sendingSms, setSendingSms] = useState(false);
   const { showToast, ToastContainer } = useToast();
   const { confirm, ConfirmContainer } = useConfirm();
 
@@ -180,6 +185,44 @@ export default function InvoiceDetailPage() {
       showToast(error instanceof Error ? error.message : 'Failed to send invoice', 'error');
     } finally {
       setSending(false);
+    }
+  };
+
+  const openSmsModal = () => {
+    if (!invoice) return;
+    // Pre-fill phone from the client record if available
+    setSmsPhone(invoice.clients?.phone || '');
+    // Default message body — caller can edit before sending
+    const firstName = (invoice.clients?.name || 'there').split(/\s+/)[0];
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${baseUrl}/invoice/${invoice.access_token}`;
+    setSmsBody(`Hi ${firstName}, your NunezDev invoice for ${currency(invoice.amount_cents)} is ready: ${url}`);
+    setShowSmsModal(true);
+  };
+
+  const handleSendSms = async () => {
+    if (!smsPhone.trim()) {
+      showToast('Please enter a phone number', 'error');
+      return;
+    }
+    setSendingSms(true);
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/send-sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: smsPhone.trim(),
+          bodyOverride: smsBody.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+      showToast(`SMS sent to ${data.to}`, 'success');
+      setShowSmsModal(false);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to send SMS', 'error');
+    } finally {
+      setSendingSms(false);
     }
   };
 
@@ -311,6 +354,18 @@ export default function InvoiceDetailPage() {
               className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors bg-emerald-600 hover:bg-emerald-700"
             >
               Resend Invoice
+            </button>
+          )}
+          {invoice.access_token && (
+            <button
+              onClick={openSmsModal}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 inline-flex items-center gap-1.5"
+              title="Send the invoice link to the client via text message"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              Send via Text
             </button>
           )}
           <button
@@ -751,6 +806,94 @@ export default function InvoiceDetailPage() {
           }}
           onCancel={() => setShowEdit(false)}
         />
+      )}
+
+      {showSmsModal && invoice && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => !sendingSms && setShowSmsModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">Send via Text</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Twilio SMS to the client&apos;s phone
+                </p>
+              </div>
+              <button
+                onClick={() => !sendingSms && setShowSmsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Phone number
+                </label>
+                <input
+                  type="tel"
+                  value={smsPhone}
+                  onChange={(e) => setSmsPhone(e.target.value)}
+                  placeholder="(405) 555-1234"
+                  disabled={sendingSms}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                {!invoice.clients?.phone && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    No phone on file for this client. Type one above or
+                    add it to the client record for next time.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Message <span className="text-gray-400">({smsBody.length} chars)</span>
+                </label>
+                <textarea
+                  value={smsBody}
+                  onChange={(e) => setSmsBody(e.target.value)}
+                  rows={4}
+                  disabled={sendingSms}
+                  maxLength={800}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Twilio charges per 160-char segment.
+                  {smsBody.length > 160 && (
+                    <span className="text-amber-600">
+                      {' '}This message will be sent as {Math.ceil(smsBody.length / 160)} segments.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => setShowSmsModal(false)}
+                disabled={sendingSms}
+                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendSms}
+                disabled={sendingSms || !smsPhone.trim() || !smsBody.trim()}
+                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sendingSms ? 'Sending…' : 'Send Text'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showSendModal && (

@@ -98,6 +98,45 @@ Then redeploy.
 
 ---
 
+## Twilio SMS (Send via Text button on invoices)
+
+Required env vars in Vercel:
+
+**Option A — Auth Token (simpler):**
+```
+TWILIO_ACCOUNT_SID    = AC...
+TWILIO_AUTH_TOKEN     = your_auth_token
+TWILIO_PHONE_NUMBER   = +14055551234   (your Twilio "from" number, E.164)
+```
+
+**Option B — API Key (recommended for production, rotatable):**
+```
+TWILIO_ACCOUNT_SID      = AC...
+TWILIO_API_KEY_SID      = SK...
+TWILIO_API_KEY_SECRET   = your_api_key_secret
+TWILIO_PHONE_NUMBER     = +14055551234
+```
+
+If both auth styles are set, API Key is used.
+
+### Built-in safety limits
+
+- US numbers only (E.164 +1XXXXXXXXXX); other formats rejected.
+- Message must include the invoice link (prevents misuse as a generic SMS gateway).
+- Max 800 characters per message (5 Twilio segments).
+- Max 5 sends per invoice per hour (prevents accidental loops).
+- Max 50 SMS per org per 24h (catches runaway scripts / compromised sessions).
+- 60-second dedupe per (invoice, phone) — accidental double-clicks don't double-send.
+- Every send is recorded in `client_activity_log` with `activity_type='invoice_sms_sent'` for audit.
+
+### Where to use it
+
+Invoice detail page → "Send via Text" button next to "Resend Invoice". Pre-fills the
+client's phone on file (if present) and a default message with the invoice link;
+both editable before sending.
+
+---
+
 ## 6. Product tags (for the CRM "+ New Subscription" picker)
 
 Per `STRIPE_PRODUCT_TAG` env var (default: `nunezdev`). For each product you want to appear in the CRM subscription picker:
