@@ -1,15 +1,20 @@
 /**
  * SMS sending via Twilio.
  *
- * Auth (env vars — pick one path):
- *   1. Auth Token (simpler):
- *      TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
- *   2. API Key (rotatable, recommended for production):
- *      TWILIO_API_KEY_SID, TWILIO_API_KEY_SECRET, TWILIO_ACCOUNT_SID, TWILIO_PHONE_NUMBER
+ * Env vars — supports two naming conventions, either works:
  *
- * Detection: if TWILIO_API_KEY_SECRET is set we use the API key path; else
- * we fall back to Auth Token. Both require TWILIO_ACCOUNT_SID and
- * TWILIO_PHONE_NUMBER (the "from" number).
+ *   Convention A (canonical Twilio naming):
+ *     TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+ *
+ *   Convention B (NunezDev short names):
+ *     TWILIO_SID,         TWILIO_CLIENT_SECRET, TWILIO_PHONE_NUMBER
+ *
+ *   Optional API Key path (rotatable, preferred at scale):
+ *     TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET + TWILIO_ACCOUNT_SID
+ *     (or TWILIO_SID alias) + TWILIO_PHONE_NUMBER
+ *
+ * Detection order: API Key → Auth Token. TWILIO_PHONE_NUMBER is always
+ * required — it's the "from" number Twilio sends from.
  */
 import { Twilio } from 'twilio';
 
@@ -19,17 +24,43 @@ export interface SmsSendResult {
   error?: string;
 }
 
+/** Resolve the Account SID from either naming convention. */
+function resolveAccountSid(): string | undefined {
+  return process.env.TWILIO_ACCOUNT_SID || process.env.TWILIO_SID;
+}
+
+/** Resolve the Auth Token from either naming convention. */
+function resolveAuthToken(): string | undefined {
+  return process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_CLIENT_SECRET;
+}
+
+/**
+ * Cheap pre-flight check: are all the env vars necessary to send an SMS
+ * present? Useful when you want to fail fast before doing destructive
+ * state changes (e.g., voiding invoices in the combine flow) only to
+ * realize Twilio isn't wired up.
+ */
+export function isTwilioConfigured(): boolean {
+  if (!resolveAccountSid()) return false;
+  const hasApiKey = !!(process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET);
+  if (!hasApiKey && !resolveAuthToken()) return false;
+  if (!process.env.TWILIO_PHONE_NUMBER) return false;
+  return true;
+}
+
 function getTwilioClient(): Twilio | null {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const accountSid = resolveAccountSid();
   if (!accountSid) return null;
 
+  // API Key path (recommended for production — rotatable without rotating account creds)
   const apiKeySecret = process.env.TWILIO_API_KEY_SECRET;
   const apiKeySid = process.env.TWILIO_API_KEY_SID;
   if (apiKeySecret && apiKeySid) {
     return new Twilio(apiKeySid, apiKeySecret, { accountSid });
   }
 
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  // Auth Token path
+  const authToken = resolveAuthToken();
   if (authToken) {
     return new Twilio(accountSid, authToken);
   }
@@ -73,12 +104,12 @@ export async function sendSms(params: {
 
   if (!client || !from) {
     const missing: string[] = [];
-    if (!process.env.TWILIO_ACCOUNT_SID) missing.push('TWILIO_ACCOUNT_SID');
+    if (!resolveAccountSid()) missing.push('TWILIO_ACCOUNT_SID (or TWILIO_SID)');
     if (
-      !process.env.TWILIO_AUTH_TOKEN &&
+      !resolveAuthToken() &&
       !(process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET)
     ) {
-      missing.push('TWILIO_AUTH_TOKEN or TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET');
+      missing.push('TWILIO_AUTH_TOKEN (or TWILIO_CLIENT_SECRET)');
     }
     if (!from) missing.push('TWILIO_PHONE_NUMBER');
     return {

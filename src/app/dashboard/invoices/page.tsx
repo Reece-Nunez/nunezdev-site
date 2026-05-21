@@ -364,7 +364,10 @@ export default function DashboardInvoices() {
   }, [selectedInvoices, selectedInvoicesList]);
 
   // Handle combine invoices
-  const handleCombineInvoices = async () => {
+  const handleCombineInvoices = async (opts: {
+    delivery_method: 'email' | 'sms' | 'both';
+    sms_to?: string;
+  }) => {
     setCombineLoading(true);
     try {
       const res = await fetch('/api/invoices/combine', {
@@ -373,6 +376,8 @@ export default function DashboardInvoices() {
         body: JSON.stringify({
           invoice_ids: Array.from(selectedInvoices),
           send_immediately: true,
+          delivery_method: opts.delivery_method,
+          sms_to: opts.sms_to,
         }),
       });
 
@@ -385,7 +390,17 @@ export default function DashboardInvoices() {
       setShowCombineModal(false);
       setSelectedInvoices(new Set());
       mutate(url);
-      showToast(data.message || 'Invoices combined successfully', 'success');
+
+      // Decide toast severity based on partial-failure state from the server
+      const dr = data.delivery_results as
+        | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed' }
+        | undefined;
+      const anyFailed =
+        dr?.email === 'failed' || dr?.sms === 'failed';
+      showToast(
+        data.message || 'Invoices combined successfully',
+        anyFailed ? 'error' : 'success'
+      );
     } catch (error) {
       console.error('Error combining invoices:', error);
       throw error;

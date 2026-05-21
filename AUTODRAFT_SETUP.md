@@ -98,7 +98,7 @@ Then redeploy.
 
 ---
 
-## Twilio SMS (Send via Text button on invoices)
+## Twilio SMS (Send via Text button on invoices + Combine modal)
 
 Required env vars in Vercel:
 
@@ -115,6 +115,12 @@ TWILIO_ACCOUNT_SID      = AC...
 TWILIO_API_KEY_SID      = SK...
 TWILIO_API_KEY_SECRET   = your_api_key_secret
 TWILIO_PHONE_NUMBER     = +14055551234
+```
+
+**Aliases (NunezDev short names — also work):**
+```
+TWILIO_SID             ≡ TWILIO_ACCOUNT_SID
+TWILIO_CLIENT_SECRET   ≡ TWILIO_AUTH_TOKEN
 ```
 
 If both auth styles are set, API Key is used.

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
 import { sendInvoiceEmail } from "@/lib/email";
+import { sendInvoiceSmsWithGuards } from "@/lib/invoiceSms";
+import { isTwilioConfigured, normalizePhoneE164 } from "@/lib/sms";
 import { currency } from "@/lib/ui";
 import Stripe from "stripe";
 import crypto from "crypto";
@@ -9,9 +11,15 @@ import crypto from "crypto";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+export type DeliveryMethod = 'email' | 'sms' | 'both';
+
 interface CombineRequest {
   invoice_ids: string[];
   send_immediately?: boolean;
+  /** How to deliver the combined invoice. Defaults to 'email' for back-compat. */
+  delivery_method?: DeliveryMethod;
+  /** Optional override for SMS recipient — falls back to client.phone on file. */
+  sms_to?: string;
 }
 
 interface InvoiceLineItem {
@@ -61,7 +69,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const body: CombineRequest = await req.json();
-    const { invoice_ids, send_immediately = true } = body;
+    const {
+      invoice_ids,
+      send_immediately = true,
+      delivery_method = 'email',
+      sms_to,
+    } = body;
+
+    if (!['email', 'sms', 'both'].includes(delivery_method)) {
+      return NextResponse.json(
+        { error: "delivery_method must be 'email', 'sms', or 'both'" },
+        { status: 400 }
+      );
+    }
 
     if (!invoice_ids || !Array.isArray(invoice_ids) || invoice_ids.length < 2) {
       return NextResponse.json(
@@ -77,9 +97,9 @@ export async function POST(req: NextRequest) {
       .from("invoices")
       .select(`
         id, client_id, status, amount_cents, subtotal_cents, discount_cents,
-        line_items, payment_terms, title, description, invoice_number,
+        line_items, payment_terms, title, description, invoice_number, notes,
         require_signature, issued_at, due_at,
-        clients!inner(id, name, email, stripe_customer_id),
+        clients!inner(id, name, email, phone, stripe_customer_id),
         invoice_payments(amount_cents)
       `)
       .eq("org_id", orgId)
@@ -119,7 +139,7 @@ export async function POST(req: NextRequest) {
 
     // Handle client - could be array or single object from Supabase join
     const clientData = invoices[0].clients;
-    const client = (Array.isArray(clientData) ? clientData[0] : clientData) as { id: string; name: string; email: string; stripe_customer_id?: string };
+    const client = (Array.isArray(clientData) ? clientData[0] : clientData) as { id: string; name: string; email: string; phone?: string | null; stripe_customer_id?: string };
 
     // Calculate remaining balance for each invoice (handle partial payments)
     const invoicesWithBalance = invoices.map(inv => {
@@ -221,6 +241,66 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to create combined invoice" }, { status: 500 });
     }
 
+    // ----- PRE-FLIGHT DELIVERY VALIDATION ----------------------------------
+    // Validate everything we need BEFORE voiding originals — voiding is the
+    // first irreversible mutation, and we'd rather bail with a 400 than
+    // leave the operator with orphaned voided invoices and no way to deliver.
+    const needsEmailPreflight = (delivery_method === 'email' || delivery_method === 'both');
+    const needsSmsPreflight = (delivery_method === 'sms' || delivery_method === 'both');
+
+    if (send_immediately && needsEmailPreflight && !client.email) {
+      return NextResponse.json(
+        { error: `This client has no email on file. Pick "Text" instead, or add an email to the client record first.` },
+        { status: 400 }
+      );
+    }
+
+    if (send_immediately && needsSmsPreflight) {
+      if (!isTwilioConfigured()) {
+        return NextResponse.json(
+          { error: `SMS isn't configured (Twilio env vars missing). Pick "Email" instead, or add Twilio config in Vercel.` },
+          { status: 400 }
+        );
+      }
+      const rawSmsPhone = (sms_to ?? client.phone ?? '').trim();
+      if (!rawSmsPhone) {
+        return NextResponse.json(
+          { error: `No phone number provided for SMS and none on file for this client.` },
+          { status: 400 }
+        );
+      }
+      if (!normalizePhoneE164(rawSmsPhone)) {
+        return NextResponse.json(
+          { error: `Couldn't parse phone "${rawSmsPhone}". Use a US format like (405) 555-1234.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ----- IDEMPOTENCY CHECK -----------------------------------------------
+    // Double-click on the modal can send two POSTs before the second sees
+    // the first's response. Detect by checking whether any source invoice
+    // is already void with a "Combined into" note — that's the signature
+    // of a previous successful combine for this same source set.
+    const alreadyCombined = invoices.find(
+      (inv) =>
+        inv.status === 'void' &&
+        typeof inv.notes === 'string' &&
+        inv.notes.startsWith('Voided - Combined into ')
+    );
+    if (alreadyCombined) {
+      const match = alreadyCombined.notes?.match(/Combined into (\S+)/);
+      const targetNumber = match?.[1];
+      return NextResponse.json(
+        {
+          error: `These invoices were already combined${
+            targetNumber ? ` into ${targetNumber}` : ''
+          }. Refresh the page to see the result.`,
+        },
+        { status: 409 }
+      );
+    }
+
     // Void original invoices and update their notes
     for (const inv of invoices) {
       const { error: voidError } = await supabase
@@ -239,8 +319,13 @@ export async function POST(req: NextRequest) {
 
     let stripeUrl: string | null = null;
 
-    // Create Stripe payment link and send email if requested
-    if (send_immediately && client.email) {
+    // Create the Stripe Payment Link + deliver via the chosen channel(s).
+    // All pre-flight validation already ran above the void loop, so by the
+    // time we're here we know the chosen channels are wired up correctly.
+    const needsEmail = needsEmailPreflight;
+    const needsSms = needsSmsPreflight;
+
+    if (send_immediately) {
       // Create Stripe Payment Link
       if (process.env.STRIPE_SECRET_KEY) {
         try {
@@ -315,25 +400,81 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Send email
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
-        const secureInvoiceUrl = `${baseUrl}/invoice/${accessToken}`;
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
+      const secureInvoiceUrl = `${baseUrl}/invoice/${accessToken}`;
 
-        await sendInvoiceEmail({
-          to: client.email,
+      const deliveryResults: { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; smsError?: string; emailError?: string } = {};
+
+      if (needsEmail) {
+        try {
+          await sendInvoiceEmail({
+            to: client.email,
+            clientName: client.name,
+            invoiceNumber: newInvoiceNumber,
+            invoiceUrl: secureInvoiceUrl,
+            amount: currency(combinedTotal),
+            dueDate: dueDate.toLocaleDateString(),
+            requiresSignature: newInvoice.require_signature || false,
+          });
+          deliveryResults.email = 'sent';
+          console.log(`Combined invoice email sent to ${client.email}`);
+        } catch (emailError) {
+          deliveryResults.email = 'failed';
+          deliveryResults.emailError = emailError instanceof Error ? emailError.message : String(emailError);
+          console.error("Combined invoice email failed:", emailError);
+        }
+      }
+
+      if (needsSms) {
+        const smsResult = await sendInvoiceSmsWithGuards({
+          invoiceId: newInvoice.id,
+          orgId,
+          to: sms_to ?? null,
+          clientPhoneOnFile: client.phone ?? null,
+          bodyOverride: null,
           clientName: client.name,
+          clientId: client.id,
           invoiceNumber: newInvoiceNumber,
-          invoiceUrl: secureInvoiceUrl,
-          amount: currency(combinedTotal),
-          dueDate: dueDate.toLocaleDateString(),
-          requiresSignature: newInvoice.require_signature || false,
+          amountCents: combinedTotal,
+          accessToken,
         });
+        if (smsResult.ok) {
+          deliveryResults.sms = 'sent';
+          console.log(`Combined invoice SMS sent to ${smsResult.to}`);
+        } else {
+          deliveryResults.sms = 'failed';
+          deliveryResults.smsError = smsResult.error;
+          console.error("Combined invoice SMS failed:", smsResult.error);
+        }
+      }
 
-        console.log(`Combined invoice email sent to ${client.email}`);
-      } catch (emailError) {
-        console.error("Email sending failed:", emailError);
-        // Don't fail the request
+      // Attach delivery results to the response for the modal to show
+      (newInvoice as Record<string, unknown>).delivery_results = deliveryResults;
+    }
+
+    const deliveryResults = (newInvoice as Record<string, unknown>).delivery_results as
+      | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; smsError?: string; emailError?: string }
+      | undefined;
+
+    // Build a friendly message that reflects what actually happened
+    let message: string;
+    if (!send_immediately) {
+      message = `Combined ${invoices.length} invoices into draft ${newInvoiceNumber}`;
+    } else {
+      const sent: string[] = [];
+      const failed: string[] = [];
+      if (deliveryResults?.email === 'sent') sent.push(`emailed to ${client.email}`);
+      if (deliveryResults?.email === 'failed') failed.push('email');
+      if (deliveryResults?.sms === 'sent') sent.push('texted');
+      if (deliveryResults?.sms === 'failed') failed.push(`text (${deliveryResults.smsError || 'unknown error'})`);
+      if (sent.length && !failed.length) {
+        message = `Combined ${invoices.length} invoices — ${sent.join(' and ')}.`;
+      } else if (sent.length && failed.length) {
+        message = `Combined ${invoices.length} invoices. Successfully ${sent.join(' and ')}, but failed to send via ${failed.join(' and ')}.`;
+      } else if (failed.length) {
+        message = `Combined ${invoices.length} invoices but delivery failed: ${failed.join(', ')}. You can resend manually from the invoice detail page.`;
+      } else {
+        message = `Combined ${invoices.length} invoices into ${newInvoiceNumber}.`;
       }
     }
 
@@ -348,9 +489,8 @@ export async function POST(req: NextRequest) {
       voided_count: invoices.length,
       voided_invoice_numbers: invoiceNumbers,
       stripe_url: stripeUrl,
-      message: send_immediately
-        ? `Combined ${invoices.length} invoices and sent to ${client.email}`
-        : `Combined ${invoices.length} invoices into draft ${newInvoiceNumber}`,
+      delivery_results: deliveryResults,
+      message,
     });
 
   } catch (error) {
