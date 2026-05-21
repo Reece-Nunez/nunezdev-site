@@ -1,5 +1,8 @@
--- Real-time Events Table for SSE
--- Stores events that need to be pushed to connected clients in real-time
+-- Real-time Events Table for Supabase Realtime
+-- Stores events broadcast to dashboard clients via Postgres → WebSocket.
+-- Clients subscribe via @supabase/supabase-js channel API; the SELECT
+-- policy below is what filters per-org. ALTER PUBLICATION at the bottom
+-- of this file is what enables the realtime broadcast.
 
 CREATE TABLE IF NOT EXISTS realtime_events (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,3 +63,16 @@ CREATE POLICY realtime_events_service_all ON realtime_events
     TO service_role
     USING (true)
     WITH CHECK (true);
+
+-- Enable Supabase Realtime on this table. Without this, INSERTs aren't
+-- broadcast to subscribed clients. Idempotent — fails harmlessly if the
+-- table is already in the publication.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'realtime_events'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE realtime_events';
+  END IF;
+END $$;
