@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import type { ClientOverview } from '@/types/client_detail';
 import { useToast } from '@/hooks/useToast';
 import { ToastContainer } from '@/components/Toast';
+import { formatPhoneInputAsTyped, formatPhoneUS } from '@/lib/phone';
 
 type ClientStatus = 'Lead' | 'Prospect' | 'Active' | 'Past';
 
@@ -44,7 +45,7 @@ export default function ClientForm({ clientId }: { clientId: string }) {
       setFormData({
         name: client.name ?? '',
         email: client.email ?? '',
-        phone: client.phone ?? '',
+        phone: formatPhoneUS(client.phone),
         company: client.company ?? '',
         status: client.status as ClientStatus,
         tags: client.tags ?? [],
@@ -141,10 +142,10 @@ export default function ClientForm({ clientId }: { clientId: string }) {
           onChange={(v) => updateField('email', v)} 
           type="email"
         />
-        <Field 
-          label="Phone" 
-          value={formData.phone} 
-          onChange={(v) => updateField('phone', v)} 
+        <Field
+          label="Phone"
+          value={formData.phone}
+          onChange={(v) => updateField('phone', formatPhoneInputAsTyped(v))}
           type="tel"
         />
         <Field 

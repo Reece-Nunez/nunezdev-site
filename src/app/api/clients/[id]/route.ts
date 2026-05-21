@@ -85,6 +85,23 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const patch: Patch = {};
   for (const k of allowed) if (k in body) patch[k as keyof Patch] = body[k];
 
+  // Validate status against allowlist (mirrors POST handler — closes the gap
+  // where a crafted PATCH could set status to anything before this check).
+  if ("status" in patch) {
+    const allowedStatuses = new Set(["Lead", "Prospect", "Active", "Past"]);
+    if (typeof patch.status !== "string" || !allowedStatuses.has(patch.status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+  }
+
+  // Ensure tags is an array of strings if provided
+  if ("tags" in patch) {
+    if (!Array.isArray(patch.tags)) {
+      return NextResponse.json({ error: "tags must be an array of strings" }, { status: 400 });
+    }
+    patch.tags = patch.tags.map((t) => String(t).trim()).filter(Boolean);
+  }
+
   const { data, error } = await supabase
     .from("clients")
     .update(patch)
