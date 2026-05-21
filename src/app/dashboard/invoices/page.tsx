@@ -35,7 +35,7 @@ interface Invoice {
   client_id?: string;
   invoice_number?: string;
   title?: string;
-  clients?: { id?: string; name?: string | null; email?: string | null } | null;
+  clients?: { id?: string; name?: string | null; email?: string | null; phone?: string | null } | null;
   status: InvoiceStatus | string;
   amount_cents: number | null;
   issued_at?: string | null;
@@ -363,9 +363,12 @@ export default function DashboardInvoices() {
     );
   }, [selectedInvoices, selectedInvoicesList]);
 
-  // Handle combine invoices
+  // Handle combine invoices.
+  // Returns a CombineResult when delivery_method is 'manual' so the modal
+  // can show its share-link panel; returns null (and closes the modal) for
+  // email/sms/both flows that already dispatched.
   const handleCombineInvoices = async (opts: {
-    delivery_method: 'email' | 'sms' | 'both';
+    delivery_method: 'email' | 'sms' | 'both' | 'manual';
     sms_to?: string;
   }) => {
     setCombineLoading(true);
@@ -387,20 +390,37 @@ export default function DashboardInvoices() {
         throw new Error(data.error || 'Failed to combine invoices');
       }
 
-      setShowCombineModal(false);
-      setSelectedInvoices(new Set());
+      // Always refresh the invoice list so the voided originals + new combined
+      // invoice appear correctly.
       mutate(url);
 
-      // Decide toast severity based on partial-failure state from the server
+      if (opts.delivery_method === 'manual') {
+        // Don't close the modal — let it show the share-link panel.
+        // Refresh selection list since the underlying rows just changed.
+        const selectedClient = selectedInvoicesList[0]?.clients;
+        setSelectedInvoices(new Set());
+        showToast(data.message || 'Invoices combined. Share the link below.', 'success');
+        return {
+          publicUrl: data.public_url as string,
+          invoiceNumber: data.invoice?.invoice_number as string,
+          amountCents: data.invoice?.amount_cents as number,
+          clientName: selectedClient?.name || 'there',
+        };
+      }
+
+      // email / sms / both — close the modal + toast
+      setShowCombineModal(false);
+      setSelectedInvoices(new Set());
+
       const dr = data.delivery_results as
         | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed' }
         | undefined;
-      const anyFailed =
-        dr?.email === 'failed' || dr?.sms === 'failed';
+      const anyFailed = dr?.email === 'failed' || dr?.sms === 'failed';
       showToast(
         data.message || 'Invoices combined successfully',
         anyFailed ? 'error' : 'success'
       );
+      return null;
     } catch (error) {
       console.error('Error combining invoices:', error);
       throw error;
@@ -895,6 +915,7 @@ export default function DashboardInvoices() {
             id: inv.clients.id || '',
             name: inv.clients.name || '',
             email: inv.clients.email || '',
+            phone: inv.clients.phone || null,
           } : undefined,
         }))}
         onConfirm={handleCombineInvoices}

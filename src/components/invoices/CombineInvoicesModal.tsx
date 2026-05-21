@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react';
 
-export type DeliveryMethod = 'email' | 'sms' | 'both';
+export type DeliveryMethod = 'email' | 'sms' | 'both' | 'manual';
+
+export interface CombineResult {
+  publicUrl: string;
+  invoiceNumber: string;
+  amountCents: number;
+  clientName: string;
+}
 
 interface Invoice {
   id: string;
@@ -21,7 +28,14 @@ interface Invoice {
 
 interface CombineInvoicesModalProps {
   invoices: Invoice[];
-  onConfirm: (opts: { delivery_method: DeliveryMethod; sms_to?: string }) => Promise<void>;
+  /**
+   * Triggered when the operator confirms. The parent calls the combine
+   * endpoint and resolves with the result (so the modal can show a
+   * post-submit share-link view for the 'manual' delivery method).
+   * For non-manual methods the parent still resolves, but the modal
+   * just closes via onCancel.
+   */
+  onConfirm: (opts: { delivery_method: DeliveryMethod; sms_to?: string }) => Promise<CombineResult | null>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -42,6 +56,10 @@ export default function CombineInvoicesModal({
   // explicitly so we don't surprise-text anyone.
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('email');
   const [smsPhone, setSmsPhone] = useState(phoneOnFile);
+  // Holds the post-success result for delivery_method='manual' so we can
+  // show the share-link panel inside the same modal.
+  const [shareResult, setShareResult] = useState<CombineResult | null>(null);
+  const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
 
   useEffect(() => {
     setSmsPhone(phoneOnFile);
@@ -49,6 +67,7 @@ export default function CombineInvoicesModal({
 
   const wantSms = deliveryMethod === 'sms' || deliveryMethod === 'both';
   const wantEmail = deliveryMethod === 'email' || deliveryMethod === 'both';
+  const wantManual = deliveryMethod === 'manual';
 
   const handleConfirm = async () => {
     setError(null);
@@ -57,12 +76,57 @@ export default function CombineInvoicesModal({
       return;
     }
     try {
-      await onConfirm({
+      const result = await onConfirm({
         delivery_method: deliveryMethod,
         sms_to: wantSms ? smsPhone.trim() : undefined,
       });
+      // For 'manual' delivery, keep the modal open and show the share UI.
+      if (wantManual && result?.publicUrl) {
+        setShareResult(result);
+      }
+      // For email/sms/both the parent closes the modal via onCancel after
+      // the toast shows — no extra UI from us.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to combine invoices');
+    }
+  };
+
+  // Share / copy the new combined invoice link.
+  const handleShare = async () => {
+    if (!shareResult) return;
+    const message = `Hi ${(shareResult.clientName || 'there').split(/\s+/)[0]}, your NunezDev invoice for $${(shareResult.amountCents / 100).toFixed(2)} is ready: ${shareResult.publicUrl}`;
+
+    // Mobile: native share sheet (opens Messages directly on iOS)
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: `Invoice ${shareResult.invoiceNumber}`,
+          text: message,
+          url: shareResult.publicUrl,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // fall through to clipboard copy
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 2000);
+    } catch {
+      setError('Could not copy automatically. Select the link below and copy manually.');
+    }
+  };
+
+  const handleCopyLinkOnly = async () => {
+    if (!shareResult) return;
+    try {
+      await navigator.clipboard.writeText(shareResult.publicUrl);
+      setCopyState('copied');
+      setTimeout(() => setCopyState('idle'), 2000);
+    } catch {
+      setError('Could not copy automatically.');
     }
   };
 
@@ -88,6 +152,77 @@ export default function CombineInvoicesModal({
           </div>
         </div>
 
+        {shareResult ? (
+          <>
+            <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
+              <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div className="flex items-center gap-2 text-emerald-900">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-medium">
+                    Combined into {shareResult.invoiceNumber}
+                  </span>
+                </div>
+                <p className="text-sm text-emerald-800 mt-1">
+                  {invoices.length} invoices voided. Share the link below — nothing was emailed or texted.
+                </p>
+              </div>
+
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                Invoice link
+              </label>
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="text"
+                  readOnly
+                  value={shareResult.publicUrl}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono bg-gray-50"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLinkOnly}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-100"
+                  title="Copy just the URL"
+                >
+                  {copyState === 'copied' ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center justify-center gap-2 font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share with full message
+              </button>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                On mobile: opens iMessage / native share sheet.
+                On desktop: copies a pre-formatted message + link to clipboard.
+              </p>
+
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t bg-gray-50 flex justify-end">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Done
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
         <div className="px-6 py-4 max-h-[50vh] overflow-y-auto">
           {client && (
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
@@ -151,12 +286,16 @@ export default function CombineInvoicesModal({
 
           {/* Delivery method selector */}
           <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Send to client via</p>
-            <div className="grid grid-cols-3 gap-2">
-              {(['email', 'sms', 'both'] as const).map((m) => {
+            <p className="text-sm font-medium text-gray-700 mb-2">Delivery</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(['email', 'sms', 'both', 'manual'] as const).map((m) => {
                 const disabled = (m === 'sms' || m === 'both') && !phoneOnFile && !smsPhone.trim();
                 const active = deliveryMethod === m;
-                const label = m === 'email' ? 'Email' : m === 'sms' ? 'Text' : 'Both';
+                const label =
+                  m === 'email' ? 'Email' :
+                  m === 'sms' ? 'Text' :
+                  m === 'both' ? 'Both' :
+                  'Share link';
                 return (
                   <button
                     key={m}
@@ -171,6 +310,8 @@ export default function CombineInvoicesModal({
                     title={
                       disabled && !active
                         ? 'No phone on file — enter one below to enable'
+                        : m === 'manual'
+                        ? 'Combine the invoices and give me the link — I\'ll share it myself'
                         : undefined
                     }
                   >
@@ -179,6 +320,11 @@ export default function CombineInvoicesModal({
                 );
               })}
             </div>
+            {wantManual && (
+              <p className="text-xs text-gray-500 mt-1">
+                Combines the invoices and gives you the link. Nothing is emailed or texted.
+              </p>
+            )}
           </div>
 
           {/* Phone input only relevant when SMS is involved */}
@@ -213,11 +359,17 @@ export default function CombineInvoicesModal({
               <div className="text-sm text-amber-800">
                 <p className="font-medium">Original invoices will be voided</p>
                 <p className="mt-1 text-amber-700">
-                  The {invoices.length} selected invoices will be marked void. A new combined
-                  invoice will be created and sent via{' '}
-                  <strong>
-                    {wantEmail && wantSms ? 'email + text' : wantEmail ? 'email' : 'text'}
-                  </strong>.
+                  The {invoices.length} selected invoices will be marked void.
+                  {wantManual ? (
+                    <> A new combined invoice will be created and you&apos;ll get a link to share.</>
+                  ) : (
+                    <>
+                      {' '}A new combined invoice will be created and sent via{' '}
+                      <strong>
+                        {wantEmail && wantSms ? 'email + text' : wantEmail ? 'email' : 'text'}
+                      </strong>.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -258,11 +410,13 @@ export default function CombineInvoicesModal({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-                Combine &amp; Send
+                {wantManual ? 'Combine & Get Link' : 'Combine & Send'}
               </>
             )}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

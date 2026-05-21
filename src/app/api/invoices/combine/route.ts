@@ -11,7 +11,7 @@ import crypto from "crypto";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export type DeliveryMethod = 'email' | 'sms' | 'both';
+export type DeliveryMethod = 'email' | 'sms' | 'both' | 'manual';
 
 interface CombineRequest {
   invoice_ids: string[];
@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
       sms_to,
     } = body;
 
-    if (!['email', 'sms', 'both'].includes(delivery_method)) {
+    if (!['email', 'sms', 'both', 'manual'].includes(delivery_method)) {
       return NextResponse.json(
-        { error: "delivery_method must be 'email', 'sms', or 'both'" },
+        { error: "delivery_method must be 'email', 'sms', 'both', or 'manual'" },
         { status: 400 }
       );
     }
@@ -245,6 +245,10 @@ export async function POST(req: NextRequest) {
     // Validate everything we need BEFORE voiding originals — voiding is the
     // first irreversible mutation, and we'd rather bail with a 400 than
     // leave the operator with orphaned voided invoices and no way to deliver.
+    //
+    // 'manual' delivery means "create the combined invoice + return the link;
+    // I'll share it myself via iMessage / WhatsApp / wherever." No email or
+    // SMS dispatched, so no email/Twilio pre-flight needed.
     const needsEmailPreflight = (delivery_method === 'email' || delivery_method === 'both');
     const needsSmsPreflight = (delivery_method === 'sms' || delivery_method === 'both');
 
@@ -456,10 +460,17 @@ export async function POST(req: NextRequest) {
       | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; smsError?: string; emailError?: string }
       | undefined;
 
+    // Public invoice URL — always returned so 'manual' delivery (and the
+    // post-success share button) has something to copy/share.
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
+    const publicInvoiceUrl = `${baseUrl}/invoice/${accessToken}`;
+
     // Build a friendly message that reflects what actually happened
     let message: string;
     if (!send_immediately) {
       message = `Combined ${invoices.length} invoices into draft ${newInvoiceNumber}`;
+    } else if (delivery_method === 'manual') {
+      message = `Combined ${invoices.length} invoices into ${newInvoiceNumber}. Share the link below — nothing was emailed or texted.`;
     } else {
       const sent: string[] = [];
       const failed: string[] = [];
@@ -485,10 +496,12 @@ export async function POST(req: NextRequest) {
         invoice_number: newInvoiceNumber,
         amount_cents: combinedTotal,
         status: newInvoice.status,
+        access_token: accessToken,
       },
       voided_count: invoices.length,
       voided_invoice_numbers: invoiceNumbers,
       stripe_url: stripeUrl,
+      public_url: publicInvoiceUrl,
       delivery_results: deliveryResults,
       message,
     });

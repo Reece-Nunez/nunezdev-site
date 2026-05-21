@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   let query = supabase.from("invoices")
     .select(`
       id, client_id, invoice_number, title, status, amount_cents, issued_at, due_at, stripe_invoice_id, signed_at, hosted_invoice_url, is_suspended, suspended_at,
-      clients(id,name,email),
+      clients(id,name,email,phone),
       invoice_payments(amount_cents, payment_method, paid_at)
     `)
     .eq("org_id", orgId)
