@@ -63,7 +63,7 @@ export async function POST(req: Request, ctx: Ctx) {
     // Get updated invoice status and details for notifications
     const { data: updatedInvoice } = await supabase
       .from("invoices")
-      .select("invoice_number, amount_cents, status, total_paid_cents, remaining_balance_cents, clients(name, email)")
+      .select("invoice_number, amount_cents, status, total_paid_cents, remaining_balance_cents, client_id, clients(name, email)")
       .eq("id", id)
       .single();
 
@@ -112,6 +112,28 @@ export async function POST(req: Request, ctx: Ctx) {
         body: `${updatedInvoice.invoice_number} - $${(amount_cents / 100).toFixed(2)}`,
         link: `/dashboard/invoices/${id}`,
       }).catch(err => console.error('[add-payment] In-app notification error:', err));
+
+      // Emit realtime event so any open dashboard tab refreshes immediately
+      // — same shape the Stripe webhook uses for automated payments so
+      // consumers don't need to special-case manual vs Stripe-driven.
+      await supabase
+        .from('realtime_events')
+        .insert({
+          org_id: orgId,
+          event_type: 'payment_received',
+          invoice_id: id,
+          client_id: updatedInvoice.client_id,
+          event_data: {
+            invoice_id: id,
+            invoice_number: updatedInvoice.invoice_number,
+            client_name: cName || null,
+            amount_cents,
+            payment_method: payment_method || 'manual',
+          },
+        })
+        .then(({ error: rtErr }) => {
+          if (rtErr) console.warn('[add-payment] realtime emit failed', rtErr.message);
+        });
     }
 
     return NextResponse.json({

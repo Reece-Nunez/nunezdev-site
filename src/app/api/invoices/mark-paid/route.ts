@@ -142,6 +142,27 @@ export async function POST(req: NextRequest) {
           link: `/dashboard/invoices/${invoice.id}`,
         }).catch(err => console.error('[mark-paid] In-app notification error:', err));
 
+        // Emit realtime event so subscribed dashboard tabs update without
+        // a manual refresh. Same shape used by Stripe webhook + add-payment.
+        await supabase
+          .from('realtime_events')
+          .insert({
+            org_id: orgId,
+            event_type: 'payment_received',
+            invoice_id: invoice.id,
+            client_id: invoice.client_id,
+            event_data: {
+              invoice_id: invoice.id,
+              invoice_number: invoice.invoice_number,
+              client_name: clientName || null,
+              amount_cents: invoice.amount_cents,
+              payment_method: payment_method || 'manual',
+            },
+          })
+          .then(({ error: rtErr }) => {
+            if (rtErr) console.warn('[mark-paid] realtime emit failed', rtErr.message);
+          });
+
         results.push({ id: invoice.id, success: true });
       } catch (err) {
         results.push({

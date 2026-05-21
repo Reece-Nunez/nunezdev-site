@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { currency } from '@/lib/ui';
+import { buildInvoiceShareMessage } from '@/lib/invoiceShareMessage';
 import EditInvoice from '@/components/client-detail/EditInvoice';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import { useToast, useConfirm } from '@/components/ui/Toast';
@@ -192,11 +193,16 @@ export default function InvoiceDetailPage() {
     if (!invoice) return;
     // Pre-fill phone from the client record if available
     setSmsPhone(invoice.clients?.phone || '');
-    // Default message body — caller can edit before sending
-    const firstName = (invoice.clients?.name || 'there').split(/\s+/)[0];
+    // Default message body — single source of truth in invoiceShareMessage
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const url = `${baseUrl}/invoice/${invoice.access_token}`;
-    setSmsBody(`Hi ${firstName}, your NunezDev invoice for ${currency(invoice.amount_cents)} is ready: ${url}`);
+    setSmsBody(
+      buildInvoiceShareMessage({
+        clientName: invoice.clients?.name,
+        amountCents: invoice.amount_cents,
+        url,
+      })
+    );
     setShowSmsModal(true);
   };
 
@@ -254,13 +260,19 @@ export default function InvoiceDetailPage() {
    */
   const handleShareLink = async () => {
     if (!invoice?.access_token) {
-      showToast('This invoice has no public link yet — send it as draft first.', 'error');
+      showToast(
+        "This invoice doesn't have a public link yet. Save it first, then try again.",
+        'error'
+      );
       return;
     }
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const url = `${baseUrl}/invoice/${invoice.access_token}`;
-    const firstName = (invoice.clients?.name || 'there').split(/\s+/)[0];
-    const message = `Hi ${firstName}, your NunezDev invoice for ${currency(invoice.amount_cents)} is ready: ${url}`;
+    const message = buildInvoiceShareMessage({
+      clientName: invoice.clients?.name,
+      amountCents: invoice.amount_cents,
+      url,
+    });
 
     // Mobile: native share sheet (opens Messages directly on iOS)
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {

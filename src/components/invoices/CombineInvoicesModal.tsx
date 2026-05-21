@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { buildInvoiceShareMessage } from '@/lib/invoiceShareMessage';
 
 export type DeliveryMethod = 'email' | 'sms' | 'both' | 'manual';
 
@@ -94,7 +95,11 @@ export default function CombineInvoicesModal({
   // Share / copy the new combined invoice link.
   const handleShare = async () => {
     if (!shareResult) return;
-    const message = `Hi ${(shareResult.clientName || 'there').split(/\s+/)[0]}, your NunezDev invoice for $${(shareResult.amountCents / 100).toFixed(2)} is ready: ${shareResult.publicUrl}`;
+    const message = buildInvoiceShareMessage({
+      clientName: shareResult.clientName,
+      amountCents: shareResult.amountCents,
+      url: shareResult.publicUrl,
+    });
 
     // Mobile: native share sheet (opens Messages directly on iOS)
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {

@@ -12,7 +12,7 @@
  */
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendSms, normalizePhoneE164 } from '@/lib/sms';
-import { currency } from '@/lib/ui';
+import { buildInvoiceShareMessage } from '@/lib/invoiceShareMessage';
 
 export type SendInvoiceSmsResult =
   | { ok: true; sid?: string; to: string; messageLength: number }
@@ -39,11 +39,10 @@ export interface SendInvoiceSmsInput {
   accessToken: string | null;
 }
 
-const FIRST_NAME = (full: string | null): string =>
-  full ? full.split(/\s+/)[0] || 'there' : 'there';
-
+// Default message body — centralized in src/lib/invoiceShareMessage so all
+// channels (SMS modal, Share Link, combine post-share) stay in lockstep.
 function defaultMessage(name: string | null, amountCents: number, url: string): string {
-  return `Hi ${FIRST_NAME(name)}, your NunezDev invoice for ${currency(amountCents)} is ready: ${url}`;
+  return buildInvoiceShareMessage({ clientName: name, amountCents, url });
 }
 
 /**

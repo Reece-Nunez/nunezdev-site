@@ -408,18 +408,39 @@ export default function DashboardInvoices() {
         };
       }
 
-      // email / sms / both — close the modal + toast
+      // email / sms / both — close the modal + toast(s)
       setShowCombineModal(false);
       setSelectedInvoices(new Set());
 
       const dr = data.delivery_results as
-        | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed' }
+        | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; emailError?: string; smsError?: string }
         | undefined;
+      const anySent = dr?.email === 'sent' || dr?.sms === 'sent';
       const anyFailed = dr?.email === 'failed' || dr?.sms === 'failed';
-      showToast(
-        data.message || 'Invoices combined successfully',
-        anyFailed ? 'error' : 'success'
-      );
+
+      // If anything succeeded, show a success toast for the success path.
+      // Then surface each failure in its own toast so the operator sees the
+      // specific reason (matches the per-invoice Send via Text UX).
+      if (anySent) {
+        showToast(
+          data.message || 'Combined invoices sent.',
+          anyFailed ? 'error' : 'success'
+        );
+      } else if (anyFailed || !data.message) {
+        // Nothing went out and we don't have a generic success message
+        showToast(
+          data.message || 'Invoices combined but delivery failed.',
+          'error'
+        );
+      } else {
+        showToast(data.message, 'success');
+      }
+      if (dr?.email === 'failed' && dr.emailError) {
+        showToast(`Email failed: ${dr.emailError}`, 'error');
+      }
+      if (dr?.sms === 'failed' && dr.smsError) {
+        showToast(`Text failed: ${dr.smsError}`, 'error');
+      }
       return null;
     } catch (error) {
       console.error('Error combining invoices:', error);

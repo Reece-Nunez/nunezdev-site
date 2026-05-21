@@ -20,7 +20,7 @@ export async function GET(req: Request, ctx: Ctx) {
       .from("invoices")
       .select(`
         *,
-        clients(name, email),
+        clients(name, email, phone),
         invoice_payments(*)
       `)
       .eq("id", id)
