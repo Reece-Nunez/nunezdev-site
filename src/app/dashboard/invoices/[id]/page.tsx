@@ -245,6 +245,49 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  /**
+   * Share / copy invoice link — no Twilio, no email, just a manual handoff.
+   * On mobile (iOS/Android with Web Share API support) this opens the
+   * native share sheet so the user can pick Messages and send through their
+   * own number. On desktop it copies the link + a pre-formatted message
+   * to the clipboard so the user can paste into any chat app.
+   */
+  const handleShareLink = async () => {
+    if (!invoice?.access_token) {
+      showToast('This invoice has no public link yet — send it as draft first.', 'error');
+      return;
+    }
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${baseUrl}/invoice/${invoice.access_token}`;
+    const firstName = (invoice.clients?.name || 'there').split(/\s+/)[0];
+    const message = `Hi ${firstName}, your NunezDev invoice for ${currency(invoice.amount_cents)} is ready: ${url}`;
+
+    // Mobile: native share sheet (opens Messages directly on iOS)
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: `Invoice ${invoice.invoice_number || ''}`.trim(),
+          text: message,
+          url,
+        });
+        return;
+      } catch (err) {
+        // User canceled the share sheet — no-op (DOMException AbortError)
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // Other share failure → fall through to clipboard copy below
+      }
+    }
+
+    // Desktop / unsupported: copy full message + link to clipboard
+    try {
+      await navigator.clipboard.writeText(message);
+      showToast('Link + message copied to clipboard. Paste anywhere.', 'success');
+    } catch {
+      // Older browsers / permissions denied — show the URL so user can manually copy
+      showToast(`Couldn't copy automatically. Link: ${url}`, 'error');
+    }
+  };
+
   const handleToggleSuspend = async () => {
     if (!invoice) return;
     const action = invoice.is_suspended ? 'reactivate' : 'suspend';
@@ -360,12 +403,24 @@ export default function InvoiceDetailPage() {
             <button
               onClick={openSmsModal}
               className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 inline-flex items-center gap-1.5"
-              title="Send the invoice link to the client via text message"
+              title="Send the invoice link to the client via text message (Twilio)"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
               Send via Text
+            </button>
+          )}
+          {invoice.access_token && (
+            <button
+              onClick={handleShareLink}
+              className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg transition-colors bg-slate-600 hover:bg-slate-700 inline-flex items-center gap-1.5"
+              title="Share the invoice link — opens iOS Messages on mobile, copies to clipboard on desktop"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              Share Link
             </button>
           )}
           <button
