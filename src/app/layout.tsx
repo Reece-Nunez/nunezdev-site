@@ -1,4 +1,15 @@
 import type { Metadata, Viewport } from "next";
+
+// Site-verification meta tags. Only render a tag when the env var is set —
+// otherwise we'd ship a literal placeholder string to Google/Bing.
+// Set these in .env.local (or your host) — see .env.example for details.
+const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+const bingVerification = process.env.NEXT_PUBLIC_BING_VERIFICATION;
+
+const verification: Metadata["verification"] = {};
+if (googleSiteVerification) verification.google = googleSiteVerification;
+if (bingVerification) verification.other = { bing: bingVerification };
+const hasVerification = Boolean(googleSiteVerification || bingVerification);
 import { Geist, Geist_Mono, Space_Grotesk, Lora } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
@@ -109,12 +120,7 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  verification: {
-    google: "YOUR-GOOGLE-SITE-VERIFICATION-CODE",
-    other: {
-      bing: "YOUR-BING-VERIFICATION-CODE",
-    },
-  },
+  ...(hasVerification ? { verification } : {}),
 };
 
 export const viewport: Viewport = {

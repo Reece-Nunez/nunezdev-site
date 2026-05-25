@@ -17,6 +17,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { services } from "@/data/services";
 import { projects } from "@/data/projects";
+import { testimonials } from "@/data/testimonials";
 import StatsSection from "@/components/StatsSection";
 
 const fadeInUp: Variants = {
@@ -318,6 +319,75 @@ export default function HomeClient() {
           </motion.div>
         </motion.div>
       </motion.section>
+
+      {/* Testimonials — auto-hides if data/testimonials.ts is empty */}
+      {testimonials.length > 0 && (
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.1 } },
+          }}
+          className="relative w-full max-w-6xl px-4 sm:px-6 z-10 py-16 sm:py-24"
+        >
+          <motion.p
+            variants={fadeInUp}
+            className="text-yellow/70 text-sm uppercase tracking-widest font-medium text-center mb-2"
+          >
+            Testimonials
+          </motion.p>
+          <motion.h2
+            variants={fadeInUp}
+            className="text-2xl sm:text-3xl md:text-5xl font-bold text-yellow text-center mb-4 tracking-tight"
+          >
+            What Clients Say
+          </motion.h2>
+          <motion.p
+            variants={fadeInUp}
+            className="text-white/50 text-base md:text-lg text-center max-w-2xl mx-auto mb-14"
+          >
+            Real feedback from the people I&apos;ve had the privilege to build for.
+          </motion.p>
+
+          <motion.div
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.08 } },
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {testimonials.map((t, i) => (
+              <motion.figure
+                key={`${t.name}-${i}`}
+                variants={fadeInUp}
+                whileHover={{ scale: 1.03 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-left hover:border-yellow/50 hover:shadow-[0_0_25px_rgba(255,195,18,0.15)] transition-all duration-300 flex flex-col"
+              >
+                <div
+                  className="text-yellow text-4xl leading-none mb-3 font-serif"
+                  aria-hidden="true"
+                >
+                  &ldquo;
+                </div>
+                <blockquote className="text-white/80 text-base leading-relaxed mb-6 flex-1">
+                  {t.quote}
+                </blockquote>
+                <figcaption className="border-t border-white/10 pt-4">
+                  <div className="text-white font-semibold text-sm">{t.name}</div>
+                  {(t.role || t.company) && (
+                    <div className="text-white/50 text-xs mt-0.5">
+                      {[t.role, t.company].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                </figcaption>
+              </motion.figure>
+            ))}
+          </motion.div>
+        </motion.section>
+      )}
 
       {/* Recent Projects */}
       <motion.section
