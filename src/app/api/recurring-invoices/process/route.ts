@@ -322,21 +322,9 @@ export async function POST(request: Request) {
                   quantity: 1,
                 };
 
-            const paymentLink = await stripe.paymentLinks.create({
-              line_items: [lineItem],
-              metadata: {
-                invoice_id: newInvoice.id,
-                client_id: client.id,
-                org_id: recurring.org_id,
-                invoice_number: invoiceNumber,
-                client_email: client.email,
-                client_name: client.name,
-                amount_cents: recurring.amount_cents.toString(),
-                source: 'recurring_invoice',
-                recurring_invoice_id: recurringId,
-                created_at: new Date().toISOString(),
-              },
-              payment_intent_data: {
+            const paymentLink = await stripe.paymentLinks.create(
+              {
+                line_items: [lineItem],
                 metadata: {
                   invoice_id: newInvoice.id,
                   client_id: client.id,
@@ -349,14 +337,29 @@ export async function POST(request: Request) {
                   recurring_invoice_id: recurringId,
                   created_at: new Date().toISOString(),
                 },
-              },
-              after_completion: {
-                type: 'redirect',
-                redirect: {
-                  url: `${baseUrl}/invoice/${accessToken}?payment=success`,
+                payment_intent_data: {
+                  metadata: {
+                    invoice_id: newInvoice.id,
+                    client_id: client.id,
+                    org_id: recurring.org_id,
+                    invoice_number: invoiceNumber,
+                    client_email: client.email,
+                    client_name: client.name,
+                    amount_cents: recurring.amount_cents.toString(),
+                    source: 'recurring_invoice',
+                    recurring_invoice_id: recurringId,
+                    created_at: new Date().toISOString(),
+                  },
+                },
+                after_completion: {
+                  type: 'redirect',
+                  redirect: {
+                    url: `${baseUrl}/invoice/${accessToken}?payment=success`,
+                  },
                 },
               },
-            });
+              { idempotencyKey: `recurring-payment-link-${newInvoice.id}` }
+            );
 
             stripePaymentLinkUrl = paymentLink.url;
 

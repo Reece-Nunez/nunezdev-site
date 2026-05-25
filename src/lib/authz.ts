@@ -1,5 +1,11 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 
+// TODO(auth-drift): many routes under /api/clients/*, /api/invoices/*, /api/proposals/*,
+// /api/time-entries/*, /api/google/*, /api/tax-documents/*, /api/payments/*,
+// /api/client-reports/*, /api/recurring-invoices/* re-implement getUser + org_members
+// inline INSTEAD of calling requireOwner(). They accept ANY org_member row, not just
+// role='owner'. Harmless while you are the only user. The first time you add a non-owner
+// teammate, migrate those routes to requireOwner() before granting them access.
 export async function requireOwner() {
   const supabase = await supabaseServer();
 

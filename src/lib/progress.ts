@@ -10,7 +10,3 @@ export function stageToProgress(stage?: string | null): number {
     default: return 0;
   }
 }
-export function currency(cents: number | null | undefined): string {
-  const v = Math.max(0, Number(cents ?? 0)) / 100;
-  return v.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-}

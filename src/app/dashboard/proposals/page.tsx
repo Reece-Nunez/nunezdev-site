@@ -4,10 +4,9 @@ import useSWR from 'swr';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useToast, useConfirm } from '@/components/ui/Toast';
+import { currency } from '@/lib/ui';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
-const currency = (cents?: number | null) =>
-  ((cents ?? 0) / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 
 interface Proposal {
   id: string;

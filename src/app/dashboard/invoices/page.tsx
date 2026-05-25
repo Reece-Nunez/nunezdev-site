@@ -8,10 +8,9 @@ import InvoiceAnalytics from '@/components/invoices/InvoiceAnalytics';
 import { useToast, useConfirm } from '@/components/ui/Toast';
 import { useRealtimeEvents, RealtimeEvent } from '@/hooks/useRealtimeEvents';
 import CombineInvoicesModal from '@/components/invoices/CombineInvoicesModal';
+import { currency } from '@/lib/ui';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
-const currency = (cents?: number | null) =>
-  ((cents ?? 0) / 100).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 
 // Helper functions for payment calculations
 const getTotalPaid = (invoice: Invoice) => {

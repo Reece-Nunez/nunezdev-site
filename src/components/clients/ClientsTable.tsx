@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { stageToProgress, currency } from '@/lib/progress';
+import { stageToProgress } from '@/lib/progress';
+import { currency } from '@/lib/ui';
 import { formatPhoneUS, telHref } from '@/lib/phone';
 import { useToast } from '@/components/ui/Toast';
 import type { ClientOverview } from '@/types/clients';

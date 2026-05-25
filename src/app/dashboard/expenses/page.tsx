@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { useToast, useConfirm } from "@/components/ui/Toast";
+import { currency } from "@/lib/ui";
 
 interface Expense {
   id: string;
@@ -89,13 +90,6 @@ const PAYMENT_METHODS = [
 ];
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-function currency(cents: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
 
 export default function ExpensesPage() {
   const { showToast, ToastContainer } = useToast();
