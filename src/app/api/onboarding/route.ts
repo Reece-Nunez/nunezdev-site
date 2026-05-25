@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clientOnboardingService } from '@/lib/clientOnboarding';
+import { requireOwner } from '@/lib/authz';
 
 // Create new onboarding project
 export async function POST(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { clientId, projectType, customRequirements } = await request.json();
 
@@ -36,6 +40,9 @@ export async function POST(request: NextRequest) {
 
 // Get onboarding project dashboard
 export async function GET(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');

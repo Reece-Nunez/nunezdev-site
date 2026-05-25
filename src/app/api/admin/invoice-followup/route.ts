@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { invoiceFollowupService } from '@/lib/invoiceFollowup';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { requireOwner } from '@/lib/authz';
 
 export async function POST(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { invoiceId, message } = await request.json();
 
@@ -31,6 +35,9 @@ export async function POST(request: NextRequest) {
 
 // Get follow-up history for an invoice
 export async function GET(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const invoiceId = searchParams.get('invoiceId');

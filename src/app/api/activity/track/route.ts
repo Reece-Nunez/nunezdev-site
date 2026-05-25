@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireOwner } from "@/lib/authz";
 
 export async function POST(req: Request) {
   try {
@@ -53,6 +54,9 @@ export async function POST(req: Request) {
 
 // Get activity log for an invoice (for business owner)
 export async function GET(req: Request) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
   try {
     const url = new URL(req.url);
     const invoice_id = url.searchParams.get('invoice_id');

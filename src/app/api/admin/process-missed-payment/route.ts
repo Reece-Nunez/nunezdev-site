@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireOwner } from "@/lib/authz";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
   try {
     const { paymentIntentId, invoiceId, amount, billingEmail } = await req.json();
     

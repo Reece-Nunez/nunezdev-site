@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { requireOwner } from '@/lib/authz';
 
 export async function GET(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -74,6 +78,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { leadId, ...updateData } = await request.json();
 

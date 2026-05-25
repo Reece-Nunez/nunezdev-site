@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clientOnboardingService } from '@/lib/clientOnboarding';
+import { requireOwner } from '@/lib/authz';
 
 // Complete a task
 export async function PATCH(request: NextRequest) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
   try {
     const { projectId, taskId, completedBy, notes } = await request.json();
 
