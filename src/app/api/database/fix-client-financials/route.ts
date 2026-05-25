@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { requireOwner } from "@/lib/authz";
 
 export async function POST() {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
   try {
     console.log('Updating client_financials view for partial payments...');
-    
+
     // We need to check if the partial payment columns exist first
     const supabase = supabaseAdmin();
     

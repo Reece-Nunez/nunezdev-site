@@ -3,13 +3,21 @@ const https = require('https');
 exports.handler = async (event) => {
     console.log('Processing recurring invoices - Lambda triggered');
     
-    const baseUrl = 'https://www.nunezdev.com';
-    const cronSecret = 'cron_secret_key_for_automated_tasks_2024';
-    
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://www.nunezdev.com';
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (!cronSecret) {
+        console.error('CRON_SECRET environment variable not set');
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: 'Configuration error: CRON_SECRET missing' })
+        };
+    }
+
     try {
         const response = await new Promise((resolve, reject) => {
             const options = {
-                hostname: 'www.nunezdev.com',
+                hostname: baseUrl.replace('https://', '').replace('http://', ''),
                 port: 443,
                 path: '/api/cron/process-recurring-invoices',
                 method: 'GET',
