@@ -46,3 +46,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/settings.local.json
+
+# Claude Code local worktrees (one full repo copy per worktree — never commit)
+.claude/worktrees/
+
+# graphify knowledge graph artifacts (local-only)
+graphify-out/
+
+# Supabase CLI scratch
+supabase/.temp/
