@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Goldman Merchant Services: Streamlined Payment Processing Website
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A clean, professional website that establishes trust and generates leads for a payment processing company — built with modern animations and a mobile-first approach.
+          A clean, professional website that establishes trust and generates leads for a payment processing company, built with modern animations and a mobile-first approach.
         </p>
         <a
           href="https://goldmanmerchantservices.com"
@@ -94,7 +94,7 @@ export default function CaseStudyClient() {
             I built a clean, polished website that positions Goldman Merchant Services as a trusted partner in payment processing. The design emphasizes clarity and professionalism, with smooth animations that guide visitors through the company's value proposition without overwhelming them.
           </p>
           <p className="text-white text-lg leading-relaxed">
-            Every element was designed with conversion in mind — from the service showcases that clearly explain what they offer, to the strategically placed contact forms that make it easy for interested business owners to take the next step. The result is a website that works as a 24/7 sales representative, building trust and capturing leads around the clock.
+            Every element was designed with conversion in mind, from the service showcases that clearly explain what they offer, to the strategically placed contact forms that make it easy for interested business owners to take the next step. The result is a website that works as a 24/7 sales representative, building trust and capturing leads around the clock.
           </p>
         </motion.section>
 
@@ -122,7 +122,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Responsive Mobile Design</h3>
-              <p className="text-white leading-relaxed">Built mobile-first with Tailwind CSS, the site delivers a seamless experience across phones, tablets, and desktops — critical for reaching business owners who research on the go.</p>
+              <p className="text-white leading-relaxed">Built mobile-first with Tailwind CSS, the site delivers a seamless experience across phones, tablets, and desktops. Critical for reaching business owners who research on the go.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -228,7 +228,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            Goldman Merchant Services now has a digital presence that matches the quality of their services — converting visitors into clients with a professional, polished experience.
+            Goldman Merchant Services now has a digital presence that matches the quality of their services, converting visitors into clients with a professional, polished experience.
           </p>
         </motion.section>
 
@@ -246,7 +246,7 @@ export default function CaseStudyClient() {
             I help businesses build professional websites that establish trust, generate leads, and create lasting first impressions.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your website isn't working as hard as you are, let's change that. I'll build a solution that represents your brand the way it deserves — just like I did for Goldman Merchant Services.
+            If your website isn't working as hard as you are, let's change that. I'll build a solution that represents your brand the way it deserves, just like I did for Goldman Merchant Services.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I designed and built a custom vacation rental website that presents each property with the depth and personality that third-party platforms simply can't match. Rich photo galleries, detailed amenity lists, location information, and direct booking inquiry forms give potential guests everything they need to make a decision and book directly.
           </p>
           <p className="text-white text-lg leading-relaxed">
-            The site is built with a data-driven approach, making it easy to add new properties or update existing listings without touching the code. Every page is mobile-responsive, ensuring that guests browsing on their phones — which is where most vacation research happens — get the same great experience as desktop visitors.
+            The site is built with a data-driven approach, making it easy to add new properties or update existing listings without touching the code. Every page is mobile-responsive, ensuring that guests browsing on their phones, which is where most vacation research happens, get the same great experience as desktop visitors.
           </p>
         </motion.section>
 
@@ -120,7 +120,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Amenity and Feature Highlights</h3>
-              <p className="text-white leading-relaxed">Detailed amenity sections for each property make it easy for guests to see exactly what's included — from kitchen equipment to outdoor spaces, entertainment options, and accessibility features.</p>
+              <p className="text-white leading-relaxed">Detailed amenity sections for each property make it easy for guests to see exactly what's included, from kitchen equipment to outdoor spaces, entertainment options, and accessibility features.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -259,7 +259,7 @@ export default function CaseStudyClient() {
             I help property owners build custom websites that drive direct bookings and reduce dependency on third-party platforms.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If platform commissions are eating into your revenue, let's talk. I'll build a direct-booking website tailored to your properties — just like I did for this vacation rental business.
+            If platform commissions are eating into your revenue, let's talk. I'll build a direct-booking website tailored to your properties, just like I did for this vacation rental business.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

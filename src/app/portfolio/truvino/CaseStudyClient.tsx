@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: Scattered Data and No Way to Explore by Region
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Wine industry data is scattered across inconsistent sources — different retailers, importers, and databases all describe the same products with different formats, missing fields, and conflicting information. There was no unified way for consumers or professionals to explore wines geographically, and product data lacked the standardization needed for meaningful comparison.
+            Wine industry data is scattered across inconsistent sources. Different retailers, importers, and databases all describe the same products with different formats, missing fields, and conflicting information. There was no unified way for consumers or professionals to explore wines geographically, and product data lacked the standardization needed for meaningful comparison.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The platform needed to solve several fundamental problems:
@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I built Truvino as a two-part system: a Python-powered data enrichment pipeline that processes and standardizes 100K+ wine products, and a modern web platform with an interactive geographic map that lets users explore wines by clicking on regions around the world. The data pipeline handles the messy work of normalizing bottle sizes, enriching product details, and categorizing wines by region, while the frontend makes that clean data explorable and beautiful.
           </p>
           <p className="text-white text-lg leading-relaxed">
-            The interactive map built with React Simple Maps provides an intuitive entry point — users click on a wine region and instantly see what's available. Combined with smooth Framer Motion animations and a responsive design, the platform makes geographic wine discovery feel natural and engaging regardless of whether you're a casual enthusiast or an industry professional.
+            The interactive map built with React Simple Maps provides an intuitive entry point. Users click on a wine region and instantly see what's available. Combined with smooth Framer Motion animations and a responsive design, the platform makes geographic wine discovery feel natural and engaging regardless of whether you're a casual enthusiast or an industry professional.
           </p>
         </motion.section>
 
@@ -125,7 +125,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Python Data Pipeline</h3>
-              <p className="text-white leading-relaxed">Automated Python scripts that process raw product data, normalize bottle sizes, enrich product details, and categorize wines by region — turning messy source data into a clean, queryable dataset.</p>
+              <p className="text-white leading-relaxed">Automated Python scripts that process raw product data, normalize bottle sizes, enrich product details, and categorize wines by region, turning messy source data into a clean, queryable dataset.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -197,7 +197,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            This dual-technology approach — Python for heavy data processing and Next.js for the user-facing platform — ensures that both the data quality and the user experience are best-in-class.
+            This dual-technology approach (Python for heavy data processing and Next.js for the user-facing platform) ensures that both the data quality and the user experience are best-in-class.
           </p>
         </motion.section>
 
@@ -269,7 +269,7 @@ export default function CaseStudyClient() {
             I build data-driven platforms that turn messy, scattered information into clean, explorable experiences.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your industry has valuable data trapped in inconsistent formats, let's talk. I'll build a platform that unifies your data and makes it accessible — just like I did for Truvino.
+            If your industry has valuable data trapped in inconsistent formats, let's talk. I'll build a platform that unifies your data and makes it accessible, just like I did for Truvino.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

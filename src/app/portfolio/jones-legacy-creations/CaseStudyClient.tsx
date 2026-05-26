@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Jones Legacy Creations: Custom Business Website with Smart Forms
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A professional website with bulletproof form validation, real-time error feedback, and automated email notifications — turning every visitor interaction into a reliable lead.
+          A professional website with bulletproof form validation, real-time error feedback, and automated email notifications, turning every visitor interaction into a reliable lead.
         </p>
         <a
           href="https://joneslegacycreations.com"
@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: Unreliable Forms and Lost Leads
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Jones Legacy Creations needed more than just a website — they needed a reliable system for capturing leads and processing custom orders. Their previous setup suffered from form submissions with incomplete information, spam entries cluttering their inbox, and no way to validate data before it was sent.
+            Jones Legacy Creations needed more than just a website. They needed a reliable system for capturing leads and processing custom orders. Their previous setup suffered from form submissions with incomplete information, spam entries cluttering their inbox, and no way to validate data before it was sent.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The business needed a solution that could:
@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            Every bad form submission meant wasted time chasing incomplete information — and every lost lead meant lost revenue.
+            Every bad form submission meant wasted time chasing incomplete information, and every lost lead meant lost revenue.
           </p>
         </motion.section>
 
@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I built a custom website with an advanced form system powered by React Hook Form and Zod validation. Every field is validated in real time as the user types, with clear error messages that guide them to a successful submission. No more incomplete data, no more spam, and no more chasing down missing information.
           </p>
           <p className="text-white text-lg leading-relaxed">
-            When a form is submitted successfully, the team receives an instant email notification via Resend, and the user sees a confirmation toast — creating a seamless experience on both sides. The result is a website that doesn't just look professional; it actively works to capture and qualify every lead.
+            When a form is submitted successfully, the team receives an instant email notification via Resend, and the user sees a confirmation toast, creating a seamless experience on both sides. The result is a website that doesn't just look professional; it actively works to capture and qualify every lead.
           </p>
         </motion.section>
 
@@ -115,12 +115,12 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Multi-Step Forms with Real-Time Validation</h3>
-              <p className="text-white leading-relaxed">Complex forms broken into intuitive steps with React Hook Form, validating each field as the user interacts — catching errors before they submit, not after.</p>
+              <p className="text-white leading-relaxed">Complex forms broken into intuitive steps with React Hook Form, validating each field as the user interacts, catching errors before they submit, not after.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Zod Schema Validation for Data Integrity</h3>
-              <p className="text-white leading-relaxed">Every form submission is validated against strict Zod schemas on both client and server, ensuring that only clean, complete data reaches the business — eliminating junk submissions entirely.</p>
+              <p className="text-white leading-relaxed">Every form submission is validated against strict Zod schemas on both client and server, ensuring that only clean, complete data reaches the business and eliminating junk submissions entirely.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -130,7 +130,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Toast Notifications for User Feedback</h3>
-              <p className="text-white leading-relaxed">react-hot-toast provides clear, non-intrusive confirmation messages that let users know their submission was received — building confidence and reducing duplicate submissions.</p>
+              <p className="text-white leading-relaxed">react-hot-toast provides clear, non-intrusive confirmation messages that let users know their submission was received, building confidence and reducing duplicate submissions.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -246,7 +246,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            Jones Legacy Creations now has a website that works as hard as they do — capturing clean leads, delivering them instantly, and presenting the business in the best possible light.
+            Jones Legacy Creations now has a website that works as hard as they do, capturing clean leads, delivering them instantly, and presenting the business in the best possible light.
           </p>
         </motion.section>
 
@@ -264,7 +264,7 @@ export default function CaseStudyClient() {
             I help businesses build websites with smart forms that capture better leads, reduce errors, and automate follow-ups.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your contact forms are letting bad data through or your leads are slipping away, let's fix that. I'll build a solution tailored to your workflow — just like I did for Jones Legacy Creations.
+            If your contact forms are letting bad data through or your leads are slipping away, let's fix that. I'll build a solution tailored to your workflow, just like I did for Jones Legacy Creations.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

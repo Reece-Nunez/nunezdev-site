@@ -148,7 +148,7 @@ const pricingData = {
   },
   hosting: {
     title: "Hosting Plans",
-    subtitle: "Fast, secure hosting on Vercel and AWS — built for the sites I ship",
+    subtitle: "Fast, secure hosting on Vercel and AWS, built for the sites I ship",
     plans: [
       {
         tier: "Starter",
@@ -369,7 +369,7 @@ export default function PricingClient() {
 
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             Custom-crafted solutions built with modern technologies.
-            No templates, no shortcuts—just quality code that performs.
+            No templates, no shortcuts. Just quality code that performs.
           </p>
         </motion.div>
 

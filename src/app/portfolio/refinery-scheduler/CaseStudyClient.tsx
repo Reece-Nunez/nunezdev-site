@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: Manual Scheduling in a High-Stakes Environment
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Managing workforce scheduling at an oil refinery is not like scheduling shifts at a retail store. The stakes are significantly higher — fatigue-related errors can lead to safety incidents, environmental violations, and regulatory penalties.
+            Managing workforce scheduling at an oil refinery is not like scheduling shifts at a retail store. The stakes are significantly higher. Fatigue-related errors can lead to safety incidents, environmental violations, and regulatory penalties.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The refinery was managing complex shift schedules manually, which created serious risks:
@@ -130,7 +130,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Consecutive Day Limits</h3>
-              <p className="text-white leading-relaxed">Enforces maximum consecutive working days — 4 days for regular operators and 7 days for APS Green Hat trainees — with automatic warnings when limits approach.</p>
+              <p className="text-white leading-relaxed">Enforces maximum consecutive working days, 4 days for regular operators and 7 days for APS Green Hat trainees, with automatic warnings when limits approach.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -207,7 +207,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            Every technology choice was made with reliability in mind — in a refinery environment, the scheduling system must work correctly every time.
+            Every technology choice was made with reliability in mind. In a refinery environment, the scheduling system must work correctly every time.
           </p>
         </motion.section>
 
@@ -279,7 +279,7 @@ export default function CaseStudyClient() {
             I build custom software for industrial operations, workforce management, and safety-critical environments where off-the-shelf tools fall short.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your scheduling or operational processes carry compliance risks, let's talk. I'll build a solution that enforces your safety policies automatically — just like I did for this refinery operation.
+            If your scheduling or operational processes carry compliance risks, let's talk. I'll build a solution that enforces your safety policies automatically, just like I did for this refinery operation.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

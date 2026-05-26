@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Sterling: Cross-Platform Personal Finance Application
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A unified personal finance app spanning web, iOS, and Android — built as a Turborepo monorepo with native mobile apps and a shared Supabase backend for seamless cross-device financial management.
+          A unified personal finance app spanning web, iOS, and Android, built as a Turborepo monorepo with native mobile apps and a shared Supabase backend for seamless cross-device financial management.
         </p>
         <a
           href="https://joinsterling.com"
@@ -94,7 +94,7 @@ export default function CaseStudyClient() {
             The Solution: A Monorepo with Native Apps and a Shared Backend
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            I architected Sterling as a Turborepo monorepo containing a Next.js web application, a native Android app built with Kotlin and Jetpack Compose, and a native iOS app built with Swift and SwiftUI — all sharing a single Supabase backend.
+            I architected Sterling as a Turborepo monorepo containing a Next.js web application, a native Android app built with Kotlin and Jetpack Compose, and a native iOS app built with Swift and SwiftUI, all sharing a single Supabase backend.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             This approach means users get the best experience on every platform: a fast, SEO-friendly web app for desktop users, and truly native mobile apps that feel right at home on iOS and Android. All financial data stays perfectly synchronized through the shared Supabase backend.
@@ -115,7 +115,7 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Financial Dashboard</h3>
-              <p className="text-white leading-relaxed">A comprehensive overview of accounts, balances, recent transactions, and spending trends — designed to give users a clear picture of their finances at a glance.</p>
+              <p className="text-white leading-relaxed">A comprehensive overview of accounts, balances, recent transactions, and spending trends, designed to give users a clear picture of their finances at a glance.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -135,7 +135,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Native iOS and Android Apps</h3>
-              <p className="text-white leading-relaxed">Truly native mobile experiences — SwiftUI on iOS and Jetpack Compose on Android — delivering platform-appropriate design, smooth animations, and native performance.</p>
+              <p className="text-white leading-relaxed">Truly native mobile experiences with SwiftUI on iOS and Jetpack Compose on Android, delivering platform-appropriate design, smooth animations, and native performance.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -276,10 +276,10 @@ export default function CaseStudyClient() {
             Ready to Build Cross-Platform?
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6 max-w-2xl mx-auto">
-            I build web applications, native mobile apps, and cross-platform solutions that share a unified backend — giving your users the best experience on every device.
+            I build web applications, native mobile apps, and cross-platform solutions that share a unified backend, giving your users the best experience on every device.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If you need an app that works beautifully on web, iOS, and Android, let's talk. I'll architect a solution that scales — just like I did with Sterling.
+            If you need an app that works beautifully on web, iOS, and Android, let's talk. I'll architect a solution that scales, just like I did with Sterling.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

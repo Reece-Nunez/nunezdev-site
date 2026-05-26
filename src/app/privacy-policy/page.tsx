@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'NunezDev privacy policy — how we collect, use, retain, and disclose personal data when you use our website, client portal, and services.',
+  description: 'NunezDev privacy policy. How we collect, use, retain, and disclose personal data when you use our website, client portal, and services.',
   alternates: {
     canonical: 'https://www.nunezdev.com/privacy-policy',
   },

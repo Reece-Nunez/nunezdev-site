@@ -4,7 +4,7 @@ import PortfolioClient from "./PortfolioClient";
 export const metadata: Metadata = {
   title: "Portfolio | Custom Web Development Projects",
   description:
-    "Browse 15+ custom web development projects by NunezDev — from travel platforms to financial apps, scheduling systems, and more.",
+    "Browse 15+ custom web development projects by NunezDev, from travel platforms to financial apps, scheduling systems, and more.",
   keywords: [
     "web development portfolio",
     "custom website examples",

@@ -111,14 +111,14 @@ export default function AboutClient() {
                 I started{" "}
                 <span className="text-yellow font-semibold">NunezDev</span> to
                 help small businesses build custom software that fits their
-                unique needs. No templates, no page builders — just clean,
+                unique needs. No templates, no page builders. Just clean,
                 hand-coded solutions engineered for your workflow.
               </motion.p>
               <motion.p
                 variants={fadeInUp}
                 className="text-white/80 text-base md:text-lg leading-relaxed"
               >
-                I started NunezDev not just to build websites — but to build
+                I started NunezDev not just to build websites, but to build
                 <span className="text-yellow font-semibold">
                   {" "}
                   real solutions
@@ -156,7 +156,7 @@ export default function AboutClient() {
                 Since marrying my incredible wife in 2011, life has taken us
                 from the mountains of Utah to the wide skies of Texas and
                 Alaska. We&apos;ve now planted roots in Oklahoma on a 10-acre
-                homestead with our extended family — raising animals, chasing
+                homestead with our extended family, raising animals, chasing
                 sunsets, and doing our best to keep up with four amazing kids.
               </motion.p>
               <motion.p
@@ -206,7 +206,7 @@ export default function AboutClient() {
             className="text-white/70 text-base md:text-lg leading-relaxed mb-4"
           >
             I absolutely love building full-stack software solutions from
-            scratch — turning an idea into something real and functional is
+            scratch. Turning an idea into something real and functional is
             deeply fulfilling. Whether it&apos;s a quote builder, CRM tool,
             client portal, or internal dashboard, I&apos;m here to help you
             create something practical and powerful.
@@ -233,8 +233,8 @@ export default function AboutClient() {
           </h2>
           <p className="text-white/70 text-base md:text-lg leading-relaxed">
             From construction firms to homesteaders, I&apos;ve built platforms
-            that simplify complex workflows — everything from custom dashboards
-            to portals and CMS integrations — always tailored to real business
+            that simplify complex workflows, everything from custom dashboards
+            to portals and CMS integrations, always tailored to real business
             needs. If you run a business and need software that works the way
             you do, we&apos;ll get along great.
           </p>

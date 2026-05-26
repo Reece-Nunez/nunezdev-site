@@ -4,7 +4,7 @@ import HomeClient from "./HomeClient";
 export const metadata: Metadata = {
   title: "NunezDev | Custom Web & Software Development in Oklahoma",
   description:
-    "NunezDev builds custom websites, web apps, dashboards, and automation tools for small businesses. Based in Ponca City, OK — serving clients nationwide.",
+    "NunezDev builds custom websites, web apps, dashboards, and automation tools for small businesses. Based in Ponca City, OK, serving clients nationwide.",
   alternates: {
     canonical: "https://www.nunezdev.com",
   },

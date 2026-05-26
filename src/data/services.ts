@@ -25,10 +25,10 @@ export const services: Service[] = [
     slug: "custom-websites",
     title: "Custom Websites",
     shortDescription:
-      "Modern, fast websites built from scratch with Next.js & Tailwind — no templates, no page builders.",
+      "Modern, fast websites built from scratch with Next.js & Tailwind. No templates, no page builders.",
     icon: faLaptopCode,
     description:
-      "Every website I build is hand-coded from the ground up. No WordPress, no Squarespace, no drag-and-drop. You get a blazing-fast, SEO-optimized site that's built exactly for your brand and goals — with clean code that scales.",
+      "Every website I build is hand-coded from the ground up. No WordPress, no Squarespace, no drag-and-drop. You get a blazing-fast, SEO-optimized site that's built exactly for your brand and goals, with clean code that scales.",
     features: [
       "Custom-designed pages tailored to your brand",
       "Mobile-first responsive layouts",
@@ -41,16 +41,16 @@ export const services: Service[] = [
     ],
     technologies: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Vercel", "Supabase"],
     valueProp:
-      "A custom-coded website loads faster, ranks better, and gives you full control — no plugin bloat, no monthly platform fees, no limitations.",
+      "A custom-coded website loads faster, ranks better, and gives you full control. No plugin bloat, no monthly platform fees, no limitations.",
   },
   {
     slug: "web-applications",
     title: "Web Applications",
     shortDescription:
-      "Scalable full-stack apps with auth, databases, and real-time features — built for your exact workflow.",
+      "Scalable full-stack apps with auth, databases, and real-time features, built for your exact workflow.",
     icon: faCubes,
     description:
-      "When your business needs more than a website, I build custom web applications from scratch. User authentication, role-based access, real-time data, payment processing — whatever your workflow demands, I engineer it.",
+      "When your business needs more than a website, I build custom web applications from scratch. User authentication, role-based access, real-time data, payment processing. Whatever your workflow demands, I engineer it.",
     features: [
       "User authentication and role-based access control",
       "Custom database schema design",
@@ -72,7 +72,7 @@ export const services: Service[] = [
       "Stripe",
     ],
     valueProp:
-      "Off-the-shelf SaaS tools force you to adapt to their workflow. A custom web app adapts to yours — and you own every line of code.",
+      "Off-the-shelf SaaS tools force you to adapt to their workflow. A custom web app adapts to yours, and you own every line of code.",
   },
   {
     slug: "dashboards-portals",
@@ -81,7 +81,7 @@ export const services: Service[] = [
       "Client portals, admin dashboards, and data visualization tools built to streamline your operations.",
     icon: faChartBar,
     description:
-      "I build custom dashboards and client-facing portals that give you and your customers real-time visibility into what matters. Lead trackers, invoice managers, reporting tools, client portals — all tailored to your business logic.",
+      "I build custom dashboards and client-facing portals that give you and your customers real-time visibility into what matters. Lead trackers, invoice managers, reporting tools, client portals, all tailored to your business logic.",
     features: [
       "Client-facing portals with secure login",
       "Admin dashboards with analytics and reporting",
@@ -103,16 +103,16 @@ export const services: Service[] = [
       "Tailwind CSS",
     ],
     valueProp:
-      "Stop juggling spreadsheets and disconnected tools. A custom dashboard puts everything in one place — designed around how you actually work.",
+      "Stop juggling spreadsheets and disconnected tools. A custom dashboard puts everything in one place, designed around how you actually work.",
   },
   {
     slug: "automation-integration",
     title: "Automation & Integration",
     shortDescription:
-      "Connect your tools and automate repetitive tasks — Stripe, email, CRMs, and more.",
+      "Connect your tools and automate repetitive tasks. Stripe, email, CRMs, and more.",
     icon: faCogs,
     description:
-      "I wire up the systems that power your business behind the scenes. From Stripe payment webhooks to automated email sequences, CRM syncing, and third-party API integrations — I build the plumbing so your business runs on autopilot.",
+      "I wire up the systems that power your business behind the scenes. From Stripe payment webhooks to automated email sequences, CRM syncing, and third-party API integrations, I build the plumbing so your business runs on autopilot.",
     features: [
       "Payment webhook handling (Stripe, PayPal)",
       "Automated email notifications and sequences",
@@ -140,10 +140,10 @@ export const services: Service[] = [
     slug: "api-development",
     title: "API Development",
     shortDescription:
-      "RESTful APIs, webhook handlers, and backend services — secure, documented, and production-ready.",
+      "RESTful APIs, webhook handlers, and backend services. Secure, documented, and production-ready.",
     icon: faCode,
     description:
-      "I design and build robust APIs that serve as the backbone of your application. Whether you need a REST API for a mobile app, webhook handlers for third-party integrations, or a backend service layer for your frontend — I deliver clean, documented, production-grade APIs.",
+      "I design and build robust APIs that serve as the backbone of your application. Whether you need a REST API for a mobile app, webhook handlers for third-party integrations, or a backend service layer for your frontend, I deliver clean, documented, production-grade APIs.",
     features: [
       "RESTful API design and implementation",
       "Authentication and authorization (JWT, OAuth)",
@@ -171,10 +171,10 @@ export const services: Service[] = [
     slug: "seo-optimization",
     title: "SEO & Optimization",
     shortDescription:
-      "Technical SEO, performance tuning, and search visibility — get found and load fast.",
+      "Technical SEO, performance tuning, and search visibility. Get found and load fast.",
     icon: faArrowTrendUp,
     description:
-      "I handle the technical side of SEO so your site ranks and performs. From structured data and meta tags to Core Web Vitals optimization, image compression, and local SEO setup — I make sure search engines love your site as much as your customers do.",
+      "I handle the technical side of SEO so your site ranks and performs. From structured data and meta tags to Core Web Vitals optimization, image compression, and local SEO setup, I make sure search engines love your site as much as your customers do.",
     features: [
       "Technical SEO audit and implementation",
       "Meta tags, Open Graph, and Twitter Cards",
@@ -201,10 +201,10 @@ export const services: Service[] = [
     slug: "ongoing-support",
     title: "Hosting & Maintenance",
     shortDescription:
-      "Reliable hosting starting at $29/mo and optional maintenance plans — keep your site fast, secure, and evolving.",
+      "Reliable hosting starting at $29/mo and optional maintenance plans. Keep your site fast, secure, and evolving.",
     icon: faShieldAlt,
     description:
-      "Every site I build needs a home. I offer managed hosting on Vercel and AWS with SSL, uptime monitoring, and automated backups — starting at just $29/mo. For clients who want ongoing development support, I also offer separate maintenance plans with dedicated developer hours, security updates, performance monitoring, and strategic feature planning. Pick hosting alone, or pair it with a maintenance plan — it's up to you.",
+      "Every site I build needs a home. I offer managed hosting on Vercel and AWS with SSL, uptime monitoring, and automated backups, starting at just $29/mo. For clients who want ongoing development support, I also offer separate maintenance plans with dedicated developer hours, security updates, performance monitoring, and strategic feature planning. Pick hosting alone, or pair it with a maintenance plan. It's up to you.",
     features: [
       "CDN-backed hosting with SSL and uptime monitoring",
       "Automated daily or monthly backups",
@@ -225,6 +225,6 @@ export const services: Service[] = [
       "Lighthouse",
     ],
     valueProp:
-      "Not every client needs a maintenance plan — but every site needs reliable hosting. Choose what fits your business, and scale up when you're ready.",
+      "Not every client needs a maintenance plan, but every site needs reliable hosting. Choose what fits your business, and scale up when you're ready.",
   },
 ];

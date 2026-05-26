@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I built a full-stack club management platform tailored to Ponca City United FC's workflows. The application handles everything from online player registration with parent/guardian and medical information to real-time statistics tracking and video highlight management.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Parents can now register their children online, view detailed player profiles with positions and jersey numbers, follow game statistics as they happen, and watch highlight videos — all from a single, modern web application.
+            Parents can now register their children online, view detailed player profiles with positions and jersey numbers, follow game statistics as they happen, and watch highlight videos, all from a single, modern web application.
           </p>
         </motion.section>
 
@@ -115,7 +115,7 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Player Registration System</h3>
-              <p className="text-white leading-relaxed">Complete online registration with parent/guardian contact details, emergency contacts, and medical information — replacing stacks of paper forms entirely.</p>
+              <p className="text-white leading-relaxed">Complete online registration with parent/guardian contact details, emergency contacts, and medical information, replacing stacks of paper forms entirely.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -279,7 +279,7 @@ export default function CaseStudyClient() {
             I help sports clubs, nonprofits, and community organizations build custom platforms that replace manual processes with modern, streamlined solutions.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your organization is still relying on paper forms and spreadsheets, let's talk. I'll build a solution tailored to your needs — just like I did for Ponca City United FC.
+            If your organization is still relying on paper forms and spreadsheets, let's talk. I'll build a solution tailored to your needs, just like I did for Ponca City United FC.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

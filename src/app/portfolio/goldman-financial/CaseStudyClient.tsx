@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Goldman Financial: A Modern Financial Services Platform
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A digital-first platform that replaced paper applications with online forms, e-signatures, automated PDF generation, and an interactive branch locator — modernizing every step of the customer journey.
+          A digital-first platform that replaced paper applications with online forms, e-signatures, automated PDF generation, and an interactive branch locator, modernizing every step of the customer journey.
         </p>
         <a
           href="https://thegoldmanfund.com"
@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: A Paper-Heavy Process in a Digital World
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Goldman Financial was running on an outdated application process that relied heavily on paper forms, in-person visits, and manual document handling. Customers had to print, fill out, sign, and physically deliver applications — a slow and frustrating experience that didn't match the speed modern consumers expect.
+            Goldman Financial was running on an outdated application process that relied heavily on paper forms, in-person visits, and manual document handling. Customers had to print, fill out, sign, and physically deliver applications, a slow and frustrating experience that didn't match the speed modern consumers expect.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The business needed a complete digital transformation that could:
@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            They weren't just looking for a website — they needed a platform that could digitize their entire application workflow from start to finish.
+            They weren't just looking for a website. They needed a platform that could digitize their entire application workflow from start to finish.
           </p>
         </motion.section>
 
@@ -94,7 +94,7 @@ export default function CaseStudyClient() {
             The Solution: A Full Digital Platform
           </h2>
           <p className="text-white text-lg leading-relaxed mb-8">
-            I designed and built a comprehensive digital platform that replaced Goldman Financial's entire paper-based workflow. The new system allows customers to complete applications online, sign documents digitally, and receive professionally generated PDFs — all without stepping foot in a branch. An integrated Google Maps branch locator ensures that when in-person visits are needed, customers can find the nearest location instantly.
+            I designed and built a comprehensive digital platform that replaced Goldman Financial's entire paper-based workflow. The new system allows customers to complete applications online, sign documents digitally, and receive professionally generated PDFs, all without stepping foot in a branch. An integrated Google Maps branch locator ensures that when in-person visits are needed, customers can find the nearest location instantly.
           </p>
           <p className="text-white text-lg leading-relaxed">
             The platform also includes robust error monitoring through Sentry, ensuring that any issues are caught and resolved before they impact the customer experience. Spam protection via reCAPTCHA v3 keeps the application forms secure without adding friction for legitimate users.
@@ -120,7 +120,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">E-Signature Capture</h3>
-              <p className="text-white leading-relaxed">Built-in digital signature functionality using react-signature-canvas, allowing customers to sign applications directly on their device — no printing, scanning, or mailing required.</p>
+              <p className="text-white leading-relaxed">Built-in digital signature functionality using react-signature-canvas, allowing customers to sign applications directly on their device. No printing, scanning, or mailing required.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -279,7 +279,7 @@ export default function CaseStudyClient() {
             I help businesses replace outdated processes with custom digital platforms that save time, reduce errors, and deliver better experiences for their customers.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If paper forms, manual workflows, or clunky systems are slowing you down, let's talk. I'll design a solution tailored to your business — just like I did for Goldman Financial.
+            If paper forms, manual workflows, or clunky systems are slowing you down, let's talk. I'll design a solution tailored to your business, just like I did for Goldman Financial.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

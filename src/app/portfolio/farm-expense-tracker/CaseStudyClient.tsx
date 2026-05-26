@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            Farmers needed a tool that fit their workflow — something they could use in the truck, at the feed store, or in the barn — not another desktop-only accounting application.
+            Farmers needed a tool that fit their workflow, something they could use in the truck, at the feed store, or in the barn, not another desktop-only accounting application.
           </p>
         </motion.section>
 
@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I built AgTrackr as a smart expense tracking application that lets farmers snap a photo of any receipt and have it automatically digitized using OCR technology. The app extracts vendor names, amounts, and dates, then categorizes expenses into farm-specific categories like Feed, Seed, Fuel, and Repairs.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
-            When tax season arrives, farmers can generate detailed reports and export them as CSV or PDF files ready for their accountant — turning days of preparation into minutes.
+            When tax season arrives, farmers can generate detailed reports and export them as CSV or PDF files ready for their accountant, turning days of preparation into minutes.
           </p>
         </motion.section>
 
@@ -115,7 +115,7 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Receipt Photo Scanning with OCR</h3>
-              <p className="text-white leading-relaxed">Snap a photo of any receipt and Tesseract.js extracts the text automatically — vendor name, total amount, date, and line items are parsed and ready to categorize.</p>
+              <p className="text-white leading-relaxed">Snap a photo of any receipt and Tesseract.js extracts the text automatically. Vendor name, total amount, date, and line items are parsed and ready to categorize.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -125,7 +125,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Category-Based Expense Tracking</h3>
-              <p className="text-white leading-relaxed">Farm-specific expense categories — Feed, Seed, Fuel, Repairs, Equipment, Veterinary, and more — organized the way farmers actually think about their spending.</p>
+              <p className="text-white leading-relaxed">Farm-specific expense categories (Feed, Seed, Fuel, Repairs, Equipment, Veterinary, and more) organized the way farmers actually think about their spending.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -135,7 +135,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">CSV and PDF Export</h3>
-              <p className="text-white leading-relaxed">Generate tax-ready reports and export them as CSV for spreadsheet tools or professionally formatted PDF documents via jsPDF — ready to hand to an accountant.</p>
+              <p className="text-white leading-relaxed">Generate tax-ready reports and export them as CSV for spreadsheet tools or professionally formatted PDF documents via jsPDF, ready to hand to an accountant.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -156,7 +156,7 @@ export default function CaseStudyClient() {
             Technology Behind the Scenes
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            AgTrackr is built on a modern stack optimized for fast, reliable performance — even with limited connectivity in rural areas:
+            AgTrackr is built on a modern stack optimized for fast, reliable performance, even with limited connectivity in rural areas:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -207,7 +207,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            By running OCR processing client-side with Tesseract.js, receipt scanning works even in areas with spotty internet — a critical requirement for farmers in rural locations.
+            By running OCR processing client-side with Tesseract.js, receipt scanning works even in areas with spotty internet. A critical requirement for farmers in rural locations.
           </p>
         </motion.section>
 
@@ -261,7 +261,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            What was once a dreaded chore — sorting through piles of receipts at the end of the year — is now an automated, organized process that gives farmers clear visibility into their operation's finances year-round.
+            What was once a dreaded chore (sorting through piles of receipts at the end of the year) is now an automated, organized process that gives farmers clear visibility into their operation's finances year-round.
           </p>
         </motion.section>
 
@@ -279,7 +279,7 @@ export default function CaseStudyClient() {
             I build custom applications for agriculture, trade businesses, and industries where paper-based processes are holding operations back.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your business is still drowning in paper receipts and manual tracking, let's talk. I'll build a digital solution tailored to your industry — just like I did with AgTrackr.
+            If your business is still drowning in paper receipts and manual tracking, let's talk. I'll build a digital solution tailored to your industry, just like I did with AgTrackr.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

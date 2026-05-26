@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Kristina Curtis Photography: Portfolio and Client Experience Platform
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A custom photography portfolio featuring curated galleries, investment transparency, vendor connections, and a serverless contact backend — designed to showcase stunning work and guide clients seamlessly from discovery to booking.
+          A custom photography portfolio featuring curated galleries, investment transparency, vendor connections, and a serverless contact backend, designed to showcase stunning work and guide clients seamlessly from discovery to booking.
         </p>
         <a
           href="https://kristinacurtisphotography.com"
@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: A Portfolio That Converts Visitors into Clients
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Kristina Curtis Photography needed more than a gallery — she needed a portfolio that showcased her work beautifully while guiding potential clients through the booking process. The existing online presence wasn't reflecting the quality of the photography or making it easy for interested clients to take the next step.
+            Kristina Curtis Photography needed more than a gallery. She needed a portfolio that showcased her work beautifully while guiding potential clients through the booking process. The existing online presence wasn't reflecting the quality of the photography or making it easy for interested clients to take the next step.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The platform needed to:
@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            The goal was a site that felt as polished as the photography itself — one that told a story, built trust, and made booking feel natural.
+            The goal was a site that felt as polished as the photography itself, one that told a story, built trust, and made booking feel natural.
           </p>
         </motion.section>
 
@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I designed and built a custom photography portfolio with curated galleries featuring tag-based filtering, an investment page for pricing transparency, a preferred vendor directory, and a contact form powered by AWS Lambda for reliable email delivery. The site also includes a brand storytelling about page and mobile-optimized image viewing throughout.
           </p>
           <p className="text-white text-lg leading-relaxed">
-            Every page is designed to move visitors closer to booking — from the first gallery they browse to the moment they submit an inquiry. The result is a cohesive brand experience that reflects the artistry of the photography and makes the business side effortless.
+            Every page is designed to move visitors closer to booking, from the first gallery they browse to the moment they submit an inquiry. The result is a cohesive brand experience that reflects the artistry of the photography and makes the business side effortless.
           </p>
         </motion.section>
 
@@ -115,7 +115,7 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Curated Portfolio Galleries with Tag-Based Filtering</h3>
-              <p className="text-white leading-relaxed">Beautiful, responsive galleries organized by category with tag-based filtering — allowing visitors to browse weddings, portraits, events, and more with a single click.</p>
+              <p className="text-white leading-relaxed">Beautiful, responsive galleries organized by category with tag-based filtering, allowing visitors to browse weddings, portraits, events, and more with a single click.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -125,17 +125,17 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Preferred Vendor Directory</h3>
-              <p className="text-white leading-relaxed">A curated list of trusted vendors — florists, venues, planners, and more — adding value for clients planning events and strengthening professional partnerships.</p>
+              <p className="text-white leading-relaxed">A curated list of trusted vendors, florists, venues, planners, and more, adding value for clients planning events and strengthening professional partnerships.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Contact Form with AWS Lambda Email Backend</h3>
-              <p className="text-white leading-relaxed">A polished contact form backed by a serverless AWS Lambda function for reliable email delivery — ensuring every inquiry reaches the photographer without depending on third-party form services.</p>
+              <p className="text-white leading-relaxed">A polished contact form backed by a serverless AWS Lambda function for reliable email delivery, ensuring every inquiry reaches the photographer without depending on third-party form services.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">About Page with Brand Storytelling</h3>
-              <p className="text-white leading-relaxed">A compelling about page that shares Kristina's story, philosophy, and approach — creating a personal connection with visitors before they ever meet in person.</p>
+              <p className="text-white leading-relaxed">A compelling about page that shares Kristina's story, philosophy, and approach, creating a personal connection with visitors before they ever meet in person.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -259,7 +259,7 @@ export default function CaseStudyClient() {
             I help creative professionals build portfolio websites that showcase their work beautifully and guide visitors from browsing to booking.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            Whether you're a photographer, designer, or creative entrepreneur, let's build a platform that reflects your artistry and grows your business — just like I did for Kristina Curtis Photography.
+            Whether you're a photographer, designer, or creative entrepreneur, let's build a platform that reflects your artistry and grows your business, just like I did for Kristina Curtis Photography.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

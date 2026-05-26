@@ -24,7 +24,7 @@ export const testimonials: Testimonial[] = [
       "I can't say enough good things about Reece! He's kind, professional, super talented, and always prompt. He made the whole website process feel smooth and enjoyable. Plus, he just has a great vibe that makes you feel comfortable and confident in the process. Highly recommend!",
     name: "Annie P.",
     role: "Web Design",
-    company: "via Thumbtack — Verified",
+    company: "via Thumbtack (Verified)",
   },
   {
     quote:
@@ -43,7 +43,7 @@ export const testimonials: Testimonial[] = [
       "I had a consultation with Reece, and absolutely loved his professional and thorough communication. Everything he said seemed sincere to achieve the client's best results. I look forward to working with him in the future for bigger projects.",
     name: "Sumaira C.",
     role: "Web Design",
-    company: "via Thumbtack — Verified",
+    company: "via Thumbtack (Verified)",
   },
   {
     quote:

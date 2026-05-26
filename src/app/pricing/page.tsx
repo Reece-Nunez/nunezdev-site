@@ -4,7 +4,7 @@ import PricingClient from './PricingClient';
 export const metadata = {
   title: "Transparent Web & Software Pricing | NunezDev",
   description:
-    "Explore clear pricing for custom websites, CRM dashboards, client portals, and web applications. Find the right package for your business—from $300 starter sites to $20k+ enterprise builds.",
+    "Explore clear pricing for custom websites, CRM dashboards, client portals, and web applications. Find the right package for your business, from $300 starter sites to $20k+ enterprise builds.",
   keywords: [
     "web development pricing",
     "custom website cost",
@@ -21,7 +21,7 @@ export const metadata = {
   openGraph: {
     title: "Transparent Web & Software Pricing | NunezDev",
     description:
-      "From small business websites to custom enterprise platforms—see our full pricing tiers and what each plan includes.",
+      "From small business websites to custom enterprise platforms, see our full pricing tiers and what each plan includes.",
     url: "https://www.nunezdev.com/pricing",
     siteName: "NunezDev",
     type: "website",

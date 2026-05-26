@@ -46,7 +46,7 @@ export default function ServicesClient() {
           variants={fadeInUp}
           className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto"
         >
-          From custom websites to complex web applications — everything is
+          From custom websites to complex web applications, everything is
           hand-coded, purpose-built, and engineered to grow with your business.
         </motion.p>
       </motion.div>

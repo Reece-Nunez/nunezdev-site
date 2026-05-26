@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Hideaway Hair Studio: A Stylish Digital Presence for a Local Salon
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          An elegant, modern website that captures the personality and quality of a local hair salon — making it easy for new clients to discover services, meet the stylists, and get in touch.
+          An elegant, modern website that captures the personality and quality of a local hair salon, making it easy for new clients to discover services, meet the stylists, and get in touch.
         </p>
         <a
           href="https://hideawayhairstudio.com"
@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            The website had to feel as inviting and polished as the salon itself — not like a generic template that could belong to any business.
+            The website had to feel as inviting and polished as the salon itself, not like a generic template that could belong to any business.
           </p>
         </motion.section>
 
@@ -115,7 +115,7 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Service Menu Showcase</h3>
-              <p className="text-white leading-relaxed">A beautifully organized service menu that presents every offering — from cuts and color to specialty treatments — with clear descriptions so clients know exactly what to expect.</p>
+              <p className="text-white leading-relaxed">A beautifully organized service menu that presents every offering, from cuts and color to specialty treatments, with clear descriptions so clients know exactly what to expect.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -130,7 +130,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Responsive Design</h3>
-              <p className="text-white leading-relaxed">A fully responsive layout that looks stunning on phones, tablets, and desktops — because most people searching for a new salon are doing it from their phone.</p>
+              <p className="text-white leading-relaxed">A fully responsive layout that looks stunning on phones, tablets, and desktops, because most people searching for a new salon are doing it from their phone.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -236,7 +236,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            Hideaway Hair Studio now has a digital presence as polished as their in-person service — attracting new clients and reinforcing the trust that keeps loyal ones coming back.
+            Hideaway Hair Studio now has a digital presence as polished as their in-person service, attracting new clients and reinforcing the trust that keeps loyal ones coming back.
           </p>
         </motion.section>
 
@@ -254,7 +254,7 @@ export default function CaseStudyClient() {
             I help local businesses create beautiful, effective websites that attract new customers and showcase what makes them special.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your business deserves more than a cookie-cutter template, let's talk. I'll build a custom website that represents your brand perfectly — just like I did for Hideaway Hair Studio.
+            If your business deserves more than a cookie-cutter template, let's talk. I'll build a custom website that represents your brand perfectly, just like I did for Hideaway Hair Studio.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

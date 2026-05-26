@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: A Growing Business Without a Web Presence
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            Go Girl Painting was a growing painting business relying entirely on word-of-mouth and social media to attract new clients. Without a professional website, potential customers had no way to see their portfolio, learn about their services, or easily request a quote — limiting growth and credibility.
+            Go Girl Painting was a growing painting business relying entirely on word-of-mouth and social media to attract new clients. Without a professional website, potential customers had no way to see their portfolio, learn about their services, or easily request a quote. That limited growth and credibility.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The business needed a website that could:
@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            They needed more than a basic site — they needed a professional online presence that reflected the quality of their work and made it easy for new customers to take the next step.
+            They needed more than a basic site. They needed a professional online presence that reflected the quality of their work and made it easy for new customers to take the next step.
           </p>
         </motion.section>
 
@@ -120,12 +120,12 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Service Area and Offerings Overview</h3>
-              <p className="text-white leading-relaxed">Clear breakdown of painting services offered — interior, exterior, residential, and commercial — along with the geographic areas served, so visitors know immediately if Go Girl Painting is the right fit.</p>
+              <p className="text-white leading-relaxed">Clear breakdown of painting services offered (interior, exterior, residential, and commercial) along with the geographic areas served, so visitors know immediately if Go Girl Painting is the right fit.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">About Page Telling the Business Story</h3>
-              <p className="text-white leading-relaxed">A dedicated page sharing the story behind the business — the mission, values, and the team — building a personal connection with visitors and differentiating from competitors.</p>
+              <p className="text-white leading-relaxed">A dedicated page sharing the story behind the business (the mission, values, and the team), building a personal connection with visitors and differentiating from competitors.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -135,7 +135,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Mobile-Responsive Design</h3>
-              <p className="text-white leading-relaxed">Fully responsive layout that looks great and functions perfectly on phones, tablets, and desktops — because most customers are searching on their mobile devices.</p>
+              <p className="text-white leading-relaxed">Fully responsive layout that looks great and functions perfectly on phones, tablets, and desktops, because most customers are searching on their mobile devices.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -259,7 +259,7 @@ export default function CaseStudyClient() {
             I help small businesses establish a professional online presence that attracts customers and builds credibility.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your business is relying on word-of-mouth alone, a custom website can open up a whole new channel for growth. Let's talk about building yours — just like I did for Go Girl Painting.
+            If your business is relying on word-of-mouth alone, a custom website can open up a whole new channel for growth. Let's talk about building yours, just like I did for Go Girl Painting.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

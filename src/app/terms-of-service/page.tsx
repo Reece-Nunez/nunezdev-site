@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'NunezDev terms of service — the contractual terms governing use of our website, client portal, invoicing, and software development services.',
+  description: 'NunezDev terms of service. The contractual terms governing use of our website, client portal, invoicing, and software development services.',
   alternates: {
     canonical: 'https://www.nunezdev.com/terms-of-service',
   },

@@ -4,7 +4,7 @@ import ServicesClient from './ServicesClient';
 export const metadata = {
     title: "Custom Web & Software Development Services | NunezDev",
     description:
-        "Custom full-stack web development services — websites, web apps, dashboards, APIs, automation, and ongoing support. Hand-coded, no templates.",
+        "Custom full-stack web development services. Websites, web apps, dashboards, APIs, automation, and ongoing support. Hand-coded, no templates.",
     keywords: [
         "full-stack web development services",
         "custom website development",
@@ -21,7 +21,7 @@ export const metadata = {
     openGraph: {
         title: "Custom Web & Software Development Services | NunezDev",
         description:
-            "Explore our full-stack development services—from mobile-ready websites to client dashboards, automation tools, and custom CRM platforms.",
+            "Explore our full-stack development services, from mobile-ready websites to client dashboards, automation tools, and custom CRM platforms.",
         url: "https://www.nunezdev.com/services",
         siteName: "NunezDev",
         type: "website",

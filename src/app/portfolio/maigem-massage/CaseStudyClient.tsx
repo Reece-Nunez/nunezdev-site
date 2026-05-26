@@ -30,7 +30,7 @@ export default function CaseStudyClient() {
           Maigem Massage: Full-Stack Booking Platform with Integrated Payments
         </h1>
         <p className="max-w-3xl text-white mx-auto text-lg md:text-xl">
-          A custom booking platform that replaced phone-and-text scheduling with real-time availability, online appointment booking, and integrated Square payments — giving a massage therapist back hours of their week.
+          A custom booking platform that replaced phone-and-text scheduling with real-time availability, online appointment booking, and integrated Square payments. It gives a massage therapist back hours of their week.
         </p>
         <a
           href="https://maigemassage.com"
@@ -79,7 +79,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed mt-6">
-            The therapist didn't need another generic scheduling tool with monthly fees — they needed a custom platform built around how they actually run their practice.
+            The therapist didn't need another generic scheduling tool with monthly fees. They needed a custom platform built around how they actually run their practice.
           </p>
         </motion.section>
 
@@ -94,7 +94,7 @@ export default function CaseStudyClient() {
             The Solution: A Custom Booking Platform
           </h2>
           <p className="text-white text-lg leading-relaxed mb-8">
-            I designed and built a full-stack booking platform tailored to Maigem Massage's specific workflow. Clients can view real-time availability, select their preferred service and time slot, and complete payment — all in one seamless flow. The platform is backed by Supabase for reliable data management and Square for secure payment processing.
+            I designed and built a full-stack booking platform tailored to Maigem Massage's specific workflow. Clients can view real-time availability, select their preferred service and time slot, and complete payment, all in one seamless flow. The platform is backed by Supabase for reliable data management and Square for secure payment processing.
           </p>
           <p className="text-white text-lg leading-relaxed">
             Automated email confirmations go out the moment a booking is made, and the therapist has a clear view of their schedule at all times. No more back-and-forth texts, no more double bookings, and no more chasing down payments. The platform handles it all, so the therapist can focus on what they do best.
@@ -251,7 +251,7 @@ export default function CaseStudyClient() {
           </div>
 
           <p className="text-white text-lg leading-relaxed mt-6">
-            Maigem Massage now runs on a system built for their business — not a generic tool with features they don't need and limitations that hold them back. The therapist spends less time on the phone and more time doing what they love.
+            Maigem Massage now runs on a system built for their business, not a generic tool with features they don't need and limitations that hold them back. The therapist spends less time on the phone and more time doing what they love.
           </p>
         </motion.section>
 
@@ -269,7 +269,7 @@ export default function CaseStudyClient() {
             I help service-based businesses replace manual scheduling and payment headaches with custom booking platforms that run on autopilot.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If you're spending hours managing bookings by hand or losing money to no-shows, let's talk. I'll build a platform tailored to your workflow — just like I did for Maigem Massage.
+            If you're spending hours managing bookings by hand or losing money to no-shows, let's talk. I'll build a platform tailored to your workflow, just like I did for Maigem Massage.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

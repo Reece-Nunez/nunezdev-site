@@ -75,7 +75,7 @@ export default function CaseStudyClient() {
             Meridian Luxury Travel came to me with a familiar problem: their existing tools couldn't keep up with their business. They relied on static websites and third-party platforms that were expensive, rigid, and frustrating to manage.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
-            They needed more than a website — they needed a custom platform that could:
+            They needed more than a website. They needed a custom platform that could:
           </p>
           <ul className="space-y-3 text-white text-lg">
             <li className="flex items-start gap-3">
@@ -163,7 +163,7 @@ export default function CaseStudyClient() {
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Admin Dashboard</h3>
-              <p className="text-white leading-relaxed">A single place to track payments, manage quotes, build itineraries, and access analytics — essentially a travel ERP system designed for them.</p>
+              <p className="text-white leading-relaxed">A single place to track payments, manage quotes, build itineraries, and access analytics. Essentially a travel ERP system designed for them.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -323,7 +323,7 @@ export default function CaseStudyClient() {
             </li>
           </ul>
           <p className="text-white text-lg leading-relaxed">
-            For Meridian, that meant turning a clunky process into a smooth, modern experience — and positioning their brand as a leader in luxury travel.
+            For Meridian, that meant turning a clunky process into a smooth, modern experience, and positioning their brand as a leader in luxury travel.
           </p>
         </motion.section>
 
@@ -341,7 +341,7 @@ export default function CaseStudyClient() {
             I help small businesses and startups build custom web applications that save time, reduce manual work, and deliver better customer experiences.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            If your current software is holding you back, let's talk. I'll help design a solution tailored to your business — just like I did for Meridian Luxury Travel.
+            If your current software is holding you back, let's talk. I'll help design a solution tailored to your business, just like I did for Meridian Luxury Travel.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

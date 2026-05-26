@@ -55,7 +55,7 @@ export default function CaseStudyClient() {
             The Challenge: Hosting Multiple Academic Journals at Scale
           </h2>
           <p className="text-white text-lg leading-relaxed mb-6">
-            An academic publisher needed reliable infrastructure to host and manage multiple peer-reviewed journals with professional editorial workflows. Each journal required its own submission pipeline, review process, and publication schedule — all running on a single, maintainable platform.
+            An academic publisher needed reliable infrastructure to host and manage multiple peer-reviewed journals with professional editorial workflows. Each journal required its own submission pipeline, review process, and publication schedule, all running on a single, maintainable platform.
           </p>
           <p className="text-white text-lg leading-relaxed mb-6">
             The key requirements included:
@@ -97,7 +97,7 @@ export default function CaseStudyClient() {
             I deployed and configured Open Journal Systems (OJS) 3.5 on dedicated server infrastructure running a full LAMP stack. The platform was set up with automated server provisioning via a custom install script, Apache virtual host configuration for multi-journal routing, and MariaDB database management for reliable data storage.
           </p>
           <p className="text-white text-lg leading-relaxed">
-            The result is a production-ready academic publishing platform where editors can manage submissions, coordinate peer reviews, and publish articles — all from a single administrative interface that scales effortlessly as new journals are added.
+            The result is a production-ready academic publishing platform where editors can manage submissions, coordinate peer reviews, and publish articles, all from a single administrative interface that scales effortlessly as new journals are added.
           </p>
         </motion.section>
 
@@ -115,22 +115,22 @@ export default function CaseStudyClient() {
           <div className="space-y-6">
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Multi-Journal Hosting on Single Platform</h3>
-              <p className="text-white leading-relaxed">Multiple independent journals hosted on one OJS installation, each with its own editorial team, submission pipeline, and publication schedule — reducing overhead and simplifying maintenance.</p>
+              <p className="text-white leading-relaxed">Multiple independent journals hosted on one OJS installation, each with its own editorial team, submission pipeline, and publication schedule, reducing overhead and simplifying maintenance.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Full Editorial Workflow</h3>
-              <p className="text-white leading-relaxed">Complete submission-to-publication pipeline including manuscript intake, editorial review, revisions, copyediting, and final publication — all managed through the OJS interface.</p>
+              <p className="text-white leading-relaxed">Complete submission-to-publication pipeline including manuscript intake, editorial review, revisions, copyediting, and final publication, all managed through the OJS interface.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Peer Review Management System</h3>
-              <p className="text-white leading-relaxed">Built-in tools for assigning reviewers, tracking review progress, managing reviewer feedback, and coordinating revision rounds — ensuring rigorous academic standards.</p>
+              <p className="text-white leading-relaxed">Built-in tools for assigning reviewers, tracking review progress, managing reviewer feedback, and coordinating revision rounds, ensuring rigorous academic standards.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
               <h3 className="text-xl font-semibold text-yellow mb-2">Automated Server Provisioning</h3>
-              <p className="text-white leading-relaxed">Custom install.sh script that automates the entire server setup process, from package installation to OJS configuration — making deployments repeatable and reliable.</p>
+              <p className="text-white leading-relaxed">Custom install.sh script that automates the entire server setup process, from package installation to OJS configuration, making deployments repeatable and reliable.</p>
             </div>
 
             <div className="border-l-4 border-yellow pl-6">
@@ -264,7 +264,7 @@ export default function CaseStudyClient() {
             I help businesses build and deploy custom platforms that streamline their operations and scale with their growth.
           </p>
           <p className="text-white text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
-            Whether you need a publishing platform, server infrastructure, or a custom web application, let's talk. I'll design a solution tailored to your business — just like I did for Aidoo Academic Press.
+            Whether you need a publishing platform, server infrastructure, or a custom web application, let's talk. I'll design a solution tailored to your business, just like I did for Aidoo Academic Press.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
