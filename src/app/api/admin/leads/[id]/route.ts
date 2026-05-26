@@ -62,3 +62,25 @@ export async function PATCH(
 
   return NextResponse.json({ lead });
 }
+
+// Hard delete. For spam / test rows / accidental submissions only — for
+// genuine "no thanks" outcomes prefer marking status='lost' so funnel
+// analytics stay intact. scheduled_emails and lead_interactions cascade
+// via FK ON DELETE CASCADE.
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const guard = await requireOwner();
+  if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+
+  const { id } = await context.params;
+  const supabase = supabaseAdmin();
+
+  const { error } = await supabase.from('leads').delete().eq('id', id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}

@@ -62,6 +62,7 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
   const [notes, setNotes] = useState(initialLead.notes || '');
   const [savingNotes, setSavingNotes] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [, startTransition] = useTransition();
 
   async function updateStatus(newStatus: string) {
@@ -125,6 +126,54 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
     }
   }
 
+  // Toast-based confirmation (project rule: no native confirm()). Use this
+  // for genuine garbage (spam / test) — for lost prospects prefer status='lost'
+  // so funnel analytics stay intact.
+  function requestDelete() {
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <div className="text-sm font-medium">Delete this lead permanently?</div>
+          <div className="text-xs text-white/70">
+            For "no thanks" outcomes consider marking <em>Lost</em> instead.
+          </div>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                performDelete();
+              }}
+              className="text-xs px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete forever
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="text-xs px-3 py-1 rounded-md bg-white/10 text-white hover:bg-white/20"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity }
+    );
+  }
+
+  async function performDelete() {
+    setDeleting(true);
+    const toastId = toast.loading('Deleting lead...');
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Delete failed');
+      toast.success('Lead deleted', { id: toastId });
+      router.push('/dashboard/leads');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Delete failed', { id: toastId });
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="px-3 py-4 sm:p-6 max-w-5xl space-y-6">
       {/* Breadcrumb + back */}
@@ -168,6 +217,15 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
               {converting ? 'Converting...' : 'Convert to Client'}
             </button>
           )}
+          {/* Subtle delete — for spam/test only; prefer status=Lost for real outcomes */}
+          <button
+            onClick={requestDelete}
+            disabled={deleting}
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-200 text-gray-500 text-sm font-medium hover:text-red-600 hover:border-red-200 hover:bg-red-50 disabled:opacity-60 transition-colors"
+            title="Permanently delete (for spam/test only)"
+          >
+            Delete
+          </button>
         </div>
       </header>
 

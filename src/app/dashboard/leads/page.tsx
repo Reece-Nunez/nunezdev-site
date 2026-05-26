@@ -21,7 +21,10 @@ type LeadRow = {
   client_id: string | null;
 };
 
-const STATUS_FILTERS = ['all', 'new', 'contacted', 'qualified', 'converted', 'lost'] as const;
+const STATUS_FILTERS = ['active', 'new', 'contacted', 'qualified', 'converted', 'lost'] as const;
+// 'active' = default daily-triage view: everything that's still in your funnel.
+// Hides 'converted' (already a client) and 'lost' (preserved for analytics but noise day-to-day).
+const ACTIVE_STATUSES = ['new', 'contacted', 'nurturing', 'qualified'] as const;
 
 const STATUS_STYLES: Record<string, string> = {
   new: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -50,6 +53,8 @@ export default async function LeadsPage({
   if (!guard.ok) redirect('/login?next=/dashboard/leads');
 
   const { status: statusFilter } = await searchParams;
+  // Default to 'active' (in-funnel only) so closed leads don't clutter daily triage.
+  const effectiveFilter = statusFilter || 'active';
   const supabase = supabaseAdmin();
 
   let query = supabase
@@ -60,8 +65,10 @@ export default async function LeadsPage({
     .order('created_at', { ascending: false })
     .limit(200);
 
-  if (statusFilter && statusFilter !== 'all') {
-    query = query.eq('status', statusFilter);
+  if (effectiveFilter === 'active') {
+    query = query.in('status', [...ACTIVE_STATUSES]);
+  } else {
+    query = query.eq('status', effectiveFilter);
   }
 
   const { data: leads = [], error } = await query;
@@ -70,7 +77,9 @@ export default async function LeadsPage({
   const { data: allForCount } = await supabase.from('leads').select('status');
   const counts = (allForCount || []).reduce<Record<string, number>>((acc, l) => {
     acc[l.status] = (acc[l.status] || 0) + 1;
-    acc.all = (acc.all || 0) + 1;
+    if ((ACTIVE_STATUSES as readonly string[]).includes(l.status)) {
+      acc.active = (acc.active || 0) + 1;
+    }
     return acc;
   }, {});
 
@@ -90,20 +99,24 @@ export default async function LeadsPage({
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">
         {STATUS_FILTERS.map((status) => {
-          const active = (statusFilter || 'all') === status;
+          const isActive = effectiveFilter === status;
           const count = counts[status] || 0;
+          const label =
+            status === 'active'
+              ? 'Active'
+              : status.charAt(0).toUpperCase() + status.slice(1);
           return (
             <Link
               key={status}
-              href={status === 'all' ? '/dashboard/leads' : `/dashboard/leads?status=${status}`}
+              href={status === 'active' ? '/dashboard/leads' : `/dashboard/leads?status=${status}`}
               className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                active
+                isActive
                   ? 'bg-gray-900 text-white border-gray-900'
                   : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}{' '}
-              <span className={active ? 'text-white/60' : 'text-gray-400'}>({count})</span>
+              {label}{' '}
+              <span className={isActive ? 'text-white/60' : 'text-gray-400'}>({count})</span>
             </Link>
           );
         })}
@@ -119,7 +132,11 @@ export default async function LeadsPage({
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
         {rows.length === 0 ? (
           <div className="p-10 text-center text-gray-500 text-sm">
-            No leads yet. New form submissions will show up here automatically.
+            {effectiveFilter === 'active'
+              ? counts.active === 0 && (counts.lost || counts.converted)
+                ? 'No active leads. Switch a filter chip above to see closed leads.'
+                : 'No leads yet. New form submissions will show up here automatically.'
+              : `No leads with status "${effectiveFilter}".`}
           </div>
         ) : (
           <div className="overflow-x-auto">
