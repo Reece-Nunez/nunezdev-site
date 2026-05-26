@@ -62,14 +62,20 @@ export async function POST(request: NextRequest) {
       ? `${qualifyingLines.join('\n')}\n\n${message}`
       : message;
 
-    // Create lead in nurturing system
+    // Create lead in nurturing system. Capture the ID so the notification
+    // email can deep-link straight to the lead in the admin dashboard.
+    let leadId: string | null = null;
     try {
-      const leadId = await leadNurtureService.createLeadFromContact({
+      leadId = await leadNurtureService.createLeadFromContact({
         name,
         email,
         phone,
         company,
-        message: enrichedMessage
+        message,
+        projectType,
+        budget,
+        timeline,
+        leadSource: source,
       });
 
       console.log('Lead created successfully:', leadId);
@@ -80,33 +86,44 @@ export async function POST(request: NextRequest) {
 
     // Send immediate notification to you
     try {
+      const dashboardUrl = leadId
+        ? `https://www.nunezdev.com/dashboard/leads/${leadId}`
+        : 'https://www.nunezdev.com/dashboard/leads';
+
       await resend.emails.send({
         from: 'NunezDev Contact Form <reece@nunezdev.com>',
         to: ['reece@nunezdev.com'],
-        subject: `New Contact: ${name} - ${subject}`,
+        subject: `New Lead: ${name}${company ? ` (${company})` : ''}`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #ffc312;">New Contact Form Submission</h1>
+            <h1 style="color: #ffc312; margin-bottom: 8px;">New Lead from ${source || 'the website'}</h1>
+            <p style="color: #666; margin-top: 0; font-size: 14px;">Tap the button to open this lead in your dashboard.</p>
+
+            <div style="margin: 24px 0;">
+              <a href="${dashboardUrl}"
+                 style="display: inline-block; background-color: #ffc312; color: #1a1a1a; font-weight: 600; text-decoration: none; padding: 12px 22px; border-radius: 6px; font-size: 15px;">
+                View Lead in Dashboard &rarr;
+              </a>
+            </div>
 
             <div style="background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 20px 0;">
               <p><strong>Name:</strong> ${name}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+              <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+              <p><strong>Phone:</strong> ${phone ? `<a href="tel:${phone}">${phone}</a>` : 'Not provided'}</p>
               <p><strong>Company:</strong> ${company || 'Not provided'}</p>
               <p><strong>Project type:</strong> ${projectType || 'Not provided'}</p>
               <p><strong>Budget:</strong> ${budget || 'Not provided'}</p>
               <p><strong>Timeline:</strong> ${timeline || 'Not provided'}</p>
               <p><strong>Source:</strong> ${source || 'Not provided'}</p>
-              <p><strong>Subject:</strong> ${subject}</p>
             </div>
 
             <div style="margin: 20px 0;">
-              <h3>Message:</h3>
+              <h3 style="color: #333;">Message:</h3>
               <p style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; white-space: pre-wrap;">${message}</p>
             </div>
 
-            <p style="margin-top: 20px; font-size: 14px; color: #666;">
-              This contact has been automatically added to your lead nurturing system.
+            <p style="margin-top: 20px; font-size: 12px; color: #888;">
+              Lead ID: ${leadId || 'not created'} &middot; Added to nurture pipeline automatically.
             </p>
           </div>
         `,

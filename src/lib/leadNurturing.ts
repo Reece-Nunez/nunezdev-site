@@ -11,10 +11,17 @@ interface Lead {
   company?: string;
   source: 'contact_form' | 'appointment' | 'manual';
   tags: string[];
-  status: 'new' | 'nurturing' | 'qualified' | 'converted' | 'lost';
+  status: 'new' | 'contacted' | 'nurturing' | 'qualified' | 'converted' | 'lost';
   last_contact: string;
   next_followup: string;
   created_at: string;
+  // Qualifying fields captured by the public lead forms.
+  message?: string;
+  project_type?: string;
+  budget?: string;
+  timeline?: string;
+  lead_source?: string;
+  client_id?: string | null;
 }
 
 interface EmailSequence {
@@ -101,6 +108,10 @@ export class LeadNurtureService {
     phone?: string;
     company?: string;
     message: string;
+    projectType?: string;
+    budget?: string;
+    timeline?: string;
+    leadSource?: string;
   }): Promise<string> {
     const tags = await this.classifyLead(contactData.message, 'contact_form');
 
@@ -114,6 +125,11 @@ export class LeadNurtureService {
         source: 'contact_form',
         tags,
         status: 'new',
+        message: contactData.message,
+        project_type: contactData.projectType,
+        budget: contactData.budget,
+        timeline: contactData.timeline,
+        lead_source: contactData.leadSource,
         last_contact: new Date().toISOString(),
         next_followup: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours
       })

@@ -9,6 +9,7 @@ import NotificationBell from './NotificationBell';
 import {
   HomeIcon,
   UsersIcon,
+  UserPlusIcon,
   DocumentTextIcon,
   DocumentCheckIcon,
   ClockIcon,
@@ -28,6 +29,7 @@ import {
 
 const items = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },
+  { href: '/dashboard/leads', label: 'Leads', icon: UserPlusIcon },
   { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
   { href: '/dashboard/invoices', label: 'Invoices', icon: DocumentTextIcon },
