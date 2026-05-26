@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-24 text-gray-800">
       <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-      <p className="text-sm text-gray-500 mb-10">Last updated: February 18, 2026</p>
+      <p className="text-sm text-gray-500 mb-10">Last updated: May 26, 2026</p>
 
       <div className="space-y-8 text-sm leading-relaxed">
         <section>
@@ -92,6 +92,10 @@ export default function PrivacyPolicyPage() {
               notifications.
             </li>
             <li>
+              <strong>SMS / Messaging Provider:</strong> Twilio, for delivering text messages to
+              users who have opted in (see Section 9).
+            </li>
+            <li>
               <strong>Cloud Infrastructure:</strong> AWS and Supabase, for hosting and data storage.
             </li>
             <li>
@@ -102,6 +106,13 @@ export default function PrivacyPolicyPage() {
               <strong>Analytics:</strong> Google Analytics, for understanding website usage patterns.
             </li>
           </ul>
+          <p className="mt-3 font-medium">
+            Mobile information (phone numbers and SMS opt-in data) is{' '}
+            <strong>never shared, sold, rented, or transferred</strong> to third parties or
+            affiliates for marketing or promotional purposes. The only third parties that receive
+            mobile data are sub-processors strictly required to deliver the message itself (e.g.,
+            Twilio and the cellular carriers).
+          </p>
         </section>
 
         <section>
@@ -149,7 +160,56 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">9. Children&apos;s Privacy</h2>
+          <h2 className="text-lg font-semibold mb-2">9. Mobile Messaging &amp; SMS</h2>
+          <p className="mb-2">
+            If you provide your phone number and opt in to receive SMS messages from NunezDev, the
+            following applies:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li>
+              <strong>Message types:</strong> invoice and payment reminders, project status
+              updates, customer service responses, appointment confirmations, and occasional
+              promotional or service-related offers.
+            </li>
+            <li>
+              <strong>Message frequency:</strong> varies. You should not expect more than a few
+              messages per week in normal use; transactional messages (e.g., invoice reminders)
+              are sent only when relevant to your account.
+            </li>
+            <li>
+              <strong>Message and data rates may apply.</strong> Standard carrier rates from your
+              mobile provider apply to all SMS and MMS messages you send or receive.
+            </li>
+            <li>
+              <strong>HELP and STOP:</strong> reply <code>HELP</code> at any time for help, or
+              reply <code>STOP</code> to any message to opt out. After replying STOP you will
+              receive one confirmation message and will not be contacted again via SMS unless you
+              re-opt in.
+            </li>
+            <li>
+              <strong>Opt-in is never a condition of purchase.</strong>
+            </li>
+          </ul>
+          <p className="mt-3 font-medium">
+            <strong>
+              We do not share, sell, rent, or transfer your mobile phone number or SMS opt-in
+              information to any third party or affiliate for marketing or promotional purposes.
+            </strong>{' '}
+            This applies to all categories of mobile information collected. The only entities
+            that receive your mobile data are sub-processors strictly required to send the
+            message (e.g., Twilio and your cellular carrier).
+          </p>
+          <p className="mt-3">
+            Full messaging program terms are available on our{' '}
+            <a href="/sms-terms" className="text-emerald-600 hover:underline">
+              SMS Terms
+            </a>{' '}
+            page.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-2">10. Children&apos;s Privacy</h2>
           <p>
             Our services are not directed at individuals under the age of 13. We do not knowingly
             collect personal data from children.
@@ -157,7 +217,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">10. Changes to This Policy</h2>
+          <h2 className="text-lg font-semibold mb-2">11. Changes to This Policy</h2>
           <p>
             We may update this Privacy Policy from time to time. We will notify you of any material
             changes by posting the updated policy on this page with a revised &quot;Last
@@ -166,7 +226,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">11. Contact Us</h2>
+          <h2 className="text-lg font-semibold mb-2">12. Contact Us</h2>
           <p>
             If you have any questions about this Privacy Policy or our data practices, please
             contact us:

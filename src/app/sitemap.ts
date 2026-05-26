@@ -24,6 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/web-design-ponca-city`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE_URL}/privacy-policy`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/terms-of-service`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/sms-terms`, changeFrequency: "yearly", priority: 0.3 },
   ];
 
   const servicePages: MetadataRoute.Sitemap = serviceSlugs.map((slug) => ({

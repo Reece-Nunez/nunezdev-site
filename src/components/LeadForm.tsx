@@ -69,6 +69,7 @@ export default function LeadForm({
       budget: String(formData.get("budget") || ""),
       timeline: String(formData.get("timeline") || ""),
       message: String(formData.get("message") || "").trim(),
+      smsConsent: formData.get("smsConsent") === "on",
       turnstileToken: String(formData.get("cf-turnstile-response") || ""),
       source,
       subject: `Lead from ${source}`,
@@ -77,6 +78,18 @@ export default function LeadForm({
     if (!payload.name || !payload.email || !payload.message) {
       setStatus("error");
       setErrorMessage("Name, email, and a short message are required.");
+      return;
+    }
+
+    // Twilio A2P 10DLC requires that a phone number cannot be used for SMS
+    // without an actively-checked consent box. If a phone is provided but
+    // the user did not opt in, reject the submission rather than silently
+    // storing the number.
+    if (payload.phone && !payload.smsConsent) {
+      setStatus("error");
+      setErrorMessage(
+        "To include a phone number, please check the SMS consent box. You can leave the phone field blank if you'd rather not receive texts.",
+      );
       return;
     }
 
@@ -173,7 +186,11 @@ export default function LeadForm({
             autoComplete="tel"
             className={inputCls}
             placeholder="(555) 123-4567"
+            aria-describedby="lead-phone-help"
           />
+          <p id="lead-phone-help" className="text-white/40 text-[11px] mt-1">
+            Optional. Required only if you&apos;d like an SMS reply (see consent below).
+          </p>
         </div>
         <div>
           <label htmlFor="lead-company" className={labelCls}>
@@ -248,6 +265,49 @@ export default function LeadForm({
           className={inputCls}
           placeholder="A few sentences on what you're trying to build, what you've tried, and any links to inspiration."
         />
+      </div>
+
+      {/* A2P 10DLC SMS opt-in. Required by Twilio and the CTIA: the checkbox
+          must be unchecked by default and the disclosure must include message
+          purpose, frequency, msg&data rates, HELP/STOP, and links to terms
+          and privacy. */}
+      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+        <label
+          htmlFor="lead-sms-consent"
+          className="flex items-start gap-3 cursor-pointer"
+        >
+          <input
+            id="lead-sms-consent"
+            name="smsConsent"
+            type="checkbox"
+            className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus:ring-yellow/60 focus:ring-offset-0 cursor-pointer accent-yellow"
+          />
+          <span className="text-white/70 text-xs leading-relaxed">
+            By checking this box, I agree to receive SMS messages from NunezDev
+            including invoice reminders, project updates, customer service
+            responses, and occasional promotional offers. Message frequency
+            varies. Message and data rates may apply. Reply STOP to opt out,
+            HELP for help. Consent is not a condition of purchase. See our{' '}
+            <a
+              href="/sms-terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-yellow hover:underline"
+            >
+              SMS Terms
+            </a>{' '}
+            and{' '}
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-yellow hover:underline"
+            >
+              Privacy Policy
+            </a>
+            .
+          </span>
+        </label>
       </div>
 
       <Turnstile />

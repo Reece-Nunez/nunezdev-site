@@ -64,6 +64,7 @@ export default function Footer() {
     { label: "Contact", href: "/contact" },
     { label: "Privacy", href: "/privacy-policy" },
     { label: "Terms", href: "/terms-of-service" },
+    { label: "SMS Terms", href: "/sms-terms" },
   ];
 
   return (

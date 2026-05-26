@@ -112,6 +112,8 @@ export class LeadNurtureService {
     budget?: string;
     timeline?: string;
     leadSource?: string;
+    smsConsent?: boolean;
+    smsConsentIp?: string;
   }): Promise<string> {
     const tags = await this.classifyLead(contactData.message, 'contact_form');
 
@@ -130,6 +132,10 @@ export class LeadNurtureService {
         budget: contactData.budget,
         timeline: contactData.timeline,
         lead_source: contactData.leadSource,
+        sms_consent: contactData.smsConsent ?? false,
+        sms_consent_at: contactData.smsConsent ? new Date().toISOString() : null,
+        sms_consent_ip: contactData.smsConsent ? contactData.smsConsentIp ?? null : null,
+        sms_consent_source: contactData.smsConsent ? contactData.leadSource ?? null : null,
         last_contact: new Date().toISOString(),
         next_followup: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() // 2 hours
       })
