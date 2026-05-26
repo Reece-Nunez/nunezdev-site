@@ -19,7 +19,11 @@ interface ParticleLogoProps {
   height: number;
 }
 
-export default function ParticleLogo({ src, width, height }: ParticleLogoProps) {
+export default function ParticleLogo({
+  src,
+  width,
+  height,
+}: ParticleLogoProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const mouseRef = useRef({ x: -9999, y: -9999 });
@@ -146,11 +150,12 @@ export default function ParticleLogo({ src, width, height }: ParticleLogoProps) 
     const animate = (time: number) => {
       ctx.clearRect(0, 0, canvasW, canvasH);
 
-      // Additive blend gives a soft glow where particles overlap, at zero
-      // per-particle cost. Replaces shadowBlur + save/restore inside the
-      // loop (which was 250k+ canvas state-changes/sec at ~5k particles).
-      ctx.globalCompositeOperation = "lighter";
-
+      // Default source-over compositing. (Earlier draft used "lighter" for
+      // a soft glow, but additive blend saturated the cool blue particles
+      // toward cyan/white wherever they overlapped — the brand blue has
+      // balanced RGB so it blows out under additive stacking. The big
+      // perf wins are elsewhere: no per-particle ctx.save/restore, no
+      // shadowBlur, pre-sorted particles + fillStyle cache.)
       const points = mousePointsRef.current;
       const pointsLen = points.length;
       const mx = mouseRef.current.x;
@@ -226,9 +231,6 @@ export default function ParticleLogo({ src, width, height }: ParticleLogoProps) 
         }
         ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
       }
-
-      // Reset blend mode so any sibling canvas usage isn't affected
-      ctx.globalCompositeOperation = "source-over";
 
       // Clear interpolated points after processing (use current pos only until next move)
       mousePointsRef.current = [];

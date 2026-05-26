@@ -25,8 +25,12 @@ export default function ScrollCue() {
 
   if (!showCue || scrolled) return null;
 
+  // Positioned absolutely inside the Hero (Hero is `relative`) so the
+  // cue sits at the bottom of the hero section and scrolls away with
+  // it. Previously `fixed bottom-12` glued it to the viewport, which
+  // overlapped the about-card now that the hero is min-h-[85vh].
   return (
-    <div className="fixed bottom-12 left-0 w-full flex justify-center z-50 pointer-events-none">
+    <div className="absolute bottom-8 left-0 w-full flex justify-center z-30 pointer-events-none">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}

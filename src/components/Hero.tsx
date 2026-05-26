@@ -97,7 +97,11 @@ export default function Hero() {
           className="lg:col-span-5 hidden lg:flex flex-col items-center justify-center relative"
           onMouseEnter={() => setShowHint(false)}
         >
-          <ParticleLogo src="/n-logo-big.svg" width={360} height={360} />
+          <ParticleLogo
+            src="/n-logo-big.svg"
+            width={360}
+            height={360}
+          />
           <AnimatePresence>
             {showHint && (
               <motion.div
