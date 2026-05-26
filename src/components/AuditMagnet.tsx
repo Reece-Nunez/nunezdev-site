@@ -23,10 +23,13 @@ export default function AuditMagnet() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Capture the form ref synchronously — React nulls event.currentTarget
+    // after any `await`, so reset() below would otherwise throw.
+    const form = event.currentTarget;
     setStatus("submitting");
     setErrorMessage(null);
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const websiteUrl = String(formData.get("websiteUrl") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const name = String(formData.get("name") || "").trim();
@@ -61,7 +64,7 @@ export default function AuditMagnet() {
 
       trackEvent("audit_request_submit", { source: "homepage" });
       setStatus("success");
-      event.currentTarget.reset();
+      form.reset();
     } catch (err: unknown) {
       setStatus("error");
       setErrorMessage(

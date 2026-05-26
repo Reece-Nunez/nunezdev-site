@@ -53,10 +53,13 @@ export default function LeadForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Capture the form ref synchronously — React nulls event.currentTarget
+    // after any `await`, so reset() below would otherwise throw.
+    const form = event.currentTarget;
     setStatus("submitting");
     setErrorMessage(null);
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const payload = {
       name: String(formData.get("name") || "").trim(),
       email: String(formData.get("email") || "").trim(),
@@ -95,7 +98,7 @@ export default function LeadForm({
         budget: payload.budget,
       });
       setStatus("success");
-      event.currentTarget.reset();
+      form.reset();
     } catch (err: unknown) {
       setStatus("error");
       setErrorMessage(
