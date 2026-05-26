@@ -3,9 +3,21 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { FaFacebookF, FaInstagram, FaGithub, FaLinkedin } from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaGithub, FaLinkedin, FaGoogle } from "react-icons/fa";
+import {
+  ADDRESS,
+  EMAIL,
+  GOOGLE_BUSINESS_URL,
+  PHONE_DISPLAY,
+  PHONE_TEL,
+} from "@/lib/contact";
 
 const socialLinks = [
+  {
+    icon: FaGoogle,
+    href: GOOGLE_BUSINESS_URL,
+    label: "Google Business Profile",
+  },
   {
     icon: FaGithub,
     href: "https://github.com/reece-nunez",
@@ -90,12 +102,30 @@ export default function Footer() {
               Oklahoma.
             </p>
 
-            <a
-              href="mailto:reece@nunezdev.com"
-              className="inline-block text-yellow text-base font-medium hover:text-yellow/80 transition-colors"
-            >
-              reece@nunezdev.com &rarr;
-            </a>
+            {/* NAP block — Name/Address/Phone in the same DOM order Google
+                expects for local SEO, plain text + linkable contact methods. */}
+            <address className="not-italic text-white/60 text-sm leading-relaxed mb-4 space-y-1">
+              <div className="text-white/80 font-medium">NunezDev LLC</div>
+              <div>
+                {ADDRESS.city}, {ADDRESS.region} {ADDRESS.postalCode}
+              </div>
+              <div>
+                <a
+                  href={`tel:${PHONE_TEL}`}
+                  className="text-yellow hover:text-yellow/80 transition-colors font-medium"
+                >
+                  {PHONE_DISPLAY}
+                </a>
+              </div>
+              <div>
+                <a
+                  href={`mailto:${EMAIL}`}
+                  className="text-yellow hover:text-yellow/80 transition-colors"
+                >
+                  {EMAIL}
+                </a>
+              </div>
+            </address>
 
             <div className="flex gap-3 mt-6">
               {socialLinks.map((social) => (

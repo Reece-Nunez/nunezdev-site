@@ -6,6 +6,7 @@ import { motion, Variants, AnimatePresence } from "framer-motion";
 import ScrollCue from "@/components/ScrollCue";
 import ParticleLogo from "@/components/ParticleLogo";
 import { trackEvent } from "@/lib/gtag";
+import { PHONE_DISPLAY, PHONE_TEL } from "@/lib/contact";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -80,15 +81,26 @@ export default function Hero() {
               onClick={() => trackEvent("book_consult_click", { location: "hero" })}
               className="bg-yellow text-blue font-semibold px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg hover:bg-yellow/80 transition-colors text-base sm:text-lg text-center"
             >
-              Book a Free Consult &rarr;
+              Get a Free Quote &rarr;
             </a>
             <a
-              href="/pricing"
+              href={`tel:${PHONE_TEL}`}
+              onClick={() => trackEvent("phone_click", { location: "hero" })}
               className="text-base sm:text-lg text-white border border-white/40 px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition-colors text-center"
             >
-              See Pricing
+              Call {PHONE_DISPLAY}
             </a>
           </motion.div>
+
+          <motion.p
+            variants={fadeInUp}
+            className="text-white/40 text-xs mt-4 text-center lg:text-left"
+          >
+            Prefer to browse first?{" "}
+            <a href="/pricing" className="text-yellow/70 hover:text-yellow underline-offset-4 hover:underline">
+              See pricing &rarr;
+            </a>
+          </motion.p>
         </div>
 
         {/* Right column — ParticleLogo pinned right + interactivity hint */}

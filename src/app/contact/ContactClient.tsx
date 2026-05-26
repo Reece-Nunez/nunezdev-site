@@ -5,6 +5,7 @@ import { motion, Variants } from "framer-motion";
 import Link from "next/link";
 import ThreeBackground from "@/components/ThreeBackground";
 import CustomBooking from "@/components/CustomBooking";
+import LeadForm from "@/components/LeadForm";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCompass,
@@ -14,9 +15,11 @@ import {
   faEnvelope,
   faMapMarkerAlt,
   faClock,
-  faCheck,
+  faPhone,
 } from "@fortawesome/free-solid-svg-icons";
 import { FaGithub, FaLinkedin, FaFacebookF, FaInstagram } from "react-icons/fa";
+import { PHONE_DISPLAY, PHONE_TEL, EMAIL } from "@/lib/contact";
+import { trackEvent } from "@/lib/gtag";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -106,7 +109,38 @@ export default function ContactClient() {
       </motion.div>
 
       <div className="w-full max-w-5xl z-10 space-y-12">
-        {/* CTA Card */}
+        {/* Primary lead form — replaces the booking-only CTA so visitors who
+            aren't ready to commit to a 30-min call still get captured. */}
+        <motion.section
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.08 } },
+          }}
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12"
+        >
+          <motion.h2
+            variants={fadeInUp}
+            className="text-2xl md:text-3xl font-bold text-yellow mb-2 text-center"
+          >
+            Tell me about your project
+          </motion.h2>
+          <motion.p
+            variants={fadeInUp}
+            className="text-white/60 text-base max-w-xl mx-auto mb-8 text-center"
+          >
+            Share the basics below and I'll reply within 24 hours with honest
+            thoughts, a rough scope, and a ballpark price.
+          </motion.p>
+
+          <motion.div variants={fadeInUp}>
+            <LeadForm source="contact_page" />
+          </motion.div>
+        </motion.section>
+
+        {/* Secondary path — fast-action options for visitors ready to talk now */}
         <motion.section
           initial="hidden"
           whileInView="visible"
@@ -115,62 +149,39 @@ export default function ContactClient() {
             hidden: {},
             visible: { transition: { staggerChildren: 0.1 } },
           }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-5 sm:p-8 md:p-12 text-center"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          <motion.div
+          <motion.a
             variants={fadeInUp}
-            className="w-16 h-16 rounded-full bg-yellow/10 flex items-center justify-center mx-auto mb-6"
+            href={`tel:${PHONE_TEL}`}
+            onClick={() => trackEvent("phone_click", { location: "contact_page" })}
+            className="flex flex-col items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center hover:border-yellow/50 transition-colors duration-200"
           >
-            <FontAwesomeIcon
-              icon={faCalendarCheck}
-              className="text-yellow text-2xl"
-            />
-          </motion.div>
-          <motion.h2
+            <FontAwesomeIcon icon={faPhone} className="text-yellow text-xl" />
+            <div className="text-white font-semibold text-sm mt-1">Call now</div>
+            <div className="text-yellow text-base">{PHONE_DISPLAY}</div>
+          </motion.a>
+          <motion.button
             variants={fadeInUp}
-            className="text-2xl md:text-3xl font-bold text-yellow mb-3"
+            onClick={() => {
+              trackEvent("book_consult_click", { location: "contact_page" });
+              setIsBookingOpen(true);
+            }}
+            className="flex flex-col items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center hover:border-yellow/50 transition-colors duration-200"
           >
-            Schedule Your Free Discovery Call
-          </motion.h2>
-          <motion.p
+            <FontAwesomeIcon icon={faCalendarCheck} className="text-yellow text-xl" />
+            <div className="text-white font-semibold text-sm mt-1">Book a 30-min call</div>
+            <div className="text-white/50 text-xs">Pick a time on the calendar</div>
+          </motion.button>
+          <motion.a
             variants={fadeInUp}
-            className="text-white/60 text-lg max-w-xl mx-auto mb-8"
+            href={`mailto:${EMAIL}`}
+            className="flex flex-col items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center hover:border-yellow/50 transition-colors duration-200"
           >
-            A 30-minute conversation to understand your project, answer
-            questions, and map out the best path forward.
-          </motion.p>
-
-          <motion.div variants={fadeInUp}>
-            <motion.button
-              onClick={() => setIsBookingOpen(true)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
-              className="inline-block bg-yellow text-gray-900 font-semibold text-lg px-10 py-4 rounded-lg shadow hover:shadow-[0_0_30px_rgba(255,195,18,0.3)] transition-shadow duration-300"
-            >
-              Book a Call &rarr;
-            </motion.button>
-          </motion.div>
-
-          <motion.div
-            variants={fadeInUp}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-8"
-          >
-            {["30-minute call", "No pressure", "Honest advice"].map((item) => (
-              <div
-                key={item}
-                className="flex items-center gap-2 text-white/50 text-sm"
-              >
-                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <FontAwesomeIcon
-                    icon={faCheck}
-                    className="text-green-400 text-[10px]"
-                  />
-                </div>
-                {item}
-              </div>
-            ))}
-          </motion.div>
+            <FontAwesomeIcon icon={faEnvelope} className="text-yellow text-xl" />
+            <div className="text-white font-semibold text-sm mt-1">Email direct</div>
+            <div className="text-yellow text-xs break-all">{EMAIL}</div>
+          </motion.a>
         </motion.section>
 
         {/* What We'll Discuss */}

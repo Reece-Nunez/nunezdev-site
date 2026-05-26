@@ -5,11 +5,13 @@ import ThreeBackground from "@/components/ThreeBackground";
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "@/components/Hero";
+import SocialProofStrip from "@/components/SocialProofStrip";
+import AuditMagnet from "@/components/AuditMagnet";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHandshake,
   faWrench,
-  faThumbsUp,
+  faRocket,
 } from "@fortawesome/free-solid-svg-icons";
 import { services } from "@/data/services";
 import { projects } from "@/data/projects";
@@ -22,6 +24,8 @@ export default function HomeClient() {
       <ThreeBackground />
 
       <Hero />
+
+      <SocialProofStrip />
 
       <section
         className="relative w-full max-w-5xl px-4 sm:px-6 z-10 py-12 sm:py-16"
@@ -186,19 +190,24 @@ export default function HomeClient() {
               call is the person writing the code.
             </p>
           </div>
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-left hover:border-yellow/50 transition-colors duration-200">
+          <Link
+            href="/portfolio"
+            className="block bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-left hover:border-yellow/50 transition-colors duration-200 group"
+          >
             <div className="flex items-center gap-3 mb-3">
-              <FontAwesomeIcon icon={faThumbsUp} className="text-yellow text-lg" />
-              <h3 className="text-white font-semibold text-lg">
-                Transparent, no upselling
+              <FontAwesomeIcon icon={faRocket} className="text-yellow text-lg" />
+              <h3 className="text-white font-semibold text-lg group-hover:text-yellow transition-colors">
+                15+ shipped, all still live
               </h3>
             </div>
             <p className="text-white/60 text-sm leading-relaxed">
-              Flat-rate quotes, fixed scope, clear timelines. If the
-              project doesn&apos;t need a feature, I won&apos;t talk
-              you into it.
+              Every project in my portfolio is a working site you can
+              visit today — not a mockup or a case-study lift.{" "}
+              <span className="text-yellow/80 group-hover:text-yellow">
+                See for yourself &rarr;
+              </span>
             </p>
-          </div>
+          </Link>
         </div>
 
         <div className="text-center mt-12">
@@ -213,6 +222,8 @@ export default function HomeClient() {
           </motion.a>
         </div>
       </section>
+
+      <AuditMagnet />
 
       {/* Testimonials — auto-hides if data/testimonials.ts is empty */}
       {testimonials.length > 0 && (

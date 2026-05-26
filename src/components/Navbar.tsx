@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { services } from "@/data/services";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPhone } from "@fortawesome/free-solid-svg-icons";
 import { trackEvent } from "@/lib/gtag";
+import { PHONE_DISPLAY, PHONE_TEL } from "@/lib/contact";
 
 // The wordmark IS the home link — listing "Home" duplicates it and is one of
 // the more visible AI-nav fingerprints. Dropped from the inline list; the
@@ -264,6 +266,14 @@ export default function Navbar() {
 
             {/* Desktop Right — CTA */}
             <div className="hidden lg:flex items-center gap-6">
+              <a
+                href={`tel:${PHONE_TEL}`}
+                onClick={() => trackEvent("phone_click", { location: "navbar" })}
+                className="flex items-center gap-2 text-sm text-white/70 hover:text-yellow transition-colors duration-200"
+              >
+                <FontAwesomeIcon icon={faPhone} className="text-xs" />
+                {PHONE_DISPLAY}
+              </a>
               <Link
                 href="/portal/login"
                 className="text-sm text-white/70 hover:text-white transition-colors duration-200"
@@ -285,8 +295,17 @@ export default function Navbar() {
               </motion.div>
             </div>
 
-            {/* Spacer for hamburger so layout doesn't shift */}
-            <div className="w-10 h-10 lg:hidden" />
+            {/* Mobile tap-to-call — sits left of the fixed hamburger so the
+                phone number is always one tap away without opening the menu. */}
+            <a
+              href={`tel:${PHONE_TEL}`}
+              onClick={() => trackEvent("phone_click", { location: "navbar_mobile" })}
+              aria-label={`Call ${PHONE_DISPLAY}`}
+              className="lg:hidden flex items-center gap-1.5 text-yellow text-sm font-medium pr-12"
+            >
+              <FontAwesomeIcon icon={faPhone} className="text-xs" />
+              Call
+            </a>
           </div>
         </div>
       </motion.nav>
@@ -468,6 +487,17 @@ export default function Navbar() {
                 }}
                 className="flex flex-col items-center gap-6 mt-8 w-full"
               >
+                <a
+                  href={`tel:${PHONE_TEL}`}
+                  onClick={() => {
+                    trackEvent("phone_click", { location: "mobile_menu" });
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-xl text-yellow font-semibold"
+                >
+                  <FontAwesomeIcon icon={faPhone} className="text-base" />
+                  {PHONE_DISPLAY}
+                </a>
                 <Link
                   href="/portal/login"
                   onClick={() => setIsOpen(false)}

@@ -1,7 +1,37 @@
 "use client";
 import Script from "next/script";
+import { testimonials } from "@/data/testimonials";
+import { REVIEW_SUMMARY } from "@/lib/contact";
 
 export default function StructuredData() {
+  // Synthesize Review nodes from the testimonials we display on-site so the
+  // schema can never drift from what's visible to users (Google's primary
+  // anti-spam rule for review-rich results).
+  const reviewNodes = testimonials.map((t, i) => ({
+    "@type": "Review",
+    "@id": `https://www.nunezdev.com/#review-${i + 1}`,
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: "5",
+      bestRating: "5",
+    },
+    author: {
+      "@type": "Person",
+      name: t.name,
+    },
+    reviewBody: t.quote,
+    itemReviewed: {
+      "@id": "https://www.nunezdev.com/#local",
+    },
+  }));
+
+  const aggregateRating = {
+    "@type": "AggregateRating",
+    ratingValue: REVIEW_SUMMARY.rating.toFixed(1),
+    bestRating: "5",
+    reviewCount: REVIEW_SUMMARY.count,
+  };
+
   return (
     <Script
       id="structured-data"
@@ -125,8 +155,11 @@ export default function StructuredData() {
                     description: "Automate your business workflows with custom tools, database integrations, and cloud APIs."
                   }
                 }
-              ]
-            }
+              ],
+              aggregateRating,
+              review: reviewNodes,
+            },
+            ...reviewNodes
           ]
         })
       }}

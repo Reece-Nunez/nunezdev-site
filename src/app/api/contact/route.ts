@@ -17,6 +17,12 @@ export async function POST(request: NextRequest) {
       message,
       subject = 'New Contact Form Submission',
       turnstileToken,
+      // Qualifying fields from the homepage / contact lead form. Optional so
+      // older callers (audit magnet, legacy embeds) still work.
+      projectType,
+      budget,
+      timeline,
+      source,
     } = contactData;
 
     // Validate required fields
@@ -43,6 +49,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build an enriched message body so qualifying fields land in both the
+    // lead-nurture record and the notification email without changing the
+    // lead schema.
+    const qualifyingLines = [
+      projectType ? `Project type: ${projectType}` : null,
+      budget ? `Budget: ${budget}` : null,
+      timeline ? `Timeline: ${timeline}` : null,
+      source ? `Source: ${source}` : null,
+    ].filter(Boolean);
+    const enrichedMessage = qualifyingLines.length
+      ? `${qualifyingLines.join('\n')}\n\n${message}`
+      : message;
+
     // Create lead in nurturing system
     try {
       const leadId = await leadNurtureService.createLeadFromContact({
@@ -50,7 +69,7 @@ export async function POST(request: NextRequest) {
         email,
         phone,
         company,
-        message
+        message: enrichedMessage
       });
 
       console.log('Lead created successfully:', leadId);
@@ -74,6 +93,10 @@ export async function POST(request: NextRequest) {
               <p><strong>Email:</strong> ${email}</p>
               <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
               <p><strong>Company:</strong> ${company || 'Not provided'}</p>
+              <p><strong>Project type:</strong> ${projectType || 'Not provided'}</p>
+              <p><strong>Budget:</strong> ${budget || 'Not provided'}</p>
+              <p><strong>Timeline:</strong> ${timeline || 'Not provided'}</p>
+              <p><strong>Source:</strong> ${source || 'Not provided'}</p>
               <p><strong>Subject:</strong> ${subject}</p>
             </div>
 
