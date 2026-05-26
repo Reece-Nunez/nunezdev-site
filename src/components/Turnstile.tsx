@@ -22,6 +22,7 @@ declare global {
         opts: { sitekey: string; theme?: "light" | "dark" | "auto"; size?: "normal" | "compact" }
       ) => string;
       reset: (widgetId?: string) => void;
+      remove: (widgetId: string) => void;
     };
   }
 }
@@ -39,9 +40,12 @@ export default function Turnstile({ theme = "auto", size = "normal" }: Props) {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   useEffect(() => {
-    if (!siteKey || !containerRef.current) return;
+    // Guard: ensure the env var actually arrived as a string. Misconfigured
+    // builds have surfaced as { sitekey: <object> } at the Cloudflare layer.
+    if (!siteKey || typeof siteKey !== "string" || !containerRef.current) return;
 
     let cancelled = false;
+    let pollId: number | null = null;
 
     const renderWidget = () => {
       if (cancelled) return;
@@ -58,18 +62,29 @@ export default function Turnstile({ theme = "auto", size = "normal" }: Props) {
     if (window.turnstile) {
       renderWidget();
     } else {
-      // Poll briefly until the script loads.
-      const id = window.setInterval(() => {
+      pollId = window.setInterval(() => {
         if (window.turnstile) {
-          window.clearInterval(id);
+          if (pollId !== null) window.clearInterval(pollId);
+          pollId = null;
           renderWidget();
         }
       }, 100);
-      return () => {
-        cancelled = true;
-        window.clearInterval(id);
-      };
     }
+
+    return () => {
+      cancelled = true;
+      if (pollId !== null) window.clearInterval(pollId);
+      // Cleanly remove the widget so re-mounts (modal open/close, route
+      // changes) don't leak widgets or trigger "Cannot find Widget" warnings.
+      if (widgetIdRef.current && window.turnstile?.remove) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // Cloudflare throws if the widget was already cleaned — swallow it.
+        }
+        widgetIdRef.current = null;
+      }
+    };
   }, [siteKey, theme, size]);
 
   if (!siteKey) return null;
@@ -77,12 +92,15 @@ export default function Turnstile({ theme = "auto", size = "normal" }: Props) {
   return (
     <>
       <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="lazyOnload"
         async
         defer
       />
-      <div ref={containerRef} className="cf-turnstile" />
+      {/* No `cf-turnstile` class — that would trigger Cloudflare's
+          auto-render in parallel with our explicit render() call, causing
+          double-render conflicts and the "got 'object'" sitekey error. */}
+      <div ref={containerRef} />
     </>
   );
 }
