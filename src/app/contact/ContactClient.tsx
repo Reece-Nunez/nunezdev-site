@@ -50,7 +50,7 @@ const discussionTopics = [
     icon: faArrowRight,
     title: "Next Steps",
     description:
-      "Walk away with a clear action plan and proposal outline — no guesswork.",
+      "Walk away with a clear action plan and proposal outline. No guesswork.",
   },
 ];
 
@@ -90,12 +90,6 @@ export default function ContactClient() {
         }}
         className="max-w-4xl text-center mb-16 z-10"
       >
-        <motion.p
-          variants={fadeInUp}
-          className="text-yellow/70 text-sm uppercase tracking-widest font-medium mb-3"
-        >
-          Contact
-        </motion.p>
         <motion.h1
           variants={fadeInUp}
           className="text-yellow text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight mb-6"

@@ -10,8 +10,10 @@ import { services } from "@/data/services";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { trackEvent } from "@/lib/gtag";
 
+// The wordmark IS the home link — listing "Home" duplicates it and is one of
+// the more visible AI-nav fingerprints. Dropped from the inline list; the
+// logo still routes to "/".
 const navItems = [
-  { label: "Home", href: "/" },
   { label: "About", href: "/about" },
   { label: "Services", href: "/services", hasDropdown: true },
   { label: "Portfolio", href: "/portfolio" },
@@ -153,7 +155,7 @@ export default function Navbar() {
                       <Link
                         href={item.href}
                         className={cn(
-                          "relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors duration-200",
+                          "relative px-4 py-2 text-sm font-medium transition-colors duration-200",
                           isActive
                             ? "text-yellow"
                             : "text-white/80 hover:text-yellow"
@@ -237,7 +239,7 @@ export default function Navbar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors duration-200",
+                      "relative px-4 py-2 text-sm font-medium transition-colors duration-200",
                       isActive
                         ? "text-yellow"
                         : "text-white/80 hover:text-yellow"

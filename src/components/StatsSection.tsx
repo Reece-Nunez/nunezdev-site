@@ -1,17 +1,7 @@
 "use client";
 
-import { motion, Variants } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { homeStats } from "@/data/stats";
-
-const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: "easeOut" as const },
-  },
-};
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -78,28 +68,24 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 
 export default function StatsSection() {
   return (
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.4 }}
-      variants={{
-        hidden: {},
-        visible: { transition: { staggerChildren: 0.1 } },
-      }}
-      className="w-full max-w-5xl z-10 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 px-4 sm:px-6"
-    >
-      {homeStats.map((stat) => (
-        <motion.div
-          key={stat.label}
-          variants={fadeInUp}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 sm:p-6 text-center"
-        >
-          <div className="text-yellow text-2xl sm:text-3xl md:text-4xl font-bold mb-1">
-            <AnimatedCounter target={stat.value} suffix={stat.suffix ?? ""} />
+    <div className="w-full max-w-5xl z-10 px-4 sm:px-8 py-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/10 border-y border-white/10">
+        {homeStats.map((stat, i) => (
+          <div
+            key={stat.label}
+            className={`text-center sm:text-left py-6 sm:py-8 px-4 sm:px-6 ${
+              i >= 2 ? "border-t md:border-t-0 border-white/10" : ""
+            }`}
+          >
+            <div className="text-yellow text-4xl sm:text-5xl md:text-6xl font-bold leading-none tracking-tight">
+              <AnimatedCounter target={stat.value} suffix={stat.suffix ?? ""} />
+            </div>
+            <div className="text-white/40 text-xs sm:text-sm uppercase tracking-wider mt-3">
+              {stat.label}
+            </div>
           </div>
-          <div className="text-white/50 text-sm">{stat.label}</div>
-        </motion.div>
-      ))}
-    </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
