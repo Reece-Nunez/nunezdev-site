@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadNurtureService } from '@/lib/leadNurturing';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -14,13 +15,30 @@ export async function POST(request: NextRequest) {
       phone,
       company,
       message,
-      subject = 'New Contact Form Submission'
+      subject = 'New Contact Form Submission',
+      turnstileToken,
     } = contactData;
 
     // Validate required fields
     if (!name || !email || !message) {
       return NextResponse.json(
         { error: 'Name, email, and message are required' },
+        { status: 400 }
+      );
+    }
+
+    // Public contact endpoint — protect with Cloudflare Turnstile.
+    // No-op when TURNSTILE_SECRET_KEY is unset (dev / external callers
+    // that pre-date Turnstile still pass through gracefully).
+    const remoteIp =
+      request.headers.get('cf-connecting-ip') ??
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      undefined;
+    const verdict = await verifyTurnstile(turnstileToken, remoteIp);
+    if (!verdict.ok) {
+      console.warn('[contact] turnstile failed:', verdict.reason);
+      return NextResponse.json(
+        { error: 'Spam protection failed. Please refresh and try again.' },
         { status: 400 }
       );
     }

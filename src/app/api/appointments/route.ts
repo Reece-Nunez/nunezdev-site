@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { calendarService } from '@/lib/calendarService';
 import { leadNurtureService } from '@/lib/leadNurturing';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -9,6 +10,21 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const appointmentData = await request.json();
+
+    // Public booking endpoint — protect with Cloudflare Turnstile.
+    // No-op when TURNSTILE_SECRET_KEY is unset (so local dev still works).
+    const remoteIp =
+      request.headers.get('cf-connecting-ip') ??
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      undefined;
+    const verdict = await verifyTurnstile(appointmentData.turnstileToken, remoteIp);
+    if (!verdict.ok) {
+      console.warn('[appointments] turnstile failed:', verdict.reason);
+      return NextResponse.json(
+        { error: 'Spam protection failed. Please refresh and try again.' },
+        { status: 400 }
+      );
+    }
 
     console.log('Raw appointment data received:', appointmentData);
 

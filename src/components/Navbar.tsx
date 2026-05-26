@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { services } from "@/data/services";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { trackEvent } from "@/lib/gtag";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -274,6 +275,7 @@ export default function Navbar() {
               >
                 <Link
                   href="/contact"
+                  onClick={() => trackEvent("book_consult_click", { location: "navbar" })}
                   className="inline-block bg-yellow text-gray-900 font-semibold text-sm px-6 py-2.5 rounded-lg hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
                 >
                   Let&apos;s get building
@@ -473,7 +475,10 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href="/contact"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => {
+                    trackEvent("book_consult_click", { location: "mobile_menu" });
+                    setIsOpen(false);
+                  }}
                   className="inline-block bg-yellow text-gray-900 font-semibold text-lg px-8 py-3 rounded-lg hover:shadow-[0_0_20px_rgba(255,195,18,0.3)] transition-shadow duration-300"
                 >
                   Let&apos;s get building

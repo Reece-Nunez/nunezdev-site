@@ -4,6 +4,7 @@ import { TypewriterText } from "@/components/Typewriter";
 import { motion, Variants } from "framer-motion";
 import ScrollCue from "@/components/ScrollCue";
 import ParticleLogo from "@/components/ParticleLogo";
+import { trackEvent } from "@/lib/gtag";
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -58,8 +59,8 @@ export default function Hero() {
           variants={fadeInUp}
           className="max-w-xl text-white/70 mx-auto text-base md:text-lg"
         >
-          Full-stack websites, dashboards, and internal tools that help small
-          businesses run smoother.
+          Custom websites, dashboards, and automation built one-on-one for
+          small businesses — no agencies, no templates, no offshore.
         </motion.p>
 
         <motion.div
@@ -67,16 +68,17 @@ export default function Hero() {
           className="flex flex-col sm:flex-row justify-center gap-4 pt-4"
         >
           <a
-            href="/pricing"
+            href="/contact"
+            onClick={() => trackEvent("book_consult_click", { location: "hero" })}
             className="bg-yellow text-blue font-semibold px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg shadow hover:bg-yellow/80 transition-all text-base sm:text-lg"
           >
-            View Pricing
+            Book a Free Consult &rarr;
           </a>
           <a
-            href="/contact"
+            href="/pricing"
             className="text-base sm:text-lg text-white border border-white/40 px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition"
           >
-            Contact Me
+            See Pricing
           </a>
         </motion.div>
       </motion.div>

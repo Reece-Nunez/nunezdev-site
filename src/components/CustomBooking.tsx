@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { XMarkIcon, ClockIcon, CalendarDaysIcon, VideoCameraIcon, PhoneIcon } from "@heroicons/react/24/outline";
 import { useToast } from "@/hooks/useToast";
 import { ToastContainer } from "./Toast";
+import Turnstile from "@/components/Turnstile";
+import { trackEvent } from "@/lib/gtag";
 
 interface TimeSlot {
   time: string;
@@ -169,6 +171,10 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
         meeting_platform: formData.get('platform') as string,
         project_details: formData.get('details') as string,
         timezone: 'America/Chicago', // You can make this dynamic
+        // Cloudflare Turnstile token — injected by the <Turnstile/> widget
+        // as a hidden input. Server skips verification if Turnstile env
+        // vars are unset, so this is safe to send even in local dev.
+        turnstileToken: (formData.get('cf-turnstile-response') as string) || null,
       };
 
       console.log('Frontend sending appointment data:', appointmentData);
@@ -197,6 +203,10 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
       }
 
       const result = await response.json();
+      trackEvent('lead_form_submit', {
+        form: 'booking',
+        meeting_type: selectedMeetingType?.slug,
+      });
       success('Meeting scheduled successfully! You\'ll receive a confirmation email shortly.');
       setStep('success');
     } catch (catchError: any) {
@@ -492,6 +502,10 @@ export default function CustomBooking({ isOpen, onClose }: CustomBookingProps) {
                       className="w-full p-3 rounded-lg bg-gray-800 border border-offwhite/30 text-white placeholder-gray-400 focus:border-yellow focus:outline-none resize-none focus:bg-gray-700"
                       placeholder="Tell me about your project, goals, and what you'd like to discuss..."
                     />
+                  </div>
+
+                  <div className="pt-2">
+                    <Turnstile theme="dark" />
                   </div>
 
                   <div className="flex gap-3 pt-4">
