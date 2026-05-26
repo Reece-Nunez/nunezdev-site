@@ -8,6 +8,7 @@ import DashboardCharts from "./DashboardCharts";
 import MrrWidget from "./MrrWidget";
 import MrrHistoryChart from "./MrrHistoryChart";
 import RevenueMixChart from "./RevenueMixChart";
+import LeadSourcesPanel from "./LeadSourcesPanel";
 import { useRealtimeEvents, RealtimeEvent } from "@/hooks/useRealtimeEvents";
 
 interface DashboardClientProps {
@@ -495,6 +496,8 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
           {/* Recurring Revenue widget unifies Stripe subscriptions + legacy
               recurring_invoices + pending schedules into a single section. */}
           <MrrWidget />
+
+          <LeadSourcesPanel />
 
           <div className="bg-white border rounded-xl p-4">
             <h3 className="font-semibold text-gray-800 mb-2">Recent Activity</h3>
