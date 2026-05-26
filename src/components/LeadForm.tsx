@@ -264,7 +264,7 @@ export default function LeadForm({
               Sending...
             </>
           ) : (
-            <>Get my free project plan &rarr;</>
+            <>Get my free quote &rarr;</>
           )}
         </button>
         <p className="text-white/40 text-xs">
