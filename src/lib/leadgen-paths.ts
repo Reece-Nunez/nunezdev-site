@@ -30,3 +30,27 @@ export const LEADGEN_OUTPUT_DIR =
   process.env.LEADGEN_OUTPUT_DIR || path.join(PIPELINE_ROOT, "output");
 
 export const PYTHON_EXECUTABLE = process.env.LEADGEN_PYTHON || "python";
+
+/**
+ * Mirror of `business_output_dir()` in the pipeline's builder.py. Generates
+ * the per-business folder name where the pipeline writes proposal.pdf and
+ * mockup.html. The two implementations MUST stay aligned — if the Python
+ * sanitizer changes (different unsafe-char set, different empty-fallback
+ * rule), this needs to change in lockstep or the UI won't find the files.
+ *
+ * Replicated rules:
+ *   - Keep [A-Za-z0-9 \-], replace anything else with '_'.
+ *   - Strip surrounding whitespace and trailing dots (Windows-illegal).
+ *   - If the result is empty / all underscores, fall back to 'unnamed'.
+ *   - Always suffix with `_<business_id>` for collision-free uniqueness.
+ */
+export function businessOutputDirName(businessId: number, businessName: string): string {
+  let safe = "";
+  for (const c of businessName) {
+    if (/[A-Za-z0-9 \-]/.test(c)) safe += c;
+    else safe += "_";
+  }
+  safe = safe.trim().replace(/\.+$/, "");
+  if (!safe.replace(/_/g, "")) safe = "unnamed";
+  return `${safe}_${businessId}`;
+}
