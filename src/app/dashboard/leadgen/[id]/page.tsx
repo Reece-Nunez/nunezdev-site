@@ -20,6 +20,7 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import { LEADGEN_OUTPUT_DIR } from "@/lib/leadgen-paths";
+import StageButtons from "../StageButtons";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -134,6 +135,12 @@ export default async function LeadgenDetail({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* ── Pipeline actions ────────────────────────────────────── */}
+      <Card>
+        <SectionTitle>Pipeline actions</SectionTitle>
+        <StageButtons businessId={detail.id} status={detail.status} />
+      </Card>
 
       {/* ── Business facts ──────────────────────────────────────── */}
       <Card>
