@@ -39,7 +39,11 @@ export const PYTHON_EXECUTABLE = process.env.LEADGEN_PYTHON || "python";
  * rule), this needs to change in lockstep or the UI won't find the files.
  *
  * Replicated rules:
- *   - Keep [A-Za-z0-9 \-], replace anything else with '_'.
+ *   - Keep Unicode letters/digits + space + hyphen; replace anything else
+ *     with '_'. Python uses str.isalnum() which is Unicode-aware, so the
+ *     JS side uses \p{L}\p{N} (NOT ASCII-only [A-Za-z0-9]) — otherwise
+ *     names like "Café Olé" produce different folder names on each side
+ *     and the UI can't find the files.
  *   - Strip surrounding whitespace and trailing dots (Windows-illegal).
  *   - If the result is empty / all underscores, fall back to 'unnamed'.
  *   - Always suffix with `_<business_id>` for collision-free uniqueness.
@@ -47,7 +51,7 @@ export const PYTHON_EXECUTABLE = process.env.LEADGEN_PYTHON || "python";
 export function businessOutputDirName(businessId: number, businessName: string): string {
   let safe = "";
   for (const c of businessName) {
-    if (/[A-Za-z0-9 \-]/.test(c)) safe += c;
+    if (/[\p{L}\p{N} \-]/u.test(c)) safe += c;
     else safe += "_";
   }
   safe = safe.trim().replace(/\.+$/, "");

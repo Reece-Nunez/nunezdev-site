@@ -86,8 +86,13 @@ async function runStage(stage: Stage, businessId: number): Promise<ActionResult>
       killed?: boolean;
       signal?: string;
     };
+    // Windows doesn't honor POSIX signals — Node simulates SIGTERM via
+    // TerminateProcess but `e.signal` can be null on win32 even when the
+    // kill came from the timeout. Treat any `killed` outcome as a
+    // timeout (the only path that sets `killed: true` here is the
+    // configured timeout firing).
     let message = `${stage} failed`;
-    if (e.killed && e.signal === "SIGTERM") message = `${stage} timed out`;
+    if (e.killed) message = `${stage} timed out`;
     else if (e.code) message = `${stage} exited with code ${e.code}`;
     return {
       ok: false,

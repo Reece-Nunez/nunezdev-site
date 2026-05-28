@@ -199,15 +199,31 @@ export function listBusinesses(filters: ListFilters = {}): BusinessSummary[] {
     params.category = filters.category;
   }
   const whereClause = where.length ? "WHERE " + where.join(" AND ") : "";
-  const limit = Math.max(1, Math.min(500, filters.limit ?? 200));
+  // LIMIT is interpolated as a literal (named params on LIMIT aren't
+  // supported in older sqlite). Clamp + Number.isFinite is defensive
+  // against NaN/Infinity bleed-through from callers — a raw NaN would
+  // produce a SQL error.
+  const rawLimit = filters.limit ?? 200;
+  const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(500, rawLimit)) : 200;
 
+  // Use a window function to pick the latest research row per business —
+  // the schema allows multiple rows per business_id (re-running research
+  // inserts another row). A plain LEFT JOIN would multiply the result
+  // set, so the same business would appear twice in the dashboard table.
   return db()
     .prepare(
       `SELECT b.*,
               r.opportunity_score AS ai_score,
               r.website_score    AS website_score
          FROM businesses b
-         LEFT JOIN research r ON r.business_id = b.id
+         LEFT JOIN (
+           SELECT business_id, opportunity_score, website_score,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY business_id
+                    ORDER BY created_at DESC, id DESC
+                  ) AS rn
+             FROM research
+         ) r ON r.business_id = b.id AND r.rn = 1
          ${whereClause}
          ORDER BY r.opportunity_score DESC NULLS LAST,
                   b.review_count ASC
@@ -232,8 +248,13 @@ export function getBusiness(id: number): BusinessDetail | null {
     | undefined;
   if (!business) return null;
 
+  // research and proposals have no UNIQUE constraint on business_id in the
+  // pipeline schema — re-running a stage inserts a new row. Without an
+  // explicit ORDER BY, .get() returns whichever row SQLite scans first
+  // (unspecified order). Always grab the most recent so the UI reflects
+  // the latest run.
   const research = db()
-    .prepare("SELECT * FROM research WHERE business_id = ?")
+    .prepare("SELECT * FROM research WHERE business_id = ? ORDER BY created_at DESC, id DESC LIMIT 1")
     .get(id) as ResearchRow | undefined;
 
   let ai_analysis: AIAnalysis | null = null;
@@ -246,7 +267,7 @@ export function getBusiness(id: number): BusinessDetail | null {
   }
 
   const proposal = db()
-    .prepare("SELECT * FROM proposals WHERE business_id = ?")
+    .prepare("SELECT * FROM proposals WHERE business_id = ? ORDER BY created_at DESC, id DESC LIMIT 1")
     .get(id) as ProposalRow | undefined;
 
   const outreach = db()
