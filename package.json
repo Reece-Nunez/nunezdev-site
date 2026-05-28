@@ -70,7 +70,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
+    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
@@ -79,6 +79,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-signature-canvas": "^1.0.7",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.5.18",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
     "supabase": "^2.76.16"
