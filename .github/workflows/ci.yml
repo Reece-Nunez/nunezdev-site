@@ -1,0 +1,40 @@
+name: CI
+
+# Runs lint + typecheck on every push and PR. This is the mechanical
+# Layer 1 defense for the engineering-discipline rules in
+# NunezDev/CLAUDE.md — if a push gets here with type errors or lint
+# errors, this job fails before anything else looks at the change.
+#
+# Intentionally minimal for now: lint + typecheck only. Add tests when
+# we wire up vitest/jest for the UI; today the testable Phase 1 surface
+# is small enough that the typecheck alone catches the high-leverage
+# bugs (wrong props, bad imports, schema drift in lib/leadgen-db.ts).
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  check:
+    name: Lint + typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck

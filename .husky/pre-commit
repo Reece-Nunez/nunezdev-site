@@ -1,0 +1,5 @@
+# Pre-commit hook: lint + autofix staged files via lint-staged.
+# Full type-check runs in CI on push (faster pre-commit means we're
+# less tempted to --no-verify our way around it).
+# Documented in NunezDev/CLAUDE.md "Definition of Done" — Layer 1.
+npx lint-staged
