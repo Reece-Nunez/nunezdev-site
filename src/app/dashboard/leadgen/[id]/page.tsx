@@ -5,7 +5,7 @@ import {
   getBusiness,
   type BusinessStatus,
   type OutreachRow,
-} from "@/lib/leadgen-db";
+} from "@/lib/leadgen-api";
 import { businessOutputDirName } from "@/lib/leadgen-paths";
 import { aiScoreClass } from "../utils";
 import {
@@ -68,7 +68,7 @@ export default async function LeadgenDetail({ params }: PageProps) {
   const businessId = Number.parseInt(rawId, 10);
   if (!Number.isInteger(businessId) || businessId <= 0) notFound();
 
-  const detail = getBusiness(businessId);
+  const detail = await getBusiness(businessId);
   if (!detail) notFound();
 
   // Check which output files actually exist so we don't render iframes

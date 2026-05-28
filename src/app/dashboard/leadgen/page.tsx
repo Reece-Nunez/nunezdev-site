@@ -4,9 +4,10 @@ import {
   isAvailable,
   getStats,
   listBusinesses,
+  isRemoteBackend,
   type BusinessStatus,
   type BusinessSummary,
-} from "@/lib/leadgen-db";
+} from "@/lib/leadgen-api";
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import { aiScoreClass } from "./utils";
 import { MagnifyingGlassIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
@@ -60,31 +61,52 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
     );
   }
 
-  // ── Empty state when the pipeline DB isn't reachable ─────────────
-  if (!isAvailable()) {
+  // ── Empty state when the pipeline backend isn't reachable ────────
+  if (!(await isAvailable())) {
+    const remote = isRemoteBackend();
     return (
       <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
         <PageHeader />
         <div className="rounded-xl border bg-white p-6 text-sm space-y-3">
-          <p className="font-medium text-gray-900">Pipeline DB not found.</p>
-          <p className="text-gray-700">
-            The dashboard reads from the automated-ai-pipeline&apos;s SQLite
-            database. It expects to find <code className="font-mono">leads.db</code>{" "}
-            at this path:
+          <p className="font-medium text-gray-900">
+            {remote ? "Pipeline API unreachable." : "Pipeline DB not found."}
           </p>
-          <code className="block bg-gray-50 border rounded px-3 py-2 font-mono text-xs">
-            {LEADGEN_DB_PATH}
-          </code>
-          <p className="text-gray-700">
-            Either run the pipeline once to create it, or set
-            {" "}<code className="font-mono">LEADGEN_DB_PATH</code>{" "}
-            and{" "}<code className="font-mono">LEADGEN_PIPELINE_ROOT</code>{" "}
-            in <code className="font-mono">.env.local</code> to point at the
-            pipeline you want to use.
-          </p>
-          <p className="text-gray-500 text-xs">
-            Detected pipeline root: <code className="font-mono">{PIPELINE_ROOT}</code>
-          </p>
+          {remote ? (
+            <>
+              <p className="text-gray-700">
+                The dashboard couldn&apos;t reach the leadgen API. Check that
+                the service is running at the URL below and that{" "}
+                <code className="font-mono">LEADGEN_API_TOKEN</code> matches
+                the deployed secret.
+              </p>
+              <code className="block bg-gray-50 border rounded px-3 py-2 font-mono text-xs">
+                {process.env.LEADGEN_API_URL || "(unset)"}
+              </code>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-700">
+                The dashboard reads from the automated-ai-pipeline&apos;s
+                SQLite database. It expects to find{" "}
+                <code className="font-mono">leads.db</code> at this path:
+              </p>
+              <code className="block bg-gray-50 border rounded px-3 py-2 font-mono text-xs">
+                {LEADGEN_DB_PATH}
+              </code>
+              <p className="text-gray-700">
+                Either run the pipeline once to create it, set{" "}
+                <code className="font-mono">LEADGEN_DB_PATH</code> /{" "}
+                <code className="font-mono">LEADGEN_PIPELINE_ROOT</code> in{" "}
+                <code className="font-mono">.env.local</code>, or set{" "}
+                <code className="font-mono">LEADGEN_API_URL</code> to point at
+                the FastAPI service.
+              </p>
+              <p className="text-gray-500 text-xs">
+                Detected pipeline root:{" "}
+                <code className="font-mono">{PIPELINE_ROOT}</code>
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -97,11 +119,11 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
     ? (rawStatus as BusinessStatus | "all")
     : "all";
 
-  const stats = getStats();
-  const businesses = listBusinesses({
-    status: activeStatus,
-    limit: 200,
-  });
+  // Parallelize the two reads — stats and businesses are independent.
+  const [stats, businesses] = await Promise.all([
+    getStats(),
+    listBusinesses({ status: activeStatus, limit: 200 }),
+  ]);
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">

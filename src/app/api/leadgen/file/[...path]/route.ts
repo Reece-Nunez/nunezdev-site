@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { requireOwner } from "@/lib/authz";
 import { LEADGEN_OUTPUT_DIR } from "@/lib/leadgen-paths";
+import { proxyFile } from "@/lib/leadgen-api";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { createReadStream } from "node:fs";
@@ -44,6 +45,13 @@ export async function GET(_req: Request, ctx: RouteContext) {
   if (!segments || segments.length === 0) {
     return NextResponse.json({ error: "missing path" }, { status: 400 });
   }
+
+  // ── Remote backend: proxy to the FastAPI service ─────────────────
+  // The upstream API has its own auth + path-traversal + mime checks.
+  // proxyFile returns null when the local backend is in use, in which
+  // case we fall through to the disk-read path below.
+  const proxied = await proxyFile(segments);
+  if (proxied) return proxied;
 
   // ── Path-traversal hardening ─────────────────────────────────────
   // Resolve the requested file path inside LEADGEN_OUTPUT_DIR and refuse
