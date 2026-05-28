@@ -31,7 +31,11 @@ jobs:
           cache: "npm"
 
       - name: Install
-        run: npm ci
+        # `npm install` rather than `npm ci`: better-sqlite3 pulls in
+        # platform-specific native bindings (@emnapi/runtime on Linux,
+        # different ones on Windows/macOS) and `npm ci`'s strict lockfile
+        # check rejects the OS-specific drift. The runtime cost is small.
+        run: npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
