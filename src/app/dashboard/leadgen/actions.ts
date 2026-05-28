@@ -23,13 +23,14 @@ import { PIPELINE_ROOT, PYTHON_EXECUTABLE } from "@/lib/leadgen-paths";
 
 const exec = promisify(execFile);
 
+import type { Stage } from "./utils";
+export type { Stage };
+
 const STAGE_TIMEOUTS_MS: Record<Stage, number> = {
   research: 90_000,    // Claude call + website fetch
   build:    300_000,   // 2 Claude streams (proposal + mockup, up to 24K tokens)
   outreach: 180_000,   // 3 Claude calls (email + SMS + phone)
 };
-
-export type Stage = "research" | "build" | "outreach";
 
 export interface ActionResult {
   ok: boolean;

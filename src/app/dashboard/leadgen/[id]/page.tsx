@@ -7,6 +7,7 @@ import {
   type OutreachRow,
 } from "@/lib/leadgen-db";
 import { businessOutputDirName } from "@/lib/leadgen-paths";
+import { aiScoreClass } from "../utils";
 import {
   ArrowLeftIcon,
   GlobeAltIcon,
@@ -37,15 +38,6 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
 };
-
-function aiScoreClass(score: number | null | undefined): string {
-  if (score == null) return "bg-gray-50 text-gray-500 border-gray-200";
-  if (score >= 9)    return "bg-red-50 text-red-700 border-red-200";
-  if (score >= 7)    return "bg-orange-50 text-orange-700 border-orange-200";
-  if (score >= 5)    return "bg-yellow-50 text-yellow-700 border-yellow-200";
-  if (score >= 3)    return "bg-blue-50 text-blue-700 border-blue-200";
-  return "bg-gray-50 text-gray-600 border-gray-200";
-}
 
 function formatCurrency(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -293,6 +285,16 @@ export default async function LeadgenDetail({ params }: PageProps) {
 }
 
 // ── Subcomponents ──────────────────────────────────────────────────
+//
+// These are intentionally inline rather than reused from @/components/ui/*:
+//   - @/components/ui/Card is a dark glassmorphism shell
+//     (bg-white/5 backdrop-blur-lg) styled for the marketing pages.
+//     The dashboard uses a light theme (bg-white, text-gray-900) — wrong
+//     fit visually.
+//   - @/components/ui/StatusBadge exports InvoiceStatusBadge with a
+//     hardcoded invoice status enum, not the BusinessStatus enum used here.
+// When we ship a generalized dashboard Card/Badge primitive, swap these
+// for it in a single follow-up pass.
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-xl border bg-white p-4 sm:p-5 space-y-4">{children}</div>;

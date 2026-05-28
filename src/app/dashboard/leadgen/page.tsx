@@ -8,6 +8,7 @@ import {
   type BusinessSummary,
 } from "@/lib/leadgen-db";
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
+import { aiScoreClass } from "./utils";
 import { MagnifyingGlassIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
@@ -34,15 +35,6 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
 };
-
-function aiScoreClass(score: number | null): string {
-  if (score == null) return "bg-gray-50 text-gray-500 border-gray-200";
-  if (score >= 9)    return "bg-red-50 text-red-700 border-red-200";
-  if (score >= 7)    return "bg-orange-50 text-orange-700 border-orange-200";
-  if (score >= 5)    return "bg-yellow-50 text-yellow-700 border-yellow-200";
-  if (score >= 3)    return "bg-blue-50 text-blue-700 border-blue-200";
-  return "bg-gray-50 text-gray-600 border-gray-200";
-}
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("en-US", {

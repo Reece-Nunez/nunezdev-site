@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p .",
+    "test": "node --import tsx --test src/lib/leadgen-paths.test.ts src/app/dashboard/leadgen/utils.test.ts",
     "build:css": "tailwindcss -i ./src/app/globals.css -o ./src/app/output.css --watch",
     "prepare": "husky"
   },
@@ -83,6 +84,7 @@
     "eslint-config-next": "^15.5.18",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
-    "supabase": "^2.76.16"
+    "supabase": "^2.76.16",
+    "tsx": "^4.22.3"
   }
 }
