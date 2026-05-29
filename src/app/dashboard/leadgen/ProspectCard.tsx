@@ -8,7 +8,12 @@ import {
   pollJob,
   type JobStatus,
 } from "./actions";
-import { ArrowPathIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  MapPinIcon,
+  PlusIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 
 const POLL_INTERVAL_MS = 3000;
 // Prospect typically takes 30-90s. We give it 10 minutes because the
@@ -44,10 +49,18 @@ function formatElapsed(sec: number): string {
 
 export default function ProspectCard() {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [zip, setZip] = useState("");
   const [max, setMax] = useState(20);
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const pollIdRef = useRef<number>(0);
+
+  // Keep the form open while a job is in flight even if the operator
+  // clicks the close button — the live status panel lives inside.
+  // Once terminal, we leave it open so the toast + form input
+  // re-flow naturally and the operator can run another zip without
+  // re-clicking.
+  const showForm = open || activeJob !== null;
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -155,13 +168,43 @@ export default function ProspectCard() {
 
   const isRunning = activeJob !== null;
 
+  // Collapsed state: a single button. Saves vertical space on the
+  // common case where the operator is reviewing existing leads, not
+  // starting a new campaign.
+  if (!showForm) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border bg-white text-gray-800 border-gray-300 hover:bg-gray-50 transition"
+        >
+          <PlusIcon className="w-4 h-4" />
+          New prospect
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border bg-white p-4 sm:p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <MapPinIcon className="w-5 h-5 text-gray-600" />
-        <h2 className="text-base font-semibold text-gray-900">
-          Prospect new businesses
-        </h2>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <MapPinIcon className="w-5 h-5 text-gray-600" />
+          <h2 className="text-base font-semibold text-gray-900">
+            Prospect new businesses
+          </h2>
+        </div>
+        {!isRunning && (
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close prospect form"
+            className="text-gray-400 hover:text-gray-700 -m-1 p-1"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        )}
       </div>
       <p className="text-sm text-gray-600 mb-4">
         Search ~20 categories around a US zip code. Returns ~15-40 new

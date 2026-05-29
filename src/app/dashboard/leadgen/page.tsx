@@ -4,15 +4,14 @@ import {
   isAvailable,
   getStats,
   listBusinesses,
-  listCities,
   isRemoteBackend,
   type BusinessStatus,
   type BusinessSummary,
 } from "@/lib/leadgen-api";
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
-import { aiScoreClass } from "./utils";
 import ProspectCard from "./ProspectCard";
-import { MagnifyingGlassIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import CitiesAccordion, { type CityGroup } from "./CitiesAccordion";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,7 +47,29 @@ function formatCurrency(n: number): string {
 }
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; city?: string }>;
+  searchParams: Promise<{ status?: string }>;
+}
+
+/**
+ * Group a flat list of businesses by (city, state). Cities with NULL
+ * city land in an "Unknown" bucket at the end. Returned in descending
+ * order of group size — biggest city first, "Unknown" always last.
+ */
+function groupBusinessesByCity(rows: BusinessSummary[]): CityGroup[] {
+  const map = new Map<string, CityGroup>();
+  for (const r of rows) {
+    const city = r.city ?? "Unknown";
+    const state = r.state ?? null;
+    const key = `${city}|${state ?? ""}`;
+    const existing = map.get(key);
+    if (existing) existing.businesses.push(r);
+    else map.set(key, { city, state, businesses: [r] });
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.city === "Unknown") return 1;
+    if (b.city === "Unknown") return -1;
+    return b.businesses.length - a.businesses.length;
+  });
 }
 
 export default async function LeadgenIndex({ searchParams }: PageProps) {
@@ -114,25 +135,21 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
     );
   }
 
-  // ── Status + city filters from query string ─────────────────────
+  // ── Status filter from query string ──────────────────────────────
   const params = await searchParams;
   const rawStatus = params.status ?? "all";
   const activeStatus: BusinessStatus | "all" = (ALL_STATUSES as string[]).includes(rawStatus)
     ? (rawStatus as BusinessStatus | "all")
     : "all";
-  const activeCity = params.city?.trim() || null;
 
-  // Parallelize the three reads — stats, cities, and the filtered
-  // business list are all independent of each other.
-  const [stats, cities, businesses] = await Promise.all([
+  // City filtering is no longer a URL param — the page now groups
+  // businesses into a per-city accordion, so the operator drills in
+  // by expanding sections rather than navigating between filters.
+  const [stats, businesses] = await Promise.all([
     getStats(),
-    listCities(),
-    listBusinesses({
-      status: activeStatus,
-      city: activeCity ?? undefined,
-      limit: 200,
-    }),
+    listBusinesses({ status: activeStatus, limit: 500 }),
   ]);
+  const cityGroups = groupBusinessesByCity(businesses);
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
@@ -161,12 +178,7 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
         />
       </div>
 
-      {/* ── City chips (M2.5) ────────────────────────────────────── */}
-      {cities.length > 1 && (
-        <CityChips cities={cities} activeCity={activeCity} activeStatus={activeStatus} />
-      )}
-
-      {/* ── Filter chips ─────────────────────────────────────────── */}
+      {/* ── Status filter chips ──────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         {ALL_STATUSES.map((s) => {
           const isActive = activeStatus === s;
@@ -174,15 +186,10 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
             s === "all"
               ? stats.total
               : stats.by_status[s];
-          // Preserve the active city filter when navigating between
-          // status chips (and vice-versa for CityChips below). The
-          // two filters compose.
-          const qs = new URLSearchParams();
-          if (s !== "all") qs.set("status", s);
-          if (activeCity) qs.set("city", activeCity);
-          const href = qs.toString()
-            ? `/dashboard/leadgen?${qs.toString()}`
-            : "/dashboard/leadgen";
+          const href =
+            s === "all"
+              ? "/dashboard/leadgen"
+              : `/dashboard/leadgen?status=${s}`;
           return (
             <Link
               key={s}
@@ -201,102 +208,13 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* ── Businesses table ─────────────────────────────────────── */}
-      {businesses.length === 0 ? (
-        <div className="rounded-xl border bg-white p-6 text-sm text-gray-600">
-          No businesses match this filter.
-        </div>
-      ) : (
-        <BusinessesTable businesses={businesses} />
-      )}
+      {/* ── Businesses grouped by city ───────────────────────────── */}
+      <CitiesAccordion groups={cityGroups} />
     </div>
   );
 }
 
 // ── Subcomponents ──────────────────────────────────────────────────
-
-function CityChips({
-  cities,
-  activeCity,
-  activeStatus,
-}: {
-  cities: { city: string | null; state: string | null; count: number }[];
-  activeCity: string | null;
-  activeStatus: BusinessStatus | "all";
-}) {
-  // Total = sum of all city counts; used by the "All" chip even when
-  // the page-level stats.total disagrees (e.g. cities is filtered to
-  // exclude NULLs in some future variant).
-  const total = cities.reduce((s, c) => s + c.count, 0);
-
-  function hrefFor(city: string | null): string {
-    const qs = new URLSearchParams();
-    if (activeStatus !== "all") qs.set("status", activeStatus);
-    if (city) qs.set("city", city);
-    return qs.toString()
-      ? `/dashboard/leadgen?${qs.toString()}`
-      : "/dashboard/leadgen";
-  }
-
-  const allActive = activeCity === null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link
-        href={hrefFor(null)}
-        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition
-          ${allActive
-            ? "bg-gray-900 text-white border-gray-900"
-            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
-      >
-        All cities
-        <span className={`ml-2 ${allActive ? "text-gray-300" : "text-gray-500"}`}>
-          {total}
-        </span>
-      </Link>
-      {cities.map((c, i) => {
-        const label = c.city ?? "Unknown";
-        const isActive =
-          activeCity?.toLowerCase() === (c.city ?? "").toLowerCase() && c.city !== null;
-        // NULL-city rows aren't navigable — there's no useful filter
-        // for "unknown city" (the API would treat empty string as
-        // "match everything"). Surface them as a non-link badge.
-        if (c.city === null) {
-          return (
-            <span
-              key={`null-${i}`}
-              className="px-3 py-1.5 rounded-full text-xs font-medium border bg-gray-50 text-gray-500 border-gray-200"
-              title="These rows have no city — re-prospect or backfill"
-            >
-              Unknown
-              <span className="ml-2 text-gray-400">{c.count}</span>
-            </span>
-          );
-        }
-        return (
-          <Link
-            key={`${c.city}-${c.state ?? ""}`}
-            href={hrefFor(c.city)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition
-              ${isActive
-                ? "bg-gray-900 text-white border-gray-900"
-                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
-          >
-            {label}
-            {c.state && (
-              <span className={`ml-1 ${isActive ? "text-gray-300" : "text-gray-400"}`}>
-                · {c.state}
-              </span>
-            )}
-            <span className={`ml-2 ${isActive ? "text-gray-300" : "text-gray-500"}`}>
-              {c.count}
-            </span>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
 
 function PageHeader() {
   return (
@@ -325,82 +243,3 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-function BusinessesTable({ businesses }: { businesses: BusinessSummary[] }) {
-  return (
-    <div className="rounded-xl border bg-white overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-            <tr>
-              <th className="text-left px-4 py-2.5 font-medium">Business</th>
-              <th className="text-left px-4 py-2.5 font-medium hidden md:table-cell">Category</th>
-              <th className="text-center px-3 py-2.5 font-medium w-20">AI</th>
-              <th className="text-center px-3 py-2.5 font-medium w-20 hidden sm:table-cell">Reviews</th>
-              <th className="text-center px-3 py-2.5 font-medium">Status</th>
-              <th className="w-10"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {businesses.map((b) => (
-              <tr key={b.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/dashboard/leadgen/${b.id}`}
-                    className="font-medium text-gray-900 hover:text-blue-700"
-                  >
-                    {b.name}
-                  </Link>
-                  {b.address && (
-                    <div className="text-xs text-gray-500 mt-0.5 truncate max-w-md">
-                      {b.address}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 hidden md:table-cell text-gray-600">
-                  {b.category ?? "—"}
-                </td>
-                <td className="px-3 py-3 text-center">
-                  <span
-                    className={`inline-flex items-center justify-center w-12 px-2 py-1 rounded-full text-xs font-semibold border tabular-nums ${aiScoreClass(
-                      b.ai_score
-                    )}`}
-                  >
-                    {b.ai_score != null ? `${b.ai_score}/10` : "—"}
-                  </span>
-                </td>
-                <td className="px-3 py-3 text-center text-gray-600 tabular-nums hidden sm:table-cell">
-                  {b.review_count != null ? (
-                    <>
-                      {b.rating != null && (
-                        <span className="text-gray-900">{b.rating}★</span>
-                      )}
-                      <span className="text-gray-500"> · {b.review_count}</span>
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-3 py-3 text-center">
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${STATUS_STYLES[b.status]}`}
-                  >
-                    {STATUS_LABELS[b.status]}
-                  </span>
-                </td>
-                <td className="px-2 py-3">
-                  <Link
-                    href={`/dashboard/leadgen/${b.id}`}
-                    className="text-gray-400 hover:text-gray-700"
-                    aria-label={`Open ${b.name}`}
-                  >
-                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}

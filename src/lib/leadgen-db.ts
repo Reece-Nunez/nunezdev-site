@@ -40,6 +40,11 @@ export interface BusinessRow {
   status: BusinessStatus;
   opportunity_score: number;
   source: string | null;
+  // city + state added in Phase 2 M2.5 — populated by prospect.py
+  // from campaign.resolve_campaign(); backfilled for pre-M2.5 rows
+  // by migrations/004_prospect.sql.
+  city: string | null;
+  state: string | null;
   created_at: string;
   updated_at: string;
 }
