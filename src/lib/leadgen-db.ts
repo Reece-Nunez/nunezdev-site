@@ -185,6 +185,14 @@ export interface ListFilters {
   minScore?: number;
   limit?: number;
   category?: string;
+  city?: string;
+}
+
+/** Row shape for the dashboard's city chip filter. */
+export interface CityCount {
+  city: string | null;
+  state: string | null;
+  count: number;
 }
 
 export function listBusinesses(filters: ListFilters = {}): BusinessSummary[] {
@@ -202,6 +210,13 @@ export function listBusinesses(filters: ListFilters = {}): BusinessSummary[] {
   if (filters.category) {
     where.push("b.category = @category");
     params.category = filters.category;
+  }
+  if (filters.city) {
+    // SQLite is case-sensitive on = by default; match the API's
+    // ILIKE behaviour with a LOWER() comparison so dispatching
+    // between backends produces the same result set.
+    where.push("LOWER(b.city) = LOWER(@city)");
+    params.city = filters.city;
   }
   const whereClause = where.length ? "WHERE " + where.join(" AND ") : "";
   // LIMIT is interpolated as a literal (named params on LIMIT aren't
@@ -244,6 +259,23 @@ export function listCategories(): string[] {
       .prepare("SELECT DISTINCT category FROM businesses WHERE category IS NOT NULL ORDER BY category")
       .all() as { category: string }[]
   ).map((r) => r.category);
+}
+
+/**
+ * Distinct (city, state) pairs with counts. Drives the dashboard's
+ * city chip filter row. NULL cities are returned as a single row at
+ * the end so the UI can render them as ``Unknown``.
+ */
+export function listCities(): CityCount[] {
+  return db()
+    .prepare(
+      // SQLite's NULLS LAST equivalent is the (col IS NULL) trick.
+      `SELECT city, state, COUNT(*) AS count
+         FROM businesses
+        GROUP BY city, state
+        ORDER BY (city IS NULL), count DESC, city ASC`
+    )
+    .all() as CityCount[];
 }
 
 /** Full detail for one business. Returns null if not found. */

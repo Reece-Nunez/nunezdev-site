@@ -22,10 +22,12 @@ import {
   getStats as dbGetStats,
   listBusinesses as dbListBusinesses,
   listCategories as dbListCategories,
+  listCities as dbListCities,
   getBusiness as dbGetBusiness,
   type DashboardStats,
   type BusinessSummary,
   type BusinessDetail,
+  type CityCount,
   type ListFilters,
 } from "./leadgen-db";
 
@@ -34,6 +36,7 @@ export type {
   BusinessSummary,
   BusinessDetail,
   BusinessStatus,
+  CityCount,
   ListFilters,
   AIAnalysis,
   ResearchRow,
@@ -119,9 +122,16 @@ export async function listBusinesses(
   if (filters.status && filters.status !== "all") qs.set("status", filters.status);
   if (typeof filters.minScore === "number") qs.set("min_score", String(filters.minScore));
   if (filters.category) qs.set("category", filters.category);
+  if (filters.city) qs.set("city", filters.city);
   if (typeof filters.limit === "number") qs.set("limit", String(filters.limit));
   const suffix = qs.toString() ? `?${qs}` : "";
   return apiFetch<BusinessSummary[]>(`/businesses${suffix}`);
+}
+
+/** Distinct (city, state, count) rows for the dashboard chip filter. */
+export async function listCities(): Promise<CityCount[]> {
+  if (!isRemoteBackend()) return dbListCities();
+  return apiFetch<CityCount[]>("/cities");
 }
 
 export async function listCategories(): Promise<string[]> {
@@ -183,6 +193,19 @@ export async function triggerStageOnApi(
   return apiFetch<JobRecord>(`/stages/${stage}/${businessId}`, {
     method: "POST",
   });
+}
+
+/**
+ * Enqueue a prospect run for a zip code. Different shape from
+ * triggerStageOnApi because prospect doesn't bind to a business —
+ * it creates them.
+ */
+export async function triggerProspectOnApi(
+  zip: string,
+  maxPerCategory: number,
+): Promise<JobRecord> {
+  const qs = new URLSearchParams({ zip, max: String(maxPerCategory) });
+  return apiFetch<JobRecord>(`/stages/prospect?${qs}`, { method: "POST" });
 }
 
 /**

@@ -4,12 +4,14 @@ import {
   isAvailable,
   getStats,
   listBusinesses,
+  listCities,
   isRemoteBackend,
   type BusinessStatus,
   type BusinessSummary,
 } from "@/lib/leadgen-api";
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import { aiScoreClass } from "./utils";
+import ProspectCard from "./ProspectCard";
 import { MagnifyingGlassIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +48,7 @@ function formatCurrency(n: number): string {
 }
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; city?: string }>;
 }
 
 export default async function LeadgenIndex({ searchParams }: PageProps) {
@@ -112,22 +114,32 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
     );
   }
 
-  // ── Status filter from query string ──────────────────────────────
+  // ── Status + city filters from query string ─────────────────────
   const params = await searchParams;
   const rawStatus = params.status ?? "all";
   const activeStatus: BusinessStatus | "all" = (ALL_STATUSES as string[]).includes(rawStatus)
     ? (rawStatus as BusinessStatus | "all")
     : "all";
+  const activeCity = params.city?.trim() || null;
 
-  // Parallelize the two reads — stats and businesses are independent.
-  const [stats, businesses] = await Promise.all([
+  // Parallelize the three reads — stats, cities, and the filtered
+  // business list are all independent of each other.
+  const [stats, cities, businesses] = await Promise.all([
     getStats(),
-    listBusinesses({ status: activeStatus, limit: 200 }),
+    listCities(),
+    listBusinesses({
+      status: activeStatus,
+      city: activeCity ?? undefined,
+      limit: 200,
+    }),
   ]);
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
       <PageHeader />
+
+      {/* ── Prospecting trigger ──────────────────────────────────── */}
+      <ProspectCard />
 
       {/* ── Stat cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -149,6 +161,11 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
         />
       </div>
 
+      {/* ── City chips (M2.5) ────────────────────────────────────── */}
+      {cities.length > 1 && (
+        <CityChips cities={cities} activeCity={activeCity} activeStatus={activeStatus} />
+      )}
+
       {/* ── Filter chips ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
         {ALL_STATUSES.map((s) => {
@@ -157,10 +174,19 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
             s === "all"
               ? stats.total
               : stats.by_status[s];
+          // Preserve the active city filter when navigating between
+          // status chips (and vice-versa for CityChips below). The
+          // two filters compose.
+          const qs = new URLSearchParams();
+          if (s !== "all") qs.set("status", s);
+          if (activeCity) qs.set("city", activeCity);
+          const href = qs.toString()
+            ? `/dashboard/leadgen?${qs.toString()}`
+            : "/dashboard/leadgen";
           return (
             <Link
               key={s}
-              href={s === "all" ? "/dashboard/leadgen" : `/dashboard/leadgen?status=${s}`}
+              href={href}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition
                 ${isActive
                   ? "bg-gray-900 text-white border-gray-900"
@@ -188,6 +214,89 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
 }
 
 // ── Subcomponents ──────────────────────────────────────────────────
+
+function CityChips({
+  cities,
+  activeCity,
+  activeStatus,
+}: {
+  cities: { city: string | null; state: string | null; count: number }[];
+  activeCity: string | null;
+  activeStatus: BusinessStatus | "all";
+}) {
+  // Total = sum of all city counts; used by the "All" chip even when
+  // the page-level stats.total disagrees (e.g. cities is filtered to
+  // exclude NULLs in some future variant).
+  const total = cities.reduce((s, c) => s + c.count, 0);
+
+  function hrefFor(city: string | null): string {
+    const qs = new URLSearchParams();
+    if (activeStatus !== "all") qs.set("status", activeStatus);
+    if (city) qs.set("city", city);
+    return qs.toString()
+      ? `/dashboard/leadgen?${qs.toString()}`
+      : "/dashboard/leadgen";
+  }
+
+  const allActive = activeCity === null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        href={hrefFor(null)}
+        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition
+          ${allActive
+            ? "bg-gray-900 text-white border-gray-900"
+            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+      >
+        All cities
+        <span className={`ml-2 ${allActive ? "text-gray-300" : "text-gray-500"}`}>
+          {total}
+        </span>
+      </Link>
+      {cities.map((c, i) => {
+        const label = c.city ?? "Unknown";
+        const isActive =
+          activeCity?.toLowerCase() === (c.city ?? "").toLowerCase() && c.city !== null;
+        // NULL-city rows aren't navigable — there's no useful filter
+        // for "unknown city" (the API would treat empty string as
+        // "match everything"). Surface them as a non-link badge.
+        if (c.city === null) {
+          return (
+            <span
+              key={`null-${i}`}
+              className="px-3 py-1.5 rounded-full text-xs font-medium border bg-gray-50 text-gray-500 border-gray-200"
+              title="These rows have no city — re-prospect or backfill"
+            >
+              Unknown
+              <span className="ml-2 text-gray-400">{c.count}</span>
+            </span>
+          );
+        }
+        return (
+          <Link
+            key={`${c.city}-${c.state ?? ""}`}
+            href={hrefFor(c.city)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition
+              ${isActive
+                ? "bg-gray-900 text-white border-gray-900"
+                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+          >
+            {label}
+            {c.state && (
+              <span className={`ml-1 ${isActive ? "text-gray-300" : "text-gray-400"}`}>
+                · {c.state}
+              </span>
+            )}
+            <span className={`ml-2 ${isActive ? "text-gray-300" : "text-gray-500"}`}>
+              {c.count}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 function PageHeader() {
   return (

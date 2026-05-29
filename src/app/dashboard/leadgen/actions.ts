@@ -20,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { requireOwner } from "@/lib/authz";
 import {
   triggerStageOnApi,
+  triggerProspectOnApi,
   getJobFromApi,
   type JobRecord,
   type Stage,
@@ -92,6 +93,41 @@ export async function triggerStage(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : `${stage} enqueue failed`;
+    return { ok: false, message };
+  }
+}
+
+/**
+ * Enqueue a prospect run for the given zip. ``max`` is per-category
+ * (the pipeline searches ~20 categories); a real Provo run with
+ * max=2 produced ~35 unique businesses end-to-end.
+ *
+ * Distinct from triggerStage because prospect doesn't bind to a
+ * business — it creates them.
+ */
+export async function triggerProspect(
+  zip: string,
+  max: number,
+): Promise<TriggerResult> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Unauthorized" };
+  if (!/^\d{5}$/.test(zip)) {
+    return { ok: false, message: "Zip must be 5 digits" };
+  }
+  if (!Number.isInteger(max) || max < 1 || max > 50) {
+    return { ok: false, message: "Max must be 1-50" };
+  }
+  try {
+    const job = await triggerProspectOnApi(zip, max);
+    return {
+      ok: true,
+      jobId: job.id,
+      status: job.status,
+      message: `prospecting ${zip} enqueued`,
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "prospect enqueue failed";
     return { ok: false, message };
   }
 }
