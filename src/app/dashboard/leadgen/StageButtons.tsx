@@ -40,35 +40,81 @@ const STAGE_ESTIMATES: Record<Stage, string> = {
   outreach: "~30-60s",
 };
 
-// Poll cadence in milliseconds. Jobs commonly finish in 10-60s so 2.5s
-// gives the operator near-immediate feedback without hammering the API.
-// Each poll is one Postgres SELECT + one auth check — cheap.
 const POLL_INTERVAL_MS = 2500;
-
-// Belt + braces: if a job is still queued/running after this much
-// wall-clock time, we give up polling and surface "still running, check
-// back later" rather than spinning forever. The pipeline's longest
-// stage (build) tops out around 3 min — 8 minutes covers a slow Claude
-// streak comfortably.
 const POLL_TIMEOUT_MS = 8 * 60 * 1000;
+
+// Live narration of "what the pipeline is doing right now" for the
+// status line under the buttons. These are calibrated from the actual
+// stage entry-points in research.py / builder.py / outreach.py — they
+// don't pretend to be exact (we have no telemetry from inside Claude
+// calls), but the time buckets are within ~10s of what really happens.
+//
+// Queued = the job row exists but the worker hasn't picked it up yet
+// (rare on Fly with one worker, but possible right after a deploy).
+type LiveStatus = "queued" | "running";
+
+function stagePhase(stage: Stage, status: LiveStatus, elapsedSec: number): string {
+  if (status === "queued") return "Queued, waiting for the worker…";
+  switch (stage) {
+    case "research":
+      if (elapsedSec < 5) return "Fetching the business's website…";
+      return "Asking Claude to analyze the site…";
+    case "build":
+      if (elapsedSec < 35) return "Drafting proposal text with Claude…";
+      if (elapsedSec < 110) return "Generating website mockup HTML…";
+      return "Rendering PDF + uploading to S3…";
+    case "outreach":
+      if (elapsedSec < 20) return "Drafting personalised email…";
+      if (elapsedSec < 40) return "Drafting SMS message…";
+      return "Drafting phone script…";
+  }
+}
+
+function formatElapsed(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// What the active job looks like from the client's perspective. We
+// only track it while non-terminal — once a job completes or fails,
+// we report via toast and clear this state.
+interface ActiveJob {
+  stage: Stage;
+  status: LiveStatus;
+  startedAt: string | null;  // server's started_at; null while queued
+}
 
 export default function StageButtons({ businessId, status }: Props) {
   const router = useRouter();
-
-  // `running` is keyed by stage so the spinner shows on the specific
-  // button the operator clicked; null = nothing in flight.
-  const [running, setRunning] = useState<Stage | null>(null);
-  // Track active poll so an in-progress unmount + setState calls don't
-  // try to update a dead component.
+  const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const pollIdRef = useRef<number>(0);
 
-  // Clean up any running poll on unmount — important when navigating
-  // away mid-job (the job continues server-side; we just stop polling).
+  // Per-second tick to re-render the elapsed timer + phase text. We
+  // only run it while there's an active job — no perpetual setState
+  // when the operator is just looking at the page.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (activeJob == null) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [activeJob]);
+
+  // Cancel any in-flight poll on unmount so we don't setState on a
+  // dead component (the job keeps running server-side; we just stop
+  // polling).
   useEffect(() => {
     return () => {
       pollIdRef.current = -1;
     };
   }, []);
+
+  const elapsedSec = activeJob?.startedAt
+    ? Math.max(
+        0,
+        Math.floor((Date.now() - new Date(activeJob.startedAt).getTime()) / 1000),
+      )
+    : 0;
 
   const stages = availableStages(status);
 
@@ -78,7 +124,6 @@ export default function StageButtons({ businessId, status }: Props) {
       router.refresh();
       return;
     }
-    // failed
     toast.error(
       () => (
         <div className="text-sm">
@@ -98,93 +143,120 @@ export default function StageButtons({ businessId, status }: Props) {
     const myPollId = ++pollIdRef.current;
     const deadline = Date.now() + POLL_TIMEOUT_MS;
 
-    // Initial setRunning happens in handleClick before we get here so
-    // the button shows the spinner immediately, not after the first
-    // poll lands.
     while (pollIdRef.current === myPollId) {
       if (Date.now() > deadline) {
         toast.error(`${stage} is still running — check back in a minute.`);
-        setRunning(null);
+        setActiveJob(null);
         return;
       }
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      // Component may have unmounted (or operator clicked again) during
-      // the sleep — bail out if so.
       if (pollIdRef.current !== myPollId) return;
 
       const job = await pollJob(jobId);
       if (job == null) continue; // transient — keep polling
+
       if (job.status === "completed" || job.status === "failed") {
         reportTerminal(job);
-        setRunning(null);
+        setActiveJob(null);
         return;
       }
-      // queued or running — loop
+      // Refresh activeJob with the latest status + startedAt so the
+      // narration knows we've moved from queued -> running.
+      setActiveJob({
+        stage,
+        status: job.status,
+        startedAt: job.startedAt,
+      });
     }
   }
 
   function handleClick(stage: Stage) {
-    setRunning(stage);
+    // Optimistically show "queued" before we even hear back from the
+    // POST — feels faster, and the initial server response is usually
+    // queued anyway.
+    setActiveJob({ stage, status: "queued", startedAt: null });
+
     void (async () => {
       const result = await triggerStage(stage, businessId);
       if (!result.ok) {
         toast.error(result.message);
-        setRunning(null);
+        setActiveJob(null);
         return;
       }
-      // result.status is the snapshot at trigger time; if the worker
-      // already finished by the time we get here (rare but possible
-      // for tiny stages), short-circuit and skip polling.
+      // Tiny stages might already be terminal by the time the POST
+      // returns. Short-circuit instead of starting the poll loop.
       if (result.status === "completed" || result.status === "failed") {
         const final = result.jobId ? await pollJob(result.jobId) : null;
         if (final) reportTerminal(final);
         else toast.success(`${stage} enqueued`);
-        setRunning(null);
+        setActiveJob(null);
         return;
       }
       if (result.jobId) {
         await startPolling(result.jobId, stage);
       } else {
-        // Defensive: shouldn't happen because ok=true implies a job
-        // exists, but the type allows it.
-        setRunning(null);
+        setActiveJob(null);
       }
     })();
   }
 
+  const isRunningAnything = activeJob !== null;
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {stages.map((stage) => {
-        const Icon = STAGE_ICONS[stage];
-        const isRunning = running === stage;
-        const disabled = running !== null;
-        return (
-          <button
-            key={stage}
-            type="button"
-            onClick={() => handleClick(stage)}
-            disabled={disabled}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition
-              ${isRunning
-                ? "bg-gray-900 text-white border-gray-900"
-                : disabled
-                ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50"}`}
-          >
-            {isRunning ? (
-              <ArrowPathIcon className="w-4 h-4 animate-spin" />
-            ) : (
-              <Icon className="w-4 h-4" />
-            )}
-            <span>
-              {STAGE_LABELS[stage]}
-              <span className={`ml-1.5 text-xs ${isRunning ? "text-gray-300" : "text-gray-500"}`}>
-                {STAGE_ESTIMATES[stage]}
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {stages.map((stage) => {
+          const Icon = STAGE_ICONS[stage];
+          const isThisStageRunning = activeJob?.stage === stage;
+          const disabled = isRunningAnything;
+          return (
+            <button
+              key={stage}
+              type="button"
+              onClick={() => handleClick(stage)}
+              disabled={disabled}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition
+                ${isThisStageRunning
+                  ? "bg-gray-900 text-white border-gray-900"
+                  : disabled
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50"}`}
+            >
+              {isThisStageRunning ? (
+                <ArrowPathIcon className="w-4 h-4 animate-spin" />
+              ) : (
+                <Icon className="w-4 h-4" />
+              )}
+              <span>
+                {STAGE_LABELS[stage]}
+                <span className={`ml-1.5 text-xs ${isThisStageRunning ? "text-gray-300" : "text-gray-500"}`}>
+                  {isThisStageRunning && activeJob?.startedAt
+                    ? formatElapsed(elapsedSec)
+                    : STAGE_ESTIMATES[stage]}
+                </span>
               </span>
-            </span>
-          </button>
-        );
-      })}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Live narration of what the pipeline is doing right now. The
+          text under the spinner is calibrated from research.py /
+          builder.py / outreach.py — not exact, but indicative. */}
+      {activeJob && (
+        <div className="flex items-center gap-2 text-xs text-gray-600 tabular-nums">
+          <ArrowPathIcon className="w-3 h-3 animate-spin opacity-70" />
+          <span className="text-gray-700">
+            {stagePhase(activeJob.stage, activeJob.status, elapsedSec)}
+          </span>
+          {activeJob.startedAt && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span className="text-gray-500">{formatElapsed(elapsedSec)} elapsed</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
