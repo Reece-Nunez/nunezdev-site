@@ -40,40 +40,69 @@ export default function SmsTermsPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-2">2. Types of Messages You May Receive</h2>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>Invoice and payment reminders</li>
-            <li>Project status updates and milestone notifications</li>
-            <li>Customer service responses to your inquiries</li>
-            <li>Appointment and consultation confirmations</li>
-            <li>Occasional service-related or promotional offers from NunezDev</li>
-          </ul>
+          <h2 className="text-lg font-semibold mb-2">2. Two Independent Message Programs</h2>
+          <p className="mb-3">
+            NunezDev operates <strong>two separate SMS programs</strong>, each with its own
+            independent consent. You may opt in to either, both, or neither, and you may opt out
+            of one without affecting the other. Consent to one is never bundled with consent to
+            the other, and consent to either is never a condition of purchase.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-1">
+                a. Service / Transactional Messages
+              </h3>
+              <p className="mb-2">
+                Messages directly related to your project, account, or inquiry. Includes:
+              </p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li>Invoice and payment reminders</li>
+                <li>Project status updates and milestone notifications</li>
+                <li>Customer service responses to your inquiries</li>
+                <li>Appointment and consultation confirmations</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-1">
+                b. Marketing / Promotional Messages
+              </h3>
+              <p className="mb-2">
+                Messages about NunezDev offerings that are <em>not</em> tied to your existing
+                project or account. Includes:
+              </p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li>Service discounts and limited-time offers</li>
+                <li>Announcements of new services or capabilities</li>
+                <li>Occasional educational or promotional content</li>
+              </ul>
+              <p className="mt-2 text-gray-700">
+                Marketing-program consent is collected via a separate, distinctly-labeled
+                checkbox that is never pre-checked and never required to receive transactional
+                messages.
+              </p>
+            </div>
+          </div>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold mb-2">3. How to Opt In</h2>
-          <p className="mb-2">You can opt in to receive SMS messages from NunezDev by:</p>
-          <ul className="list-disc pl-6 space-y-1">
-            <li>
-              Submitting our contact / intake form at{' '}
-              <a href="/contact" className="text-emerald-600 hover:underline">
-                nunezdev.com/contact
-              </a>{' '}
-              with your phone number and actively checking the SMS consent box (the box is{' '}
-              <strong>never pre-selected</strong>).
-            </li>
-            <li>
-              Verbally agreeing to receive text messages during a phone or in-person conversation
-              and providing your phone number.
-            </li>
-            <li>
-              Texting <code>START</code> or replying <code>YES</code> to a confirmation message
-              from us.
-            </li>
-          </ul>
+          <p className="mb-2">
+            You can opt in to either program through our contact form at{' '}
+            <a href="/contact" className="text-emerald-600 hover:underline">
+              nunezdev.com/contact
+            </a>
+            . The form presents two separate consent checkboxes — one for service messages and a
+            distinctly labeled one for marketing messages. Both are unchecked by default. You may
+            check one, both, or neither.
+          </p>
+          <p className="mb-2">
+            Either consent may also be given verbally during a phone or in-person conversation,
+            or by texting <code>START</code> in reply to a confirmation message from us. In all
+            cases, transactional and marketing consents are recorded independently.
+          </p>
           <p className="mt-3">
-            <strong>Consent is not a condition of purchase</strong> and is not required to obtain
-            any product or service from NunezDev.
+            <strong>Consent to either program is not a condition of purchase</strong> and is not
+            required to obtain any product or service from NunezDev.
           </p>
         </section>
 

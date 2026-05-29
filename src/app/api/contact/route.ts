@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       timeline,
       source,
       smsConsent,
+      smsMarketingConsent,
     } = contactData;
 
     // Validate required fields
@@ -35,14 +36,14 @@ export async function POST(request: NextRequest) {
     }
 
     // A2P 10DLC: a phone number cannot be stored for SMS use without an
-    // explicit, actively-checked consent. If a caller submits a phone but
-    // no consent flag, refuse the submission so we never accidentally
-    // create an SMS-targetable lead without proof of opt-in.
+    // explicit, actively-checked consent. We only gate on transactional
+    // consent — marketing consent stays fully optional per CTIA / TCPA
+    // (it must be independently opted into, never bundled with service).
     if (phone && !smsConsent) {
       return NextResponse.json(
         {
           error:
-            'SMS consent is required when a phone number is provided. Please check the consent box or remove the phone number.',
+            'Service-SMS consent is required when a phone number is provided. Please check the service consent box or remove the phone number.',
         },
         { status: 400 }
       );
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
         timeline,
         leadSource: source,
         smsConsent: Boolean(smsConsent),
+        smsMarketingConsent: Boolean(smsMarketingConsent),
         smsConsentIp: remoteIp,
       });
 
@@ -132,7 +134,8 @@ export async function POST(request: NextRequest) {
               <p><strong>Budget:</strong> ${budget || 'Not provided'}</p>
               <p><strong>Timeline:</strong> ${timeline || 'Not provided'}</p>
               <p><strong>Source:</strong> ${source || 'Not provided'}</p>
-              <p><strong>SMS consent:</strong> ${smsConsent ? `Yes (opted in at ${new Date().toISOString()})` : 'No'}</p>
+              <p><strong>Service SMS consent:</strong> ${smsConsent ? `Yes (opted in at ${new Date().toISOString()})` : 'No'}</p>
+              <p><strong>Marketing SMS consent:</strong> ${smsMarketingConsent ? `Yes (opted in at ${new Date().toISOString()})` : 'No'}</p>
             </div>
 
             <div style="margin: 20px 0;">

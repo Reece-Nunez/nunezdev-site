@@ -162,14 +162,21 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-lg font-semibold mb-2">9. Mobile Messaging &amp; SMS</h2>
           <p className="mb-2">
-            If you provide your phone number and opt in to receive SMS messages from NunezDev, the
-            following applies:
+            NunezDev operates two <strong>separate, independently-opted-in</strong> SMS programs:
+            a transactional / service program (invoice reminders, project updates, customer
+            service responses, appointment confirmations) and a marketing / promotional program
+            (offers and announcements). Consent to one is never bundled with the other and you
+            may participate in either, both, or neither. The following applies to both programs
+            when you opt in:
           </p>
           <ul className="list-disc pl-6 space-y-1">
             <li>
-              <strong>Message types:</strong> invoice and payment reminders, project status
-              updates, customer service responses, appointment confirmations, and occasional
-              promotional or service-related offers.
+              <strong>Message types:</strong> service messages and marketing messages are
+              collected and stored as distinct opt-ins so you can manage each separately. See our{' '}
+              <a href="/sms-terms" className="text-emerald-600 hover:underline">
+                SMS Terms
+              </a>{' '}
+              for the full description of each program.
             </li>
             <li>
               <strong>Message frequency:</strong> varies. You should not expect more than a few

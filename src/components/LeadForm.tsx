@@ -69,7 +69,10 @@ export default function LeadForm({
       budget: String(formData.get("budget") || ""),
       timeline: String(formData.get("timeline") || ""),
       message: String(formData.get("message") || "").trim(),
+      // CTIA / TCPA require marketing consent to be collected separately
+      // from transactional / service consent. Two independent flags.
       smsConsent: formData.get("smsConsent") === "on",
+      smsMarketingConsent: formData.get("smsMarketingConsent") === "on",
       turnstileToken: String(formData.get("cf-turnstile-response") || ""),
       source,
       subject: `Lead from ${source}`,
@@ -81,14 +84,14 @@ export default function LeadForm({
       return;
     }
 
-    // Twilio A2P 10DLC requires that a phone number cannot be used for SMS
-    // without an actively-checked consent box. If a phone is provided but
-    // the user did not opt in, reject the submission rather than silently
-    // storing the number.
+    // Twilio A2P 10DLC: a phone number cannot be stored for SMS without an
+    // actively-checked consent. We only require the transactional consent
+    // (so the user can get a reply about *their* project). Marketing
+    // consent stays fully optional and never blocks submission.
     if (payload.phone && !payload.smsConsent) {
       setStatus("error");
       setErrorMessage(
-        "To include a phone number, please check the SMS consent box. You can leave the phone field blank if you'd rather not receive texts.",
+        "To include a phone number, please check the service SMS consent box. You can leave the phone field blank if you'd rather not receive texts.",
       );
       return;
     }
@@ -267,47 +270,81 @@ export default function LeadForm({
         />
       </div>
 
-      {/* A2P 10DLC SMS opt-in. Required by Twilio and the CTIA: the checkbox
-          must be unchecked by default and the disclosure must include message
-          purpose, frequency, msg&data rates, HELP/STOP, and links to terms
-          and privacy. */}
-      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-        <label
-          htmlFor="lead-sms-consent"
-          className="flex items-start gap-3 cursor-pointer"
-        >
-          <input
-            id="lead-sms-consent"
-            name="smsConsent"
-            type="checkbox"
-            className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus:ring-yellow/60 focus:ring-offset-0 cursor-pointer accent-yellow"
-          />
-          <span className="text-white/70 text-xs leading-relaxed">
-            By checking this box, I agree to receive SMS messages from NunezDev
-            including invoice reminders, project updates, customer service
-            responses, and occasional promotional offers. Message frequency
-            varies. Message and data rates may apply. Reply STOP to opt out,
-            HELP for help. Consent is not a condition of purchase. See our{' '}
-            <a
-              href="/sms-terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-yellow hover:underline"
-            >
-              SMS Terms
-            </a>{' '}
-            and{' '}
-            <a
-              href="/privacy-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-yellow hover:underline"
-            >
-              Privacy Policy
-            </a>
-            .
-          </span>
-        </label>
+      {/* A2P 10DLC SMS opt-in.
+          CTIA / TCPA require marketing consent to be collected separately
+          from transactional / service consent — bundling them is a hard
+          rejection from Twilio's reviewer. Both boxes are unchecked by
+          default and either may be opted into independently. */}
+      <div className="space-y-3">
+        {/* Transactional / service SMS — required if a phone is provided */}
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+          <label
+            htmlFor="lead-sms-consent"
+            className="flex items-start gap-3 cursor-pointer"
+          >
+            <input
+              id="lead-sms-consent"
+              name="smsConsent"
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus:ring-yellow/60 focus:ring-offset-0 cursor-pointer accent-yellow"
+            />
+            <span className="text-white/70 text-xs leading-relaxed">
+              <strong className="text-white/90">Service messages.</strong> By
+              checking this box, I agree to receive transactional SMS
+              messages from NunezDev related to my project or account:
+              invoice and payment reminders, project status updates,
+              customer service responses, and appointment confirmations.
+              Message frequency varies. Message and data rates may apply.
+              Reply STOP to opt out, HELP for help. Consent is not a
+              condition of purchase. See our{' '}
+              <a
+                href="/sms-terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-yellow hover:underline"
+              >
+                SMS Terms
+              </a>{' '}
+              and{' '}
+              <a
+                href="/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-yellow hover:underline"
+              >
+                Privacy Policy
+              </a>
+              .
+            </span>
+          </label>
+        </div>
+
+        {/* Marketing / promotional SMS — fully optional, independent opt-in */}
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+          <label
+            htmlFor="lead-sms-marketing-consent"
+            className="flex items-start gap-3 cursor-pointer"
+          >
+            <input
+              id="lead-sms-marketing-consent"
+              name="smsMarketingConsent"
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus:ring-yellow/60 focus:ring-offset-0 cursor-pointer accent-yellow"
+            />
+            <span className="text-white/70 text-xs leading-relaxed">
+              <strong className="text-white/90">
+                Promotional messages (optional).
+              </strong>{' '}
+              By checking this box, I separately agree to receive
+              promotional and marketing SMS messages from NunezDev, such as
+              service discounts, new offerings, and occasional updates.
+              Message frequency varies. Message and data rates may apply.
+              Reply STOP to opt out, HELP for help. Consent is not a
+              condition of purchase and is independent of the service-message
+              consent above.
+            </span>
+          </label>
+        </div>
       </div>
 
       <Turnstile />
