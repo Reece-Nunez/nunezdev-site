@@ -147,6 +147,57 @@ export async function getBusiness(id: number): Promise<BusinessDetail | null> {
   }
 }
 
+// ── Stage triggers + job polling (Phase 2 M2) ────────────────────
+//
+// These ALWAYS go through the HTTP API — there's no local-execFile
+// fallback. The pipeline lives behind the API now; if LEADGEN_API_URL
+// isn't configured, the caller gets a loud error rather than a silent
+// fallback that wouldn't work in production anyway.
+
+import type { Stage } from "./leadgen-db";
+export type { Stage };
+
+export type JobStatusValue = "queued" | "running" | "completed" | "failed";
+
+/** Shape returned by POST /stages/{stage}/{id} and GET /jobs/{id}. */
+export interface JobRecord {
+  id: string;
+  stage: Stage;
+  business_id: number;
+  status: JobStatusValue;
+  error: string | null;
+  result: Record<string, unknown> | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+/**
+ * Enqueue a pipeline stage and return the new job record immediately.
+ * Throws if the API is unreachable or returns a non-2xx.
+ */
+export async function triggerStageOnApi(
+  stage: Stage,
+  businessId: number,
+): Promise<JobRecord> {
+  return apiFetch<JobRecord>(`/stages/${stage}/${businessId}`, {
+    method: "POST",
+  });
+}
+
+/**
+ * Read a single job by id. Returns null when the job is not found
+ * (the API responds 404); throws on other transport errors.
+ */
+export async function getJobFromApi(jobId: string): Promise<JobRecord | null> {
+  try {
+    return await apiFetch<JobRecord>(`/jobs/${encodeURIComponent(jobId)}`);
+  } catch (err) {
+    if (err instanceof LeadgenApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 /**
  * Proxy a file request from the dashboard's /api/leadgen/file route to
  * the upstream API. Returns a streaming Response with the same status,

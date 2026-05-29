@@ -1,118 +1,124 @@
 "use server";
 
 /**
- * Server actions that trigger the Python pipeline. Each action spawns
- * `python run.py <stage> --id <N>` as a child process and waits for it
- * to finish, then revalidates the path so the page re-renders with the
- * updated DB state.
+ * Server actions for triggering pipeline stages and polling their
+ * progress.
  *
- * Blocking is fine for MVP — the per-business commands take 5-60s. If
- * we move to longer runs (e.g. --build with 50 businesses) we'll need
- * to switch to a job-queue model or streaming. Phase 2 deploy work.
+ * Phase 2 M2 rewrite: the dashboard no longer spawns ``python run.py``
+ * locally. Every trigger goes through the FastAPI service deployed on
+ * Fly. ``triggerStage`` returns immediately with a ``jobId`` — the
+ * client polls ``pollJob(jobId)`` until the job reaches a terminal
+ * status, then revalidates the page so the new research / proposal /
+ * outreach rows appear.
  *
- * Path-traversal isn't a concern here because we never accept arbitrary
- * file paths from the user; the subprocess command is built from a
- * server-controlled string + a numeric business id.
+ * This file is a thin wrapper: all transport lives in leadgen-api.ts.
+ * Keeping the wrapper means client components can call us as a server
+ * action (no bearer-token exposure to the browser) while we keep the
+ * fetch/auth concerns out of UI code.
  */
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { requireOwner } from "@/lib/authz";
-import { PIPELINE_ROOT, PYTHON_EXECUTABLE } from "@/lib/leadgen-paths";
+import {
+  triggerStageOnApi,
+  getJobFromApi,
+  type JobRecord,
+  type Stage,
+} from "@/lib/leadgen-api";
 
-const exec = promisify(execFile);
-
-import type { Stage } from "./utils";
 export type { Stage };
 
-const STAGE_TIMEOUTS_MS: Record<Stage, number> = {
-  research: 90_000,    // Claude call + website fetch
-  build:    300_000,   // 2 Claude streams (proposal + mockup, up to 24K tokens)
-  outreach: 180_000,   // 3 Claude calls (email + SMS + phone)
-};
-
-export interface ActionResult {
+export interface TriggerResult {
   ok: boolean;
-  stage: Stage;
-  businessId: number;
+  /** Set when ok=true — pass this to pollJob to track progress. */
+  jobId?: string;
+  status?: JobRecord["status"];
+  /** Human-readable label; appears in toast.error on failure. */
   message: string;
-  stdout?: string;
-  stderr?: string;
 }
 
 /**
- * Runs `python run.py <stage> --id <businessId>` and returns the result.
- * Throws on auth failure (caller should not catch).
+ * Plain object form of JobRecord — keeps the server-action wire
+ * format flat (no Date instances) so React Server Components can hand
+ * it straight to the client.
  */
-async function runStage(stage: Stage, businessId: number): Promise<ActionResult> {
+export interface JobStatus {
+  id: string;
+  stage: Stage;
+  businessId: number;
+  status: JobRecord["status"];
+  error: string | null;
+  result: Record<string, unknown> | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+function _toJobStatus(j: JobRecord): JobStatus {
+  return {
+    id: j.id,
+    stage: j.stage,
+    businessId: j.business_id,
+    status: j.status,
+    error: j.error,
+    result: j.result,
+    createdAt: j.created_at,
+    startedAt: j.started_at,
+    finishedAt: j.finished_at,
+  };
+}
+
+/**
+ * Enqueue a pipeline stage. Returns ``{ok: true, jobId}`` immediately.
+ * Caller should start polling ``pollJob`` and toast on the terminal
+ * status.
+ */
+export async function triggerStage(
+  stage: Stage,
+  businessId: number,
+): Promise<TriggerResult> {
   const guard = await requireOwner();
-  if (!guard.ok) {
-    return {
-      ok: false,
-      stage,
-      businessId,
-      message: "Unauthorized",
-    };
-  }
+  if (!guard.ok) return { ok: false, message: "Unauthorized" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
-    return { ok: false, stage, businessId, message: "Invalid business id" };
+    return { ok: false, message: "Invalid business id" };
   }
-
-  const args = [path.join(PIPELINE_ROOT, "run.py"), stage, "--id", String(businessId)];
-
   try {
-    const { stdout, stderr } = await exec(PYTHON_EXECUTABLE, args, {
-      cwd: PIPELINE_ROOT,
-      timeout: STAGE_TIMEOUTS_MS[stage],
-      maxBuffer: 5 * 1024 * 1024, // 5MB — mockup HTML can be ~40KB but stdout includes progress lines
-      env: process.env,
-    });
-    revalidatePath(`/dashboard/leadgen/${businessId}`);
-    revalidatePath("/dashboard/leadgen");
+    const job = await triggerStageOnApi(stage, businessId);
     return {
       ok: true,
-      stage,
-      businessId,
-      message: `${stage} completed`,
-      stdout: stdout.slice(-2000),
-      stderr: stderr ? stderr.slice(-1000) : undefined,
+      jobId: job.id,
+      status: job.status,
+      message: `${stage} enqueued`,
     };
   } catch (err) {
-    // execFile rejects with { code, stdout, stderr, killed, signal, message }
-    const e = err as NodeJS.ErrnoException & {
-      stdout?: string;
-      stderr?: string;
-      killed?: boolean;
-      signal?: string;
-    };
-    // Windows doesn't honor POSIX signals — Node simulates SIGTERM via
-    // TerminateProcess but `e.signal` can be null on win32 even when the
-    // kill came from the timeout. Treat any `killed` outcome as a
-    // timeout (the only path that sets `killed: true` here is the
-    // configured timeout firing).
-    let message = `${stage} failed`;
-    if (e.killed) message = `${stage} timed out`;
-    else if (e.code) message = `${stage} exited with code ${e.code}`;
-    return {
-      ok: false,
-      stage,
-      businessId,
-      message,
-      stdout: e.stdout?.slice(-2000),
-      stderr: e.stderr?.slice(-1000),
-    };
+    const message =
+      err instanceof Error ? err.message : `${stage} enqueue failed`;
+    return { ok: false, message };
   }
 }
 
-export async function runResearch(businessId: number): Promise<ActionResult> {
-  return runStage("research", businessId);
-}
+/**
+ * Poll one job. Returns null when not found. On a terminal status,
+ * revalidates the business detail + index pages so the new rows
+ * appear once the client re-renders.
+ */
+export async function pollJob(jobId: string): Promise<JobStatus | null> {
+  const guard = await requireOwner();
+  if (!guard.ok) return null;
+  if (typeof jobId !== "string" || jobId.length === 0) return null;
 
-export async function runBuild(businessId: number): Promise<ActionResult> {
-  return runStage("build", businessId);
-}
+  try {
+    const job = await getJobFromApi(jobId);
+    if (job == null) return null;
 
-export async function runOutreach(businessId: number): Promise<ActionResult> {
-  return runStage("outreach", businessId);
+    if (job.status === "completed" || job.status === "failed") {
+      revalidatePath(`/dashboard/leadgen/${job.business_id}`);
+      revalidatePath("/dashboard/leadgen");
+    }
+    return _toJobStatus(job);
+  } catch {
+    // Transport errors (network blip, API down) are not poll-fatal — the
+    // client should keep trying. Returning null tells the UI "no
+    // update this tick, try again."
+    return null;
+  }
 }

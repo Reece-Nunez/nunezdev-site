@@ -8,9 +8,12 @@
  * module into the client. Server actions re-export `Stage` for callers
  * that already import from actions.ts.
  */
-import type { BusinessStatus } from "@/lib/leadgen-db";
+import type { BusinessStatus, Stage } from "@/lib/leadgen-db";
 
-export type Stage = "research" | "build" | "outreach";
+// Re-export Stage so existing callers (./StageButtons, ./actions) keep
+// working — the canonical definition lives in leadgen-db.ts next to the
+// other schema-shaped types.
+export type { Stage };
 
 /**
  * Color-coded Tailwind classes for an AI opportunity score (0-10).

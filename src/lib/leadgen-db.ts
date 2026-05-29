@@ -21,6 +21,11 @@ export type BusinessStatus =
   | "proposal_built"
   | "contacted";
 
+// Pipeline stage identifiers — mirror api.jobs.VALID_STAGES on the
+// pipeline side. Keep in sync with the CHECK constraint on
+// leadgen.jobs.stage and api/jobs.py::_STAGE_DISPATCH.
+export type Stage = "research" | "build" | "outreach";
+
 export interface BusinessRow {
   id: number;
   name: string;

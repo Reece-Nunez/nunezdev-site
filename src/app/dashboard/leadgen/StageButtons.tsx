@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
-  runResearch,
-  runBuild,
-  runOutreach,
-  type ActionResult,
+  triggerStage,
+  pollJob,
+  type JobStatus,
 } from "./actions";
 import { availableStages, type Stage } from "./utils";
 import type { BusinessStatus } from "@/lib/leadgen-db";
@@ -22,12 +21,6 @@ interface Props {
   businessId: number;
   status: BusinessStatus;
 }
-
-const STAGE_FNS: Record<Stage, (id: number) => Promise<ActionResult>> = {
-  research: runResearch,
-  build:    runBuild,
-  outreach: runOutreach,
-};
 
 const STAGE_LABELS: Record<Stage, string> = {
   research: "Run research",
@@ -47,55 +40,124 @@ const STAGE_ESTIMATES: Record<Stage, string> = {
   outreach: "~30-60s",
 };
 
+// Poll cadence in milliseconds. Jobs commonly finish in 10-60s so 2.5s
+// gives the operator near-immediate feedback without hammering the API.
+// Each poll is one Postgres SELECT + one auth check — cheap.
+const POLL_INTERVAL_MS = 2500;
+
+// Belt + braces: if a job is still queued/running after this much
+// wall-clock time, we give up polling and surface "still running, check
+// back later" rather than spinning forever. The pipeline's longest
+// stage (build) tops out around 3 min — 8 minutes covers a slow Claude
+// streak comfortably.
+const POLL_TIMEOUT_MS = 8 * 60 * 1000;
+
 export default function StageButtons({ businessId, status }: Props) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [runningStage, setRunningStage] = useState<Stage | null>(null);
+
+  // `running` is keyed by stage so the spinner shows on the specific
+  // button the operator clicked; null = nothing in flight.
+  const [running, setRunning] = useState<Stage | null>(null);
+  // Track active poll so an in-progress unmount + setState calls don't
+  // try to update a dead component.
+  const pollIdRef = useRef<number>(0);
+
+  // Clean up any running poll on unmount — important when navigating
+  // away mid-job (the job continues server-side; we just stop polling).
+  useEffect(() => {
+    return () => {
+      pollIdRef.current = -1;
+    };
+  }, []);
 
   const stages = availableStages(status);
 
-  // Per master CLAUDE.md UI Feedback Rules: user feedback goes through
-  // react-hot-toast (mounted via <Toaster /> in dashboard-client.tsx).
-  // No inline banners, no alert/confirm.
-  function reportResult(result: ActionResult) {
-    if (result.ok) {
-      toast.success(result.message);
+  function reportTerminal(job: JobStatus) {
+    if (job.status === "completed") {
+      toast.success(`${job.stage} completed`);
+      router.refresh();
       return;
     }
-    // Error path: stderr from the python subprocess is the most useful
-    // debugging signal — surface it inline, but trim so the toast doesn't
-    // dominate the screen. Full output is still in the server logs.
+    // failed
     toast.error(
       () => (
         <div className="text-sm">
-          <div className="font-medium">{result.message}</div>
-          {result.stderr && (
+          <div className="font-medium">{job.stage} failed</div>
+          {job.error && (
             <pre className="mt-1 text-xs whitespace-pre-wrap font-mono opacity-80 max-h-32 overflow-y-auto">
-              {result.stderr.slice(-600)}
+              {job.error.slice(-600)}
             </pre>
           )}
         </div>
       ),
-      { duration: 10000 },
+      { duration: 12000 },
     );
   }
 
+  async function startPolling(jobId: string, stage: Stage) {
+    const myPollId = ++pollIdRef.current;
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+
+    // Initial setRunning happens in handleClick before we get here so
+    // the button shows the spinner immediately, not after the first
+    // poll lands.
+    while (pollIdRef.current === myPollId) {
+      if (Date.now() > deadline) {
+        toast.error(`${stage} is still running — check back in a minute.`);
+        setRunning(null);
+        return;
+      }
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      // Component may have unmounted (or operator clicked again) during
+      // the sleep — bail out if so.
+      if (pollIdRef.current !== myPollId) return;
+
+      const job = await pollJob(jobId);
+      if (job == null) continue; // transient — keep polling
+      if (job.status === "completed" || job.status === "failed") {
+        reportTerminal(job);
+        setRunning(null);
+        return;
+      }
+      // queued or running — loop
+    }
+  }
+
   function handleClick(stage: Stage) {
-    setRunningStage(stage);
-    startTransition(async () => {
-      const result = await STAGE_FNS[stage](businessId);
-      setRunningStage(null);
-      reportResult(result);
-      if (result.ok) router.refresh();
-    });
+    setRunning(stage);
+    void (async () => {
+      const result = await triggerStage(stage, businessId);
+      if (!result.ok) {
+        toast.error(result.message);
+        setRunning(null);
+        return;
+      }
+      // result.status is the snapshot at trigger time; if the worker
+      // already finished by the time we get here (rare but possible
+      // for tiny stages), short-circuit and skip polling.
+      if (result.status === "completed" || result.status === "failed") {
+        const final = result.jobId ? await pollJob(result.jobId) : null;
+        if (final) reportTerminal(final);
+        else toast.success(`${stage} enqueued`);
+        setRunning(null);
+        return;
+      }
+      if (result.jobId) {
+        await startPolling(result.jobId, stage);
+      } else {
+        // Defensive: shouldn't happen because ok=true implies a job
+        // exists, but the type allows it.
+        setRunning(null);
+      }
+    })();
   }
 
   return (
     <div className="flex flex-wrap gap-2">
       {stages.map((stage) => {
         const Icon = STAGE_ICONS[stage];
-        const isRunning = runningStage === stage;
-        const disabled = isPending;
+        const isRunning = running === stage;
+        const disabled = running !== null;
         return (
           <button
             key={stage}
