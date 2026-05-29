@@ -18,9 +18,6 @@ import {
   DevicePhoneMobileIcon,
   PhoneArrowUpRightIcon,
 } from "@heroicons/react/24/outline";
-import fs from "node:fs";
-import path from "node:path";
-import { LEADGEN_OUTPUT_DIR } from "@/lib/leadgen-paths";
 import StageButtons from "../StageButtons";
 
 export const dynamic = "force-dynamic";
@@ -71,13 +68,25 @@ export default async function LeadgenDetail({ params }: PageProps) {
   const detail = await getBusiness(businessId);
   if (!detail) notFound();
 
-  // Check which output files actually exist so we don't render iframes
-  // pointing at 404s.
+  // Decide whether to render the proposal / mockup iframes based on DB
+  // state, NOT a filesystem check. In production the files live in S3
+  // (Phase 2 M1b.1) — Vercel's filesystem doesn't have them, and even
+  // for local dev the source of truth for "did the build succeed?" is
+  // the pipeline's DB state, not whatever's left in the operator's
+  // output/ directory.
+  //
+  //   - proposal.pdf: the pipeline only advances status to
+  //     'proposal_built' (or beyond, 'contacted') when reportlab
+  //     actually rendered + uploaded the PDF — see
+  //     proposal_status_after_build() in builder.py.
+  //   - mockup.html: gated on the mockup_html column being populated,
+  //     which the build stage sets only after Claude's mockup call +
+  //     storage.put succeeds.
   const outDir = businessOutputDirName(detail.id, detail.name);
-  const proposalDiskPath = path.join(LEADGEN_OUTPUT_DIR, outDir, "proposal.pdf");
-  const mockupDiskPath = path.join(LEADGEN_OUTPUT_DIR, outDir, "mockup.html");
-  const hasProposalFile = fs.existsSync(proposalDiskPath);
-  const hasMockupFile = fs.existsSync(mockupDiskPath);
+  const hasProposalFile =
+    detail.proposal != null &&
+    (detail.status === "proposal_built" || detail.status === "contacted");
+  const hasMockupFile = detail.proposal?.mockup_html != null;
   const fileUrl = (filename: string) =>
     `/api/leadgen/file/${encodeURIComponent(outDir)}/${encodeURIComponent(filename)}`;
 
