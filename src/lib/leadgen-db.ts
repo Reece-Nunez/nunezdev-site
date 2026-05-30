@@ -76,6 +76,10 @@ export interface ProposalRow {
   proposal_text: string | null;
   mockup_html: string | null;
   estimated_value: number | null;
+  // M2.9 — preview.py output: banner-injected live page + OG screenshot.
+  // Null when the build pre-dates M2.9 or the screenshot dep was missing.
+  preview_url: string | null;
+  screenshot_url: string | null;
   created_at: string;
 }
 

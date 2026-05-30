@@ -17,6 +17,7 @@ import {
   EnvelopeIcon,
   DevicePhoneMobileIcon,
   PhoneArrowUpRightIcon,
+  ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
 
@@ -265,7 +266,24 @@ export default async function LeadgenDetail({ params }: PageProps) {
         </Card>
 
         <Card>
-          <SectionTitle>Website mockup</SectionTitle>
+          <div className="flex items-center justify-between mb-3 gap-2">
+            <SectionTitle inline>Website mockup</SectionTitle>
+            {/* M2.9: live preview link. Distinct from the iframe — the
+                iframe shows the raw mockup so the operator can review;
+                the link points to the banner-injected hosted version
+                the prospect would click in an outreach email. */}
+            {detail.proposal?.preview_url && (
+              <a
+                href={detail.proposal.preview_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline whitespace-nowrap"
+              >
+                Open live preview
+                <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+              </a>
+            )}
+          </div>
           {hasMockupFile ? (
             <iframe
               src={fileUrl("mockup.html")}
