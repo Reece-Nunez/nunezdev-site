@@ -316,6 +316,11 @@ export default async function LeadgenDetail({ params }: PageProps) {
                   item={item}
                   businessId={detail.id}
                   recipientEmail={detail.email}
+                  screenshotUrl={
+                    channel === "email"
+                      ? detail.proposal?.screenshot_url ?? null
+                      : null
+                  }
                 />
               );
             })}
@@ -390,10 +395,12 @@ function OutreachBlock({
   item,
   businessId,
   recipientEmail,
+  screenshotUrl,
 }: {
   item: OutreachRow;
   businessId: number;
   recipientEmail: string | null;
+  screenshotUrl: string | null;
 }) {
   const labels: Record<OutreachRow["channel"], string> = {
     email: "Email",
@@ -449,6 +456,24 @@ function OutreachBlock({
           <div className="text-sm">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subject </span>
             <span className="text-gray-900">{item.subject}</span>
+          </div>
+        )}
+        {/* M2.9 preview screenshot — rendered above the body so the
+            operator sees what the prospect will see in their inbox
+            BEFORE clicking Send. Resend inlines this exact image via
+            cid:preview-screenshot at send time. Email channel only;
+            null for SMS / phone. */}
+        {screenshotUrl && (
+          <div className="space-y-1">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Inline screenshot
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={screenshotUrl}
+              alt="Mockup screenshot the prospect will see inline"
+              className="w-full max-w-[620px] rounded border border-gray-200"
+            />
           </div>
         )}
         <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans">{item.message}</pre>
