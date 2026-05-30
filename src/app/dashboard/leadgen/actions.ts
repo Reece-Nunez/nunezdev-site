@@ -23,6 +23,7 @@ import {
   triggerProspectOnApi,
   getJobFromApi,
   updateOperatorProfile,
+  sendOutreachEmail,
   type JobRecord,
   type OperatorProfile,
   type Stage,
@@ -139,6 +140,42 @@ export async function triggerProspect(
  * revalidates the business detail + index pages so the new rows
  * appear once the client re-renders.
  */
+/**
+ * Send the email outreach draft for a business via the pipeline's
+ * Resend integration. Returns ok/message on success or a human-readable
+ * error message — the UI surfaces both via toast.
+ *
+ * Failures here are common: business has no email, draft already sent,
+ * RESEND_API_KEY not configured, Resend rate-limit. The API returns
+ * structured HTTP codes (400, 404, 409, 503) that the caller can map
+ * to UX guidance, but for now the toast just shows the upstream
+ * message text.
+ */
+export async function sendEmailOutreach(
+  businessId: number,
+): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) {
+    return { ok: false, message: "Owner access required" };
+  }
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  try {
+    const result = await sendOutreachEmail(businessId);
+    // Revalidate so the status badge flips draft → sent and the
+    // business status moves to 'contacted' on next render.
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true, sentAt: result.sent_at };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "send failed";
+    return { ok: false, message };
+  }
+}
+
+
 /**
  * Persist the operator profile (name, email, phone, calendar URL, etc.)
  * that downstream stages use for proposal sign-offs and outreach. Single

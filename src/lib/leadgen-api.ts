@@ -255,6 +255,38 @@ export async function getOperatorProfile(): Promise<OperatorProfile> {
   return apiFetch<OperatorProfile>(`/operator-profile`);
 }
 
+// ── Outreach send (Phase 2 M3a) ──────────────────────────────────
+
+export interface OutreachSendResult {
+  ok: boolean;
+  message_id: string | null;
+  sent_at: string | null;
+}
+
+/**
+ * Send the existing email draft for a business via the pipeline's
+ * Resend integration. The pipeline does all the work (fetch screenshot
+ * from S3, build multipart email with inline image, send, update DB) —
+ * this just relays the trigger and surfaces the result.
+ *
+ * Throws on any 4xx/5xx so the caller can surface a real error message
+ * in a toast. 4xx errors include human-readable text; 5xx is "server
+ * logs have the details".
+ */
+export async function sendOutreachEmail(businessId: number): Promise<OutreachSendResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Send requires LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<OutreachSendResult>(
+    `/outreach/${businessId}/send-email`,
+    { method: "POST" },
+  );
+}
+
+
 export async function updateOperatorProfile(
   profile: OperatorProfile,
 ): Promise<OperatorProfile> {

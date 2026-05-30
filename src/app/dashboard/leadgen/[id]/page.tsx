@@ -20,6 +20,7 @@ import {
   ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
+import SendEmailButton from "./SendEmailButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -309,7 +310,14 @@ export default async function LeadgenDetail({ params }: PageProps) {
             {(["email", "sms", "phone"] as const).map((channel) => {
               const item = detail.outreach.find((o) => o.channel === channel);
               if (!item) return null;
-              return <OutreachBlock key={channel} item={item} />;
+              return (
+                <OutreachBlock
+                  key={channel}
+                  item={item}
+                  businessId={detail.id}
+                  recipientEmail={detail.email}
+                />
+              );
             })}
           </div>
         )}
@@ -378,7 +386,15 @@ function EmptyPreview({ message }: { message: string }) {
   );
 }
 
-function OutreachBlock({ item }: { item: OutreachRow }) {
+function OutreachBlock({
+  item,
+  businessId,
+  recipientEmail,
+}: {
+  item: OutreachRow;
+  businessId: number;
+  recipientEmail: string | null;
+}) {
   const labels: Record<OutreachRow["channel"], string> = {
     email: "Email",
     sms: "SMS",
@@ -397,16 +413,36 @@ function OutreachBlock({ item }: { item: OutreachRow }) {
       ? "bg-red-50 text-red-700 border-red-200"
       : "bg-gray-100 text-gray-700 border-gray-200";
 
+  // M3a: send affordance per channel. Email goes through Resend with
+  // the inline screenshot. SMS is gated on Twilio's still-in-review
+  // sender — we show the status muted instead of a button until the
+  // landline-filter path is real.
+  const showSendButton = item.channel === "email" && item.status === "draft";
+  const showSmsPending = item.channel === "sms" && item.status === "draft";
+
   return (
     <div className="border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
+      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b gap-2">
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-gray-600" />
           <span className="text-sm font-medium text-gray-900">{labels[item.channel]}</span>
         </div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusBadge}`}>
-          {item.status}
-        </span>
+        <div className="flex items-center gap-2">
+          {showSendButton && (
+            <SendEmailButton
+              businessId={businessId}
+              recipientEmail={recipientEmail}
+            />
+          )}
+          {showSmsPending && (
+            <span className="text-xs text-amber-700 italic">
+              Twilio in review
+            </span>
+          )}
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusBadge}`}>
+            {item.status}
+          </span>
+        </div>
       </div>
       <div className="p-3 space-y-2">
         {item.subject && (
