@@ -221,6 +221,56 @@ export async function getJobFromApi(jobId: string): Promise<JobRecord | null> {
   }
 }
 
+// ── Operator profile (Phase 2 M2.7) ──────────────────────────────
+
+/** Shape of GET / PUT /operator-profile. */
+export interface OperatorProfile {
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  calendar_url: string;
+  signoff_notes: string;
+  updated_at: string | null;
+}
+
+/** Empty profile shape — used as the form's initial state on a fresh deploy. */
+export const EMPTY_OPERATOR_PROFILE: OperatorProfile = {
+  name: "",
+  company: "",
+  email: "",
+  phone: "",
+  calendar_url: "",
+  signoff_notes: "",
+  updated_at: null,
+};
+
+export async function getOperatorProfile(): Promise<OperatorProfile> {
+  if (!isRemoteBackend()) {
+    // Local-dev hasn't wired the local DB read for the profile yet —
+    // surfacing an empty profile here keeps the settings page usable
+    // against a local-only Postgres without needing a fallback path.
+    return EMPTY_OPERATOR_PROFILE;
+  }
+  return apiFetch<OperatorProfile>(`/operator-profile`);
+}
+
+export async function updateOperatorProfile(
+  profile: OperatorProfile,
+): Promise<OperatorProfile> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Profile editing requires LEADGEN_API_URL — the local-dev fallback is read-only.",
+    );
+  }
+  return apiFetch<OperatorProfile>(`/operator-profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profile),
+  });
+}
+
 /**
  * Proxy a file request from the dashboard's /api/leadgen/file route to
  * the upstream API. Returns a streaming Response with the same status,

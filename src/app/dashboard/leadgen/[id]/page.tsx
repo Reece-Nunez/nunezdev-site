@@ -87,8 +87,15 @@ export default async function LeadgenDetail({ params }: PageProps) {
     detail.proposal != null &&
     (detail.status === "proposal_built" || detail.status === "contacted");
   const hasMockupFile = detail.proposal?.mockup_html != null;
+  // Cache-bust the iframe src with the business's updated_at — bumped on
+  // every status change in builder.py / outreach.py. Without this, a
+  // rebuild after router.refresh() leaves the iframe element with the
+  // identical src, so the browser keeps showing the stale (often 404'd)
+  // response from the previous attempt. The /api/leadgen/file route
+  // ignores query strings, so this is purely a client-side cache-bust.
+  const fileVersion = encodeURIComponent(detail.updated_at);
   const fileUrl = (filename: string) =>
-    `/api/leadgen/file/${encodeURIComponent(outDir)}/${encodeURIComponent(filename)}`;
+    `/api/leadgen/file/${encodeURIComponent(outDir)}/${encodeURIComponent(filename)}?v=${fileVersion}`;
 
   const analysis = detail.ai_analysis;
   const aiScore = analysis?.opportunity_score ?? detail.research?.opportunity_score ?? null;

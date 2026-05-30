@@ -11,7 +11,7 @@ import {
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import ProspectCard from "./ProspectCard";
 import CitiesAccordion, { type CityGroup } from "./CitiesAccordion";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -229,6 +229,13 @@ function PageHeader() {
           presence, draft personalised proposals + outreach.
         </p>
       </div>
+      <Link
+        href="/dashboard/leadgen/settings"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
+      >
+        <Cog6ToothIcon className="w-4 h-4" />
+        Profile
+      </Link>
     </div>
   );
 }

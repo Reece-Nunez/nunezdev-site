@@ -22,7 +22,9 @@ import {
   triggerStageOnApi,
   triggerProspectOnApi,
   getJobFromApi,
+  updateOperatorProfile,
   type JobRecord,
+  type OperatorProfile,
   type Stage,
 } from "@/lib/leadgen-api";
 
@@ -137,6 +139,37 @@ export async function triggerProspect(
  * revalidates the business detail + index pages so the new rows
  * appear once the client re-renders.
  */
+/**
+ * Persist the operator profile (name, email, phone, calendar URL, etc.)
+ * that downstream stages use for proposal sign-offs and outreach. Single
+ * canonical row — the upstream API enforces id=1 via CHECK constraint.
+ *
+ * Returns ok=false with a human-readable message on failure so the form
+ * can surface it in a toast.error.
+ */
+export async function saveOperatorProfile(
+  profile: OperatorProfile,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) {
+    return { ok: false, message: "Owner access required" };
+  }
+  try {
+    await updateOperatorProfile(profile);
+    revalidatePath("/dashboard/leadgen/settings");
+    // The pipeline reads operator_profile during build + outreach, so
+    // detail pages don't need revalidating — they read business rows,
+    // not profile rows. New prompts will pick up the change on the
+    // NEXT stage run.
+    return { ok: true };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "profile save failed";
+    return { ok: false, message };
+  }
+}
+
+
 export async function pollJob(jobId: string): Promise<JobStatus | null> {
   const guard = await requireOwner();
   if (!guard.ok) return null;
