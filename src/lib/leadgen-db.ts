@@ -19,7 +19,33 @@ export type BusinessStatus =
   | "new"
   | "researched"
   | "proposal_built"
-  | "contacted";
+  | "contacted"
+  | "not_interested";
+
+// Categorized loss reasons for a not-interested lead. Mirrors
+// statuses.py::NOT_INTERESTED_REASONS and the status_events.reason CHECK
+// constraint on the pipeline side. Keep all three in sync.
+export type StatusReason =
+  | "too_expensive"
+  | "using_competitor"
+  | "no_budget"
+  | "bad_timing"
+  | "not_a_fit"
+  | "no_response"
+  | "do_not_contact"
+  | "other";
+
+// One row of the pipeline's status_events audit log.
+export interface StatusEvent {
+  id: number;
+  business_id: number;
+  from_status: BusinessStatus | null;
+  to_status: BusinessStatus;
+  reason: StatusReason | null;
+  note: string | null;
+  actor: string;
+  created_at: string;
+}
 
 // Pipeline stage identifiers — mirror api.jobs.VALID_STAGES on the
 // pipeline side. Keep in sync with the CHECK constraint on
@@ -106,6 +132,9 @@ export interface BusinessDetail extends BusinessRow {
   ai_analysis: AIAnalysis | null;
   proposal: ProposalRow | null;
   outreach: OutreachRow[];
+  // Status history, newest first. Empty for the local SQLite backend,
+  // which predates the status_events table.
+  status_events: StatusEvent[];
 }
 
 // ── Connection ────────────────────────────────────────────────────
@@ -161,6 +190,7 @@ export function getStats(): DashboardStats {
     researched: 0,
     proposal_built: 0,
     contacted: 0,
+    not_interested: 0,
   };
   for (const r of statusRows) by_status[r.status] = r.c;
 
@@ -326,5 +356,9 @@ export function getBusiness(id: number): BusinessDetail | null {
     ai_analysis,
     proposal: proposal ?? null,
     outreach,
+    // The local SQLite mirror has no status_events table — the audit log
+    // lives only in the pipeline's Postgres. Surface an empty history so
+    // the detail page renders identically against either backend.
+    status_events: [],
   };
 }

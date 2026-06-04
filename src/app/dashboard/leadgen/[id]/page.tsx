@@ -7,7 +7,7 @@ import {
   type OutreachRow,
 } from "@/lib/leadgen-api";
 import { businessOutputDirName } from "@/lib/leadgen-paths";
-import { aiScoreClass } from "../utils";
+import { aiScoreClass, reasonLabel } from "../utils";
 import {
   ArrowLeftIcon,
   GlobeAltIcon,
@@ -21,6 +21,7 @@ import {
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
 import SendEmailButton from "./SendEmailButton";
+import NotInterestedButton from "./NotInterestedButton";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,12 +31,14 @@ const STATUS_STYLES: Record<BusinessStatus, string> = {
   researched:      "bg-purple-50 text-purple-700 border-purple-200",
   proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
   contacted:       "bg-gray-100 text-gray-700 border-gray-200",
+  not_interested:  "bg-red-50 text-red-700 border-red-200",
 };
 const STATUS_LABELS: Record<BusinessStatus, string> = {
   new:             "New",
   researched:      "Researched",
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
+  not_interested:  "Not interested",
 };
 
 function formatCurrency(n: number | null | undefined): string {
@@ -99,6 +102,15 @@ export default async function LeadgenDetail({ params }: PageProps) {
   const fileUrl = (filename: string) =>
     `/api/leadgen/file/${encodeURIComponent(outDir)}/${encodeURIComponent(filename)}?v=${fileVersion}`;
 
+  // Reopening a declined lead should return it to where it was, not reset
+  // to "new". Pull the from_status of the most recent → not_interested
+  // transition (events are newest-first); fall back to "new" for legacy
+  // rows that predate the audit log.
+  const lastDecline = detail.status_events.find(
+    (e) => e.to_status === "not_interested",
+  );
+  const priorStatus = lastDecline?.from_status ?? "new";
+
   const analysis = detail.ai_analysis;
   const aiScore = analysis?.opportunity_score ?? detail.research?.opportunity_score ?? null;
   const websiteScore = detail.research?.website_score ?? null;
@@ -150,6 +162,13 @@ export default async function LeadgenDetail({ params }: PageProps) {
       <Card>
         <SectionTitle>Pipeline actions</SectionTitle>
         <StageButtons businessId={detail.id} status={detail.status} />
+        <div className="pt-1">
+          <NotInterestedButton
+            businessId={detail.id}
+            status={detail.status}
+            priorStatus={priorStatus}
+          />
+        </div>
       </Card>
 
       {/* ── Business facts ──────────────────────────────────────── */}
@@ -327,6 +346,42 @@ export default async function LeadgenDetail({ params }: PageProps) {
           </div>
         )}
       </Card>
+
+      {/* ── Status history ──────────────────────────────────────── */}
+      {detail.status_events.length > 0 && (
+        <Card>
+          <SectionTitle>Status history</SectionTitle>
+          <ol className="space-y-3">
+            {detail.status_events.map((e) => (
+              <li key={e.id} className="flex gap-3 text-sm">
+                <span
+                  className={`mt-0.5 inline-flex shrink-0 items-center px-2 py-0.5 rounded text-xs font-medium border ${STATUS_STYLES[e.to_status]}`}
+                >
+                  {STATUS_LABELS[e.to_status]}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-gray-800">
+                    {e.from_status ? (
+                      <>
+                        {STATUS_LABELS[e.from_status]} → {STATUS_LABELS[e.to_status]}
+                      </>
+                    ) : (
+                      STATUS_LABELS[e.to_status]
+                    )}
+                    {e.reason && (
+                      <span className="text-gray-500"> · {reasonLabel(e.reason)}</span>
+                    )}
+                  </div>
+                  {e.note && <div className="text-gray-600 mt-0.5">{e.note}</div>}
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {new Date(e.created_at).toLocaleString()} · {e.actor}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
     </div>
   );
 }

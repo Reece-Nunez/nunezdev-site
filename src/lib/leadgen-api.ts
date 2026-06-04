@@ -36,6 +36,8 @@ export type {
   BusinessSummary,
   BusinessDetail,
   BusinessStatus,
+  StatusReason,
+  StatusEvent,
   CityCount,
   ListFilters,
   AIAnalysis,
@@ -43,6 +45,8 @@ export type {
   ProposalRow,
   OutreachRow,
 } from "./leadgen-db";
+
+import type { BusinessStatus, StatusReason } from "./leadgen-db";
 
 const API_URL = process.env.LEADGEN_API_URL?.replace(/\/+$/, "") || "";
 const API_TOKEN = process.env.LEADGEN_API_TOKEN || "";
@@ -284,6 +288,53 @@ export async function sendOutreachEmail(businessId: number): Promise<OutreachSen
     `/outreach/${businessId}/send-email`,
     { method: "POST" },
   );
+}
+
+// ── Lead status transitions (Phase 2 M4) ─────────────────────────
+
+export interface SetStatusInput {
+  status: BusinessStatus;
+  /** Required by the API when status is "not_interested". */
+  reason?: StatusReason | null;
+  note?: string | null;
+  /** Who made the change — the server action passes the operator's email. */
+  actor?: string | null;
+}
+
+export interface SetStatusResult {
+  business_id: number;
+  from_status: BusinessStatus | null;
+  to_status: BusinessStatus;
+  /** false when the business was already at the requested status (no-op). */
+  changed: boolean;
+}
+
+/**
+ * Set a business's lifecycle status and log it to the status_events audit
+ * trail. The primary use is marking a lead "not_interested" with a reason +
+ * note, and reopening it later. Throws LeadgenApiError on a non-2xx — the
+ * API returns 400 for invalid/missing reason, 404 for unknown business.
+ */
+export async function setBusinessStatus(
+  businessId: number,
+  input: SetStatusInput,
+): Promise<SetStatusResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Status changes require LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<SetStatusResult>(`/businesses/${businessId}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      status: input.status,
+      reason: input.reason ?? null,
+      note: input.note ?? null,
+      actor: input.actor ?? null,
+    }),
+  });
 }
 
 
