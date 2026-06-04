@@ -7,7 +7,12 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { aiScoreClass, availableStages } from "./utils";
+import {
+  aiScoreClass,
+  availableStages,
+  reasonLabel,
+  NOT_INTERESTED_REASONS,
+} from "./utils";
 
 describe("aiScoreClass", () => {
   it("returns the null/unknown class when score is null or undefined", () => {
@@ -74,5 +79,32 @@ describe("availableStages", () => {
     const stages = availableStages("contacted");
     assert.equal(stages.indexOf("research") < stages.indexOf("build"), true);
     assert.equal(stages.indexOf("build") < stages.indexOf("outreach"), true);
+  });
+
+  it("'not_interested' offers no stages until reopened", () => {
+    // Mirrors the pipeline-side send guard — a declined lead is dormant, so
+    // the UI must not surface stage actions the API would reject.
+    assert.deepEqual(availableStages("not_interested"), []);
+  });
+});
+
+describe("reasonLabel", () => {
+  it("returns empty string for null/undefined", () => {
+    assert.equal(reasonLabel(null), "");
+    assert.equal(reasonLabel(undefined), "");
+  });
+
+  it("maps a known reason code to its human label", () => {
+    assert.equal(reasonLabel("too_expensive"), "Too expensive");
+    assert.equal(reasonLabel("do_not_contact"), "Do not contact");
+  });
+
+  it("every reason option has a non-empty label and unique value", () => {
+    const values = NOT_INTERESTED_REASONS.map((r) => r.value);
+    assert.equal(new Set(values).size, values.length, "values must be unique");
+    for (const r of NOT_INTERESTED_REASONS) {
+      assert.equal(reasonLabel(r.value), r.label);
+      assert.equal(r.label.length > 0, true);
+    }
   });
 });

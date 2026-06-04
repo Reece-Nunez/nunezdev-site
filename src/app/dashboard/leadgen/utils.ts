@@ -8,7 +8,7 @@
  * module into the client. Server actions re-export `Stage` for callers
  * that already import from actions.ts.
  */
-import type { BusinessStatus, Stage } from "@/lib/leadgen-db";
+import type { BusinessStatus, Stage, StatusReason } from "@/lib/leadgen-db";
 
 // Re-export Stage so existing callers (./StageButtons, ./actions) keep
 // working — the canonical definition lives in leadgen-db.ts next to the
@@ -45,5 +45,32 @@ export function availableStages(status: BusinessStatus): Stage[] {
     case "researched":     return ["research", "build"];
     case "proposal_built": return ["research", "build", "outreach"];
     case "contacted":      return ["research", "build", "outreach"];
+    // A declined lead is dormant — no stages run until it's reopened.
+    // This mirrors the pipeline-side send guard (outreach refuses to email
+    // a not_interested business) so the UI can't offer an action the API
+    // would reject.
+    case "not_interested": return [];
   }
+}
+
+/**
+ * Loss reasons for the "Not interested" action, in dropdown order. Values
+ * mirror StatusReason / statuses.py::NOT_INTERESTED_REASONS; labels are the
+ * operator-facing text. Shared by the client button and any reporting view.
+ */
+export const NOT_INTERESTED_REASONS: { value: StatusReason; label: string }[] = [
+  { value: "too_expensive",    label: "Too expensive" },
+  { value: "using_competitor", label: "Using a competitor" },
+  { value: "no_budget",        label: "No budget" },
+  { value: "bad_timing",       label: "Bad timing" },
+  { value: "not_a_fit",        label: "Not a fit" },
+  { value: "no_response",      label: "No response after follow-up" },
+  { value: "do_not_contact",   label: "Do not contact" },
+  { value: "other",            label: "Other" },
+];
+
+/** Human-readable label for a stored reason code (falls back to the code). */
+export function reasonLabel(reason: StatusReason | null | undefined): string {
+  if (!reason) return "";
+  return NOT_INTERESTED_REASONS.find((r) => r.value === reason)?.label ?? reason;
 }

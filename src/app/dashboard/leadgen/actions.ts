@@ -24,9 +24,12 @@ import {
   getJobFromApi,
   updateOperatorProfile,
   sendOutreachEmail,
+  setBusinessStatus as setBusinessStatusOnApi,
   type JobRecord,
   type OperatorProfile,
   type Stage,
+  type BusinessStatus,
+  type StatusReason,
 } from "@/lib/leadgen-api";
 
 export type { Stage };
@@ -202,6 +205,80 @@ export async function saveOperatorProfile(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "profile save failed";
+    return { ok: false, message };
+  }
+}
+
+
+/**
+ * Mark a business "Not Interested" with a categorized reason + optional
+ * note. Records to the pipeline's status_events audit log (actor = the
+ * signed-in operator) and revalidates the detail + index pages so the
+ * status badge and filters update.
+ */
+export async function markNotInterested(
+  businessId: number,
+  reason: StatusReason,
+  note: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) {
+    return { ok: false, message: "Owner access required" };
+  }
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  if (!reason) {
+    return { ok: false, message: "a reason is required" };
+  }
+  try {
+    await setBusinessStatusOnApi(businessId, {
+      status: "not_interested",
+      reason,
+      note: note.trim() || null,
+      actor: guard.user?.email ?? null,
+    });
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "failed to update status";
+    return { ok: false, message };
+  }
+}
+
+/**
+ * Reopen a previously declined lead, returning it to ``status`` (the status
+ * it held before being marked not-interested — the caller derives this from
+ * the lead's history, defaulting to "new"). Refuses to "reopen" back into
+ * not_interested. Audited the same way as markNotInterested.
+ */
+export async function reopenLead(
+  businessId: number,
+  status: BusinessStatus,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) {
+    return { ok: false, message: "Owner access required" };
+  }
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  if (status === "not_interested") {
+    return { ok: false, message: "pick a status to reopen the lead into" };
+  }
+  try {
+    await setBusinessStatusOnApi(businessId, {
+      status,
+      actor: guard.user?.email ?? null,
+    });
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "failed to reopen lead";
     return { ok: false, message };
   }
 }
