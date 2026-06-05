@@ -24,6 +24,7 @@ import {
   getJobFromApi,
   updateOperatorProfile,
   sendOutreachEmail,
+  setBusinessEmail as setBusinessEmailOnApi,
   setBusinessStatus as setBusinessStatusOnApi,
   type JobRecord,
   type OperatorProfile,
@@ -156,6 +157,7 @@ export async function triggerProspect(
  */
 export async function sendEmailOutreach(
   businessId: number,
+  overrideEmail?: string,
 ): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
   const guard = await requireOwner();
   if (!guard.ok) {
@@ -165,6 +167,13 @@ export async function sendEmailOutreach(
     return { ok: false, message: "invalid business id" };
   }
   try {
+    // When the operator typed an address (no email was on file, or they're
+    // correcting one), persist it first so the send picks it up and it's on
+    // file for next time. The API validates the format and 400s on garbage.
+    const typed = overrideEmail?.trim();
+    if (typed) {
+      await setBusinessEmailOnApi(businessId, typed);
+    }
     const result = await sendOutreachEmail(businessId);
     // Revalidate so the status badge flips draft → sent and the
     // business status moves to 'contacted' on next render.
