@@ -290,6 +290,37 @@ export async function sendOutreachEmail(businessId: number): Promise<OutreachSen
   );
 }
 
+export interface OutreachDraftResult {
+  business_id: number;
+  channel: "email" | "sms" | "phone";
+  subject: string | null;
+  message: string | null;
+  status: string;
+}
+
+/**
+ * Edit a generated outreach draft (subject/message) before it's sent.
+ * `subject` only applies to the email channel. Throws on a non-2xx
+ * (400 empty/invalid, 404 no draft, 409 already sent).
+ */
+export async function updateOutreachDraft(
+  businessId: number,
+  channel: "email" | "sms" | "phone",
+  patch: { message: string; subject?: string | null },
+): Promise<OutreachDraftResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Editing drafts requires LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<OutreachDraftResult>(`/outreach/${businessId}/${channel}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: patch.message, subject: patch.subject ?? null }),
+  });
+}
+
 export interface SetEmailResult {
   business_id: number;
   email: string;
