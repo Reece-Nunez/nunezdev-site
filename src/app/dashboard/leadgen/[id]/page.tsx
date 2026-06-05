@@ -22,6 +22,7 @@ import {
 import StageButtons from "../StageButtons";
 import SendEmailButton from "./SendEmailButton";
 import NotInterestedButton from "./NotInterestedButton";
+import OutreachDraftBody from "./OutreachDraftBody";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -508,34 +509,18 @@ function OutreachBlock({
           </span>
         </div>
       </div>
-      <div className="p-3.5 space-y-3">
-        {item.subject && (
-          <div className="text-sm">
-            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
-              Subject
-            </div>
-            <div className="text-gray-900 font-medium">{item.subject}</div>
-          </div>
-        )}
-        {/* M2.9 preview screenshot — rendered above the body so the
-            operator sees what the prospect will see in their inbox
-            BEFORE clicking Send. Resend inlines this exact image via
-            cid:preview-screenshot at send time. Email channel only;
-            null for SMS / phone. */}
-        {screenshotUrl && (
-          <div className="space-y-1.5">
-            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-              Inline preview
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={screenshotUrl}
-              alt="Mockup screenshot the prospect will see inline"
-              className="w-full max-w-[620px] rounded-lg border border-gray-200 shadow-sm"
-            />
-          </div>
-        )}
-        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50/60 rounded-md p-3 border border-gray-100">{item.message}</pre>
+      <div className="p-3.5">
+        {/* Editable draft body — subject (email only), the inline screenshot
+            preview, and the message. The operator can tweak the AI copy
+            before sending; the API refuses edits once the draft is sent. */}
+        <OutreachDraftBody
+          businessId={businessId}
+          channel={item.channel}
+          subject={item.subject}
+          message={item.message}
+          screenshotUrl={screenshotUrl}
+          editable={item.status !== "sent"}
+        />
       </div>
     </div>
   );

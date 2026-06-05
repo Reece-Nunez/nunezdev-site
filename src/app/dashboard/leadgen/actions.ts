@@ -24,6 +24,7 @@ import {
   getJobFromApi,
   updateOperatorProfile,
   sendOutreachEmail,
+  updateOutreachDraft as updateOutreachDraftOnApi,
   setBusinessEmail as setBusinessEmailOnApi,
   setBusinessStatus as setBusinessStatusOnApi,
   type JobRecord,
@@ -288,6 +289,41 @@ export async function reopenLead(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "failed to reopen lead";
+    return { ok: false, message };
+  }
+}
+
+
+/**
+ * Save edits to an outreach draft (subject/message). `subject` is only used
+ * for the email channel. Revalidates the detail page so the saved copy shows.
+ */
+export async function saveOutreachDraft(
+  businessId: number,
+  channel: "email" | "sms" | "phone",
+  message: string,
+  subject?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) {
+    return { ok: false, message: "Owner access required" };
+  }
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  if (!message.trim()) {
+    return { ok: false, message: "Message can't be empty" };
+  }
+  try {
+    await updateOutreachDraftOnApi(businessId, channel, {
+      message,
+      subject: channel === "email" ? subject ?? null : null,
+    });
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    return { ok: true };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "failed to save draft";
     return { ok: false, message };
   }
 }
