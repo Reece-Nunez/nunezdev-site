@@ -778,14 +778,11 @@ export async function sendSMSNotification(
   message: string,
   type: 'payment_due' | 'payment_overdue' | 'payment_received'
 ) {
-  // TODO: Implement with Twilio
+  // TODO: replace this stub with sendSms() from '@/lib/sms', which already
+  // wraps Twilio with env-var detection, E.164 normalization, and structured
+  // error returns. Wiring is intentionally deferred until we have a real
+  // SMS-triggering surface (e.g. invoice-due notifications) that respects
+  // the per-lead sms_consent flag — sending without that flag would
+  // violate our A2P 10DLC opt-in policy.
   console.log(`[notifications] SMS would be sent to ${phoneNumber}: ${message}`);
-  
-  // Future implementation:
-  // const twilio = new Twilio(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
-  // await twilio.messages.create({
-  //   body: message,
-  //   from: process.env.TWILIO_PHONE_NUMBER,
-  //   to: phoneNumber
-  // });
 }

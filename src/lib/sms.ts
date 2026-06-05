@@ -1,20 +1,20 @@
 /**
  * SMS sending via Twilio.
  *
- * Env vars — supports two naming conventions, either works:
+ * Required env vars (canonical Twilio naming):
+ *   TWILIO_ACCOUNT_SID    Account SID, starts with "AC..."
+ *   TWILIO_AUTH_TOKEN     Auth Token paired with the Account SID
+ *   TWILIO_PHONE_NUMBER   "From" number, E.164 (+1XXXXXXXXXX)
  *
- *   Convention A (canonical Twilio naming):
- *     TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+ * Optional API Key path (rotatable, preferred at scale — usable instead
+ * of TWILIO_AUTH_TOKEN, still requires TWILIO_ACCOUNT_SID):
+ *   TWILIO_API_KEY_SID    "SK..."
+ *   TWILIO_API_KEY_SECRET Secret shown once at API Key creation
  *
- *   Convention B (NunezDev short names):
- *     TWILIO_SID,         TWILIO_CLIENT_SECRET, TWILIO_PHONE_NUMBER
- *
- *   Optional API Key path (rotatable, preferred at scale):
- *     TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET + TWILIO_ACCOUNT_SID
- *     (or TWILIO_SID alias) + TWILIO_PHONE_NUMBER
- *
- * Detection order: API Key → Auth Token. TWILIO_PHONE_NUMBER is always
- * required — it's the "from" number Twilio sends from.
+ * Detection order: API Key → Auth Token. The legacy aliases
+ * TWILIO_SID / TWILIO_CLIENT_SECRET were removed because they were
+ * semantically wrong (TWILIO_SID was an API Key SID being used in place
+ * of the Account SID, which 401s).
  */
 import { Twilio } from 'twilio';
 
@@ -24,14 +24,14 @@ export interface SmsSendResult {
   error?: string;
 }
 
-/** Resolve the Account SID from either naming convention. */
+/** Resolve the Account SID. */
 function resolveAccountSid(): string | undefined {
-  return process.env.TWILIO_ACCOUNT_SID || process.env.TWILIO_SID;
+  return process.env.TWILIO_ACCOUNT_SID;
 }
 
-/** Resolve the Auth Token from either naming convention. */
+/** Resolve the Auth Token. */
 function resolveAuthToken(): string | undefined {
-  return process.env.TWILIO_AUTH_TOKEN || process.env.TWILIO_CLIENT_SECRET;
+  return process.env.TWILIO_AUTH_TOKEN;
 }
 
 /**
@@ -77,16 +77,12 @@ export function getTwilioConfigSummary(): {
 } {
   const accountSidSource = process.env.TWILIO_ACCOUNT_SID
     ? 'TWILIO_ACCOUNT_SID'
-    : process.env.TWILIO_SID
-    ? 'TWILIO_SID'
     : null;
 
   const authSource = (process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET)
     ? 'TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET'
     : process.env.TWILIO_AUTH_TOKEN
     ? 'TWILIO_AUTH_TOKEN'
-    : process.env.TWILIO_CLIENT_SECRET
-    ? 'TWILIO_CLIENT_SECRET'
     : null;
 
   let fromNumberSource: string | null = null;
@@ -176,12 +172,12 @@ export async function sendSms(params: {
 
   if (!client || !from) {
     const missing: string[] = [];
-    if (!resolveAccountSid()) missing.push('TWILIO_ACCOUNT_SID (or TWILIO_SID)');
+    if (!resolveAccountSid()) missing.push('TWILIO_ACCOUNT_SID');
     if (
       !resolveAuthToken() &&
       !(process.env.TWILIO_API_KEY_SID && process.env.TWILIO_API_KEY_SECRET)
     ) {
-      missing.push('TWILIO_AUTH_TOKEN (or TWILIO_CLIENT_SECRET)');
+      missing.push('TWILIO_AUTH_TOKEN (or TWILIO_API_KEY_SID + TWILIO_API_KEY_SECRET)');
     }
     if (!from) missing.push('TWILIO_PHONE_NUMBER (or TWILIO_FROM_NUMBER / TWILIO_FROM / TWILIO_NUMBER)');
     return {

@@ -117,13 +117,13 @@ TWILIO_API_KEY_SECRET   = your_api_key_secret
 TWILIO_PHONE_NUMBER     = +14055551234
 ```
 
-**Aliases (NunezDev short names — also work):**
-```
-TWILIO_SID             ≡ TWILIO_ACCOUNT_SID
-TWILIO_CLIENT_SECRET   ≡ TWILIO_AUTH_TOKEN
-```
-
 If both auth styles are set, API Key is used.
+
+> Legacy note: earlier versions accepted `TWILIO_SID` / `TWILIO_CLIENT_SECRET`
+> as aliases for `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`. Those aliases
+> were removed because the short names suggest API Key credentials (`SK...`
+> + secret), and using a real API Key SID where an Account SID is expected
+> causes a 401 with no useful error. Use the canonical names above.
 
 ### Built-in safety limits
 
