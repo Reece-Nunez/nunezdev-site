@@ -290,6 +290,34 @@ export async function sendOutreachEmail(businessId: number): Promise<OutreachSen
   );
 }
 
+export interface SetEmailResult {
+  business_id: number;
+  email: string;
+}
+
+/**
+ * Set (or correct) a business's contact email — used when prospecting found
+ * no email but the operator located one by hand. Persists it on the business
+ * row (so it's on file going forward), then the normal send path uses it.
+ * Throws on a non-2xx (400 invalid address, 404 unknown business).
+ */
+export async function setBusinessEmail(
+  businessId: number,
+  email: string,
+): Promise<SetEmailResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Editing email requires LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<SetEmailResult>(`/businesses/${businessId}/email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
 // ── Lead status transitions (Phase 2 M4) ─────────────────────────
 
 export interface SetStatusInput {
