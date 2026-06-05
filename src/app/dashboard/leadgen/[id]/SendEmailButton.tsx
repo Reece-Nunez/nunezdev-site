@@ -62,7 +62,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
           <div className="flex flex-col gap-1">
             <button
               type="button"
-              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-900 text-white border border-gray-900 hover:bg-gray-800"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-brand-yellow text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 hover:shadow-[0_0_18px_rgba(255,195,18,0.35)] transition-shadow"
               onClick={() => {
                 toast.dismiss(t.id);
                 doSend(clean, override);
@@ -104,7 +104,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
           type="button"
           onClick={() => confirm(email, true)}
           disabled={isPending || !email.trim()}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-gray-900 text-white border border-gray-900 hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-brand-yellow text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 hover:shadow-[0_0_18px_rgba(255,195,18,0.35)] transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <PaperAirplaneIcon className="w-3.5 h-3.5" />
           {isPending ? "Sending..." : "Save & send"}
@@ -132,7 +132,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
         type="button"
         onClick={() => confirm(recipientEmail as string, false)}
         disabled={isPending}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-gray-900 text-white border border-gray-900 hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-brand-yellow text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 hover:shadow-[0_0_18px_rgba(255,195,18,0.35)] transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
       >
         <PaperAirplaneIcon className="w-3.5 h-3.5" />
         {isPending ? "Sending..." : "Send draft"}

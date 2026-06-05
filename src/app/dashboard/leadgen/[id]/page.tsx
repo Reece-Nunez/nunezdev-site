@@ -483,11 +483,13 @@ function OutreachBlock({
   const showSmsPending = item.channel === "sms" && item.status === "draft";
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b gap-2">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-900">{labels[item.channel]}</span>
+    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+      <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50/80 border-b border-gray-200 gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-brand-yellow/20 text-brand-black">
+            <Icon className="w-4 h-4" />
+          </span>
+          <span className="text-sm font-semibold text-gray-900">{labels[item.channel]}</span>
         </div>
         <div className="flex items-center gap-2">
           {showSendButton && (
@@ -506,11 +508,13 @@ function OutreachBlock({
           </span>
         </div>
       </div>
-      <div className="p-3 space-y-2">
+      <div className="p-3.5 space-y-3">
         {item.subject && (
           <div className="text-sm">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Subject </span>
-            <span className="text-gray-900">{item.subject}</span>
+            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+              Subject
+            </div>
+            <div className="text-gray-900 font-medium">{item.subject}</div>
           </div>
         )}
         {/* M2.9 preview screenshot — rendered above the body so the
@@ -519,19 +523,19 @@ function OutreachBlock({
             cid:preview-screenshot at send time. Email channel only;
             null for SMS / phone. */}
         {screenshotUrl && (
-          <div className="space-y-1">
-            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Inline screenshot
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              Inline preview
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={screenshotUrl}
               alt="Mockup screenshot the prospect will see inline"
-              className="w-full max-w-[620px] rounded border border-gray-200"
+              className="w-full max-w-[620px] rounded-lg border border-gray-200 shadow-sm"
             />
           </div>
         )}
-        <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans">{item.message}</pre>
+        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed bg-gray-50/60 rounded-md p-3 border border-gray-100">{item.message}</pre>
       </div>
     </div>
   );
