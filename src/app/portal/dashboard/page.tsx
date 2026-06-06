@@ -8,6 +8,7 @@ import FileDropzone, { UploadedFileInfo } from '@/components/portal/FileDropzone
 import UploadProgress, { UploadFile } from '@/components/portal/UploadProgress';
 import UploadSuccessAnimation from '@/components/portal/UploadSuccessAnimation';
 import ProjectCard from '@/components/portal/ProjectCard';
+import SmsConsentCard from '@/components/portal/SmsConsentCard';
 import { NON_PREVIEWABLE_IMAGE_TYPES, formatBytes } from '@/lib/uploadConstants';
 
 interface Project {
@@ -439,6 +440,9 @@ export default function PortalDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* SMS opt-in toggle — shown above the projects grid so existing
+            clients see it on their next login without scrolling. */}
+        <SmsConsentCard />
         {projects.length === 0 && !showNewProject ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

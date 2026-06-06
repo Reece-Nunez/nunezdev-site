@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendClientNotification, sendBusinessNotification, createNotification } from "@/lib/notifications";
+import { sendInvoiceReminderSms, type InvoiceReminderResult } from "@/lib/smsReminders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,18 @@ export async function POST(req: Request) {
 
     let dueTodayCount = 0;
     let overdueCount = 0;
+    // Tally SMS outcomes alongside email so the cron summary tells us
+    // *why* a client didn't receive a text (no consent, opted out, quiet
+    // hours, etc.). Keeps debugging out of Vercel logs.
+    const smsTally: Record<string, number> = { sent: 0 };
+    function recordSms(result: InvoiceReminderResult) {
+      if (result.ok) {
+        smsTally.sent += 1;
+      } else {
+        const key = result.reason ?? 'unknown';
+        smsTally[key] = (smsTally[key] ?? 0) + 1;
+      }
+    }
 
     for (const installment of installments) {
       const dueDate = new Date(installment.due_date);
@@ -81,6 +94,26 @@ export async function POST(req: Request) {
           payment_link_url: installment.stripe_payment_link_url || '',
           grace_period_days: installment.grace_period_days
         });
+
+        // SMS reminder on due-day only — by design. Policy enforcement
+        // (consent, opt-out, quiet hours, dedupe) lives in
+        // sendInvoiceReminderSms; this call site only composes the body.
+        const clientId = (invoice as any).client_id;
+        if (clientId) {
+          const amount = (installment.amount_cents / 100).toFixed(2);
+          const invNum = (invoice as any).invoice_number ?? 'your invoice';
+          const link = installment.stripe_payment_link_url;
+          const body = link
+            ? `NunezDev: Hi ${client.name?.split(' ')[0] ?? 'there'}, invoice ${invNum} for $${amount} is due today. Pay here: ${link} Reply STOP to opt out.`
+            : `NunezDev: Hi ${client.name?.split(' ')[0] ?? 'there'}, invoice ${invNum} for $${amount} is due today. Reply STOP to opt out.`;
+          const smsResult = await sendInvoiceReminderSms({
+            invoiceId: installment.invoice_id,
+            clientId,
+            reminderType: 'payment_due',
+            body,
+          });
+          recordSms(smsResult);
+        }
 
         dueTodayCount++;
         console.log(`[cron] Sent due payment reminder for installment ${installment.id}`);
@@ -161,6 +194,7 @@ export async function POST(req: Request) {
       total_installments_checked: installments.length,
       due_today_notifications: dueTodayCount,
       overdue_notifications: overdueCount,
+      sms: smsTally,
       message: `Processed ${installments.length} installments, sent ${dueTodayCount} due notifications and ${overdueCount} overdue notifications`
     };
 
