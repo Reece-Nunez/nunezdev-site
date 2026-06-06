@@ -5,6 +5,7 @@ import {
   getBusiness,
   type BusinessStatus,
   type OutreachRow,
+  type SmsConsentBasis,
 } from "@/lib/leadgen-api";
 import { businessOutputDirName } from "@/lib/leadgen-paths";
 import { aiScoreClass, reasonLabel } from "../utils";
@@ -21,6 +22,7 @@ import {
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
 import SendEmailButton from "./SendEmailButton";
+import SmsSendButton from "./SmsSendButton";
 import NotInterestedButton from "./NotInterestedButton";
 import OutreachDraftBody from "./OutreachDraftBody";
 
@@ -336,6 +338,9 @@ export default async function LeadgenDetail({ params }: PageProps) {
                   item={item}
                   businessId={detail.id}
                   recipientEmail={detail.email}
+                  phone={detail.phone}
+                  smsConsentBasis={detail.sms_consent?.basis ?? null}
+                  smsOptedOut={detail.sms_opted_out}
                   screenshotUrl={
                     channel === "email"
                       ? detail.proposal?.screenshot_url ?? null
@@ -451,11 +456,17 @@ function OutreachBlock({
   item,
   businessId,
   recipientEmail,
+  phone,
+  smsConsentBasis,
+  smsOptedOut,
   screenshotUrl,
 }: {
   item: OutreachRow;
   businessId: number;
   recipientEmail: string | null;
+  phone: string | null;
+  smsConsentBasis: SmsConsentBasis | null;
+  smsOptedOut: boolean;
   screenshotUrl: string | null;
 }) {
   const labels: Record<OutreachRow["channel"], string> = {
@@ -476,12 +487,11 @@ function OutreachBlock({
       ? "bg-red-50 text-red-700 border-red-200"
       : "bg-gray-100 text-gray-700 border-gray-200";
 
-  // M3a: send affordance per channel. Email goes through Resend with
-  // the inline screenshot. SMS is gated on Twilio's still-in-review
-  // sender — we show the status muted instead of a button until the
-  // landline-filter path is real.
+  // Send affordance per channel. Email goes through Resend with the inline
+  // screenshot. SMS goes through Twilio behind the consent gate (see
+  // SmsSendButton) — compliance guardrails are enforced server-side.
   const showSendButton = item.channel === "email" && item.status === "draft";
-  const showSmsPending = item.channel === "sms" && item.status === "draft";
+  const showSmsSend = item.channel === "sms" && item.status === "draft";
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -499,10 +509,13 @@ function OutreachBlock({
               recipientEmail={recipientEmail}
             />
           )}
-          {showSmsPending && (
-            <span className="text-xs text-amber-700 italic">
-              Twilio in review
-            </span>
+          {showSmsSend && (
+            <SmsSendButton
+              businessId={businessId}
+              phone={phone}
+              consentBasis={smsConsentBasis}
+              optedOut={smsOptedOut}
+            />
           )}
           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusBadge}`}>
             {item.status}

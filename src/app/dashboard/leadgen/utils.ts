@@ -8,7 +8,7 @@
  * module into the client. Server actions re-export `Stage` for callers
  * that already import from actions.ts.
  */
-import type { BusinessStatus, Stage, StatusReason } from "@/lib/leadgen-db";
+import type { BusinessStatus, Stage, StatusReason, SmsConsentBasis } from "@/lib/leadgen-db";
 
 // Re-export Stage so existing callers (./StageButtons, ./actions) keep
 // working — the canonical definition lives in leadgen-db.ts next to the
@@ -73,4 +73,23 @@ export const NOT_INTERESTED_REASONS: { value: StatusReason; label: string }[] = 
 export function reasonLabel(reason: StatusReason | null | undefined): string {
   if (!reason) return "";
   return NOT_INTERESTED_REASONS.find((r) => r.value === reason)?.label ?? reason;
+}
+
+/**
+ * SMS consent bases for the dropdown, in order. Values mirror
+ * sms_compliance.CONSENT_BASES; labels are operator-facing. This is the
+ * lawful basis the operator attests to before the lead can be texted.
+ */
+export const SMS_CONSENT_BASES: { value: SmsConsentBasis; label: string }[] = [
+  { value: "replied_email",     label: "Replied to our email" },
+  { value: "opted_in_form",     label: "Opted in via a form" },
+  { value: "verbal_call",       label: "Agreed on a call" },
+  { value: "existing_customer", label: "Existing customer" },
+  { value: "other",             label: "Other (add a note)" },
+];
+
+/** Human-readable label for a stored SMS consent basis. */
+export function smsConsentLabel(basis: SmsConsentBasis | null | undefined): string {
+  if (!basis) return "";
+  return SMS_CONSENT_BASES.find((b) => b.value === basis)?.label ?? basis;
 }

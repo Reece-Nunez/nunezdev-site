@@ -127,6 +127,20 @@ export interface BusinessSummary extends BusinessRow {
   website_score: number | null;
 }
 
+// SMS consent — how we're allowed to text a business (mirrors
+// sms_compliance.CONSENT_BASES). Null sms_consent = no consent on file.
+export type SmsConsentBasis =
+  | "replied_email"
+  | "opted_in_form"
+  | "verbal_call"
+  | "existing_customer"
+  | "other";
+
+export interface SmsConsentInfo {
+  basis: SmsConsentBasis;
+  consented_at: string;
+}
+
 export interface BusinessDetail extends BusinessRow {
   research: ResearchRow | null;
   ai_analysis: AIAnalysis | null;
@@ -135,6 +149,9 @@ export interface BusinessDetail extends BusinessRow {
   // Status history, newest first. Empty for the local SQLite backend,
   // which predates the status_events table.
   status_events: StatusEvent[];
+  // SMS compliance state — gates the SMS send button.
+  sms_consent: SmsConsentInfo | null;
+  sms_opted_out: boolean;
 }
 
 // ── Connection ────────────────────────────────────────────────────
@@ -356,9 +373,11 @@ export function getBusiness(id: number): BusinessDetail | null {
     ai_analysis,
     proposal: proposal ?? null,
     outreach,
-    // The local SQLite mirror has no status_events table — the audit log
-    // lives only in the pipeline's Postgres. Surface an empty history so
-    // the detail page renders identically against either backend.
+    // The local SQLite mirror has no status_events / SMS-compliance tables —
+    // those live only in the pipeline's Postgres. Surface empty/false so the
+    // detail page renders identically against either backend.
     status_events: [],
+    sms_consent: null,
+    sms_opted_out: false,
   };
 }

@@ -24,6 +24,8 @@ import {
   getJobFromApi,
   updateOperatorProfile,
   sendOutreachEmail,
+  sendSmsOutreach as sendSmsOutreachOnApi,
+  recordSmsConsent as recordSmsConsentOnApi,
   updateOutreachDraft as updateOutreachDraftOnApi,
   setBusinessEmail as setBusinessEmailOnApi,
   setBusinessStatus as setBusinessStatusOnApi,
@@ -32,6 +34,7 @@ import {
   type Stage,
   type BusinessStatus,
   type StatusReason,
+  type SmsConsentBasis,
 } from "@/lib/leadgen-api";
 
 export type { Stage };
@@ -324,6 +327,55 @@ export async function saveOutreachDraft(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "failed to save draft";
+    return { ok: false, message };
+  }
+}
+
+
+/**
+ * Record (or update) SMS consent for a business, then revalidate the detail
+ * page so the SMS card flips from "record consent" to the send button.
+ */
+export async function recordSmsConsent(
+  businessId: number,
+  basis: SmsConsentBasis,
+  note?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  try {
+    await recordSmsConsentOnApi(businessId, basis, note?.trim() || null);
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "failed to record consent";
+    return { ok: false, message };
+  }
+}
+
+/**
+ * Send the SMS draft. All compliance guardrails are enforced server-side
+ * (consent, opt-out, quiet hours, sender ID + STOP); we just surface the
+ * outcome. Revalidates so the draft status flips to sent.
+ */
+export async function sendSmsOutreach(
+  businessId: number,
+): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  try {
+    const result = await sendSmsOutreachOnApi(businessId);
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true, sentAt: result.sent_at };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "send failed";
     return { ok: false, message };
   }
 }
