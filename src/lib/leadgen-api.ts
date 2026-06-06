@@ -38,6 +38,8 @@ export type {
   BusinessStatus,
   StatusReason,
   StatusEvent,
+  SmsConsentBasis,
+  SmsConsentInfo,
   CityCount,
   ListFilters,
   AIAnalysis,
@@ -46,7 +48,7 @@ export type {
   OutreachRow,
 } from "./leadgen-db";
 
-import type { BusinessStatus, StatusReason } from "./leadgen-db";
+import type { BusinessStatus, StatusReason, SmsConsentBasis } from "./leadgen-db";
 
 const API_URL = process.env.LEADGEN_API_URL?.replace(/\/+$/, "") || "";
 const API_TOKEN = process.env.LEADGEN_API_TOKEN || "";
@@ -288,6 +290,53 @@ export async function sendOutreachEmail(businessId: number): Promise<OutreachSen
     `/outreach/${businessId}/send-email`,
     { method: "POST" },
   );
+}
+
+export interface SmsSendResult {
+  ok: boolean;
+  message_id: string | null;
+  sent_at: string | null;
+}
+
+/**
+ * Send the SMS draft via Twilio — compliance-gated server-side (consent,
+ * opt-out, quiet hours, sender ID + STOP). Throws on a non-2xx; the message
+ * carries the human-readable reason (e.g. "no SMS consent on file").
+ */
+export async function sendSmsOutreach(businessId: number): Promise<SmsSendResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Sending SMS requires LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<SmsSendResult>(`/outreach/${businessId}/send-sms`, { method: "POST" });
+}
+
+export interface SmsConsentResult {
+  business_id: number;
+  basis: SmsConsentBasis;
+  consented_at: string;
+}
+
+/** Record (or update) the SMS consent basis for a business — required before
+ * the lead can be texted. */
+export async function recordSmsConsent(
+  businessId: number,
+  basis: SmsConsentBasis,
+  note?: string | null,
+): Promise<SmsConsentResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Recording consent requires LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<SmsConsentResult>(`/businesses/${businessId}/sms-consent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ basis, note: note ?? null }),
+  });
 }
 
 export interface OutreachDraftResult {
