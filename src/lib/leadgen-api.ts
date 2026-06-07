@@ -539,15 +539,9 @@ export async function getIntegrationsHealth(): Promise<IntegrationsHealth> {
 
 
 // ── Phone-call logging (Phase 2 M9) ──────────────────────────────
-
-export const CALL_OUTCOMES: { value: string; label: string }[] = [
-  { value: "no_answer", label: "No answer" },
-  { value: "left_voicemail", label: "Left voicemail" },
-  { value: "spoke", label: "Spoke with them" },
-  { value: "interested", label: "Interested" },
-  { value: "wrong_number", label: "Wrong number" },
-  { value: "do_not_call", label: "Asked not to call" },
-];
+//
+// CALL_OUTCOMES lives in ./leadgen/utils (NOT here) because the client
+// component LogCallButton needs it, and this module is `server-only`.
 
 export interface LogCallResult {
   business_id: number;

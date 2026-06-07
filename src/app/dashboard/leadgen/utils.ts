@@ -99,3 +99,17 @@ export function smsConsentLabel(basis: SmsConsentBasis | null | undefined): stri
   if (!basis) return "";
   return SMS_CONSENT_BASES.find((b) => b.value === basis)?.label ?? basis;
 }
+
+/**
+ * Phone-call outcomes for the Log Call dropdown, in order. Mirrors
+ * _CALL_OUTCOMES on the pipeline side. Lives here (not leadgen-api) so the
+ * client LogCallButton can import it without pulling in a server-only module.
+ */
+export const CALL_OUTCOMES: { value: string; label: string }[] = [
+  { value: "no_answer", label: "No answer" },
+  { value: "left_voicemail", label: "Left voicemail" },
+  { value: "spoke", label: "Spoke with them" },
+  { value: "interested", label: "Interested" },
+  { value: "wrong_number", label: "Wrong number" },
+  { value: "do_not_call", label: "Asked not to call" },
+];

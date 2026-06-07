@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { PhoneIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { logCall } from "../actions";
-import { CALL_OUTCOMES } from "@/lib/leadgen-api";
+import { CALL_OUTCOMES } from "../utils";
 
 interface Props {
   businessId: number;
