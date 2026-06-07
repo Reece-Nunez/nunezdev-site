@@ -4,6 +4,7 @@ import {
   isAvailable,
   getStats,
   listBusinesses,
+  listFollowUps,
   isRemoteBackend,
   type BusinessStatus,
   type BusinessSummary,
@@ -11,7 +12,7 @@ import {
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import ProspectCard from "./ProspectCard";
 import CitiesAccordion, { type CityGroup } from "./CitiesAccordion";
-import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -152,9 +153,10 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
   // City filtering is no longer a URL param — the page now groups
   // businesses into a per-city accordion, so the operator drills in
   // by expanding sections rather than navigating between filters.
-  const [stats, businesses] = await Promise.all([
+  const [stats, businesses, followUpsDue] = await Promise.all([
     getStats(),
     listBusinesses({ status: activeStatus, limit: 500 }),
+    listFollowUps("due", 200),
   ]);
   const cityGroups = groupBusinessesByCity(businesses);
 
@@ -178,6 +180,20 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
             {stats.by_status.replied} lead{stats.by_status.replied === 1 ? "" : "s"} replied — needs your attention
           </span>
           <span aria-hidden className="text-orange-500">→</span>
+        </Link>
+      )}
+
+      {/* ── Follow-ups due banner ────────────────────────────────── */}
+      {followUpsDue.length > 0 && (
+        <Link
+          href="/dashboard/leadgen/follow-ups"
+          className="flex items-center justify-between gap-3 rounded-xl border border-brand-yellow/40 bg-brand-yellow/10 px-4 py-3 text-sm font-medium text-brand-black hover:bg-brand-yellow/20 transition"
+        >
+          <span className="flex items-center gap-2">
+            <PaperAirplaneIcon className="w-5 h-5" />
+            {followUpsDue.length} follow-up{followUpsDue.length === 1 ? "" : "s"} ready to review
+          </span>
+          <span aria-hidden className="text-gray-500">→</span>
         </Link>
       )}
 
@@ -252,13 +268,22 @@ function PageHeader() {
           presence, draft personalised proposals + outreach.
         </p>
       </div>
-      <Link
-        href="/dashboard/leadgen/settings"
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
-      >
-        <Cog6ToothIcon className="w-4 h-4" />
-        Profile
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/leadgen/follow-ups"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
+        >
+          <PaperAirplaneIcon className="w-4 h-4" />
+          Follow-ups
+        </Link>
+        <Link
+          href="/dashboard/leadgen/settings"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
+        >
+          <Cog6ToothIcon className="w-4 h-4" />
+          Profile
+        </Link>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/leadgen-reply-sync",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/leadgen-followup-scan",
+      "schedule": "0 16 * * *"
     }
   ]
 }

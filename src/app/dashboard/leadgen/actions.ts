@@ -29,6 +29,9 @@ import {
   updateOutreachDraft as updateOutreachDraftOnApi,
   setBusinessEmail as setBusinessEmailOnApi,
   setBusinessStatus as setBusinessStatusOnApi,
+  sendFollowUpOnApi,
+  skipFollowUpOnApi,
+  snoozeFollowUpOnApi,
   type JobRecord,
   type OperatorProfile,
   type Stage,
@@ -377,6 +380,70 @@ export async function sendSmsOutreach(
   } catch (err) {
     const message = err instanceof Error ? err.message : "send failed";
     return { ok: false, message };
+  }
+}
+
+
+// ── Follow-up queue actions (Phase 2 M7) ─────────────────────────
+
+/**
+ * Send a queued follow-up via the pipeline (Resend). Revalidates the queue so
+ * the row leaves the 'due' list. Surfaces the API's human-readable error
+ * (409 when the lead replied/declined since it was queued, etc.).
+ */
+export async function sendFollowUp(
+  followUpId: number,
+): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(followUpId) || followUpId <= 0) {
+    return { ok: false, message: "invalid follow-up id" };
+  }
+  try {
+    const r = await sendFollowUpOnApi(followUpId);
+    revalidatePath("/dashboard/leadgen/follow-ups");
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true, sentAt: r.sent_at };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "send failed" };
+  }
+}
+
+export async function skipFollowUp(
+  followUpId: number,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(followUpId) || followUpId <= 0) {
+    return { ok: false, message: "invalid follow-up id" };
+  }
+  try {
+    await skipFollowUpOnApi(followUpId);
+    revalidatePath("/dashboard/leadgen/follow-ups");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "skip failed" };
+  }
+}
+
+export async function snoozeFollowUp(
+  followUpId: number,
+  days: number,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(followUpId) || followUpId <= 0) {
+    return { ok: false, message: "invalid follow-up id" };
+  }
+  if (!Number.isInteger(days) || days < 1 || days > 90) {
+    return { ok: false, message: "snooze days must be 1-90" };
+  }
+  try {
+    await snoozeFollowUpOnApi(followUpId, days);
+    revalidatePath("/dashboard/leadgen/follow-ups");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "snooze failed" };
   }
 }
 

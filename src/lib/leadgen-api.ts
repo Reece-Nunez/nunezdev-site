@@ -493,6 +493,90 @@ export async function recordReply(
 }
 
 
+// ── Follow-up cadence (Phase 2 M7) ───────────────────────────────
+
+export interface FollowUpRow {
+  id: number;
+  business_id: number;
+  business_name: string;
+  business_email: string | null;
+  business_status: BusinessStatus;
+  channel: "email" | "sms";
+  step_number: number;
+  status: "due" | "snoozed" | "sent" | "skipped" | "canceled";
+  subject: string | null;
+  message: string | null;
+  scheduled_for: string | null;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface FollowUpScanResult {
+  scanned: number;
+  drafted: number;
+  canceled: number;
+  promoted: number;
+}
+
+export interface FollowUpActionResult {
+  id: number;
+  status: string;
+  sent_at: string | null;
+}
+
+/**
+ * List follow-ups (default: the 'due' queue). Returns [] on the local SQLite
+ * backend, which has no follow_ups table — keeps the dashboard renderable
+ * locally without a remote pipeline.
+ */
+export async function listFollowUps(
+  status: string = "due",
+  limit = 200,
+): Promise<FollowUpRow[]> {
+  if (!isRemoteBackend()) return [];
+  const qs = new URLSearchParams();
+  if (status) qs.set("status", status);
+  qs.set("limit", String(limit));
+  return apiFetch<FollowUpRow[]>(`/follow-ups?${qs}`);
+}
+
+/** Run the cadence scan (drafts newly-due follow-ups). Called by the cron. */
+export async function scanFollowUps(): Promise<FollowUpScanResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Follow-up scan requires LEADGEN_API_URL.");
+  }
+  return apiFetch<FollowUpScanResult>(`/follow-ups/scan`, { method: "POST" });
+}
+
+export async function sendFollowUpOnApi(id: number): Promise<FollowUpActionResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Sending requires LEADGEN_API_URL — local-dev is read-only.");
+  }
+  return apiFetch<FollowUpActionResult>(`/follow-ups/${id}/send`, { method: "POST" });
+}
+
+export async function skipFollowUpOnApi(id: number): Promise<FollowUpActionResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Skipping requires LEADGEN_API_URL — local-dev is read-only.");
+  }
+  return apiFetch<FollowUpActionResult>(`/follow-ups/${id}/skip`, { method: "POST" });
+}
+
+export async function snoozeFollowUpOnApi(
+  id: number,
+  days: number,
+): Promise<FollowUpActionResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Snoozing requires LEADGEN_API_URL — local-dev is read-only.");
+  }
+  return apiFetch<FollowUpActionResult>(`/follow-ups/${id}/snooze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ days }),
+  });
+}
+
+
 export async function updateOperatorProfile(
   profile: OperatorProfile,
 ): Promise<OperatorProfile> {
