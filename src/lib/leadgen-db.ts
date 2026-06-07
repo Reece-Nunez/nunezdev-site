@@ -24,6 +24,7 @@ export type BusinessStatus =
   | "proposal_built"
   | "contacted"
   | "replied"
+  | "converted"
   | "not_interested";
 
 // Categorized loss reasons for a not-interested lead. Mirrors
@@ -240,6 +241,7 @@ export function getStats(): DashboardStats {
     proposal_built: 0,
     contacted: 0,
     replied: 0,
+    converted: 0,
     not_interested: 0,
   };
   for (const r of statusRows) by_status[r.status] = r.c;

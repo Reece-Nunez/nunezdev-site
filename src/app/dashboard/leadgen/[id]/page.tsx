@@ -30,6 +30,7 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
+import ConvertToLeadButton from "./ConvertToLeadButton";
 import SendEmailButton from "./SendEmailButton";
 import SmsSendButton from "./SmsSendButton";
 import NotInterestedButton from "./NotInterestedButton";
@@ -44,6 +45,7 @@ const STATUS_STYLES: Record<BusinessStatus, string> = {
   proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
   contacted:       "bg-gray-100 text-gray-700 border-gray-200",
   replied:         "bg-orange-50 text-orange-700 border-orange-200",
+  converted:       "bg-green-100 text-green-800 border-green-300",
   not_interested:  "bg-red-50 text-red-700 border-red-200",
 };
 const STATUS_LABELS: Record<BusinessStatus, string> = {
@@ -52,6 +54,7 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
   replied:         "Replied",
+  converted:       "Converted",
   not_interested:  "Not interested",
 };
 
@@ -176,7 +179,12 @@ export default async function LeadgenDetail({ params }: PageProps) {
       <Card>
         <SectionTitle>Pipeline actions</SectionTitle>
         <StageButtons businessId={detail.id} status={detail.status} />
-        <div className="pt-1">
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <ConvertToLeadButton
+            businessId={detail.id}
+            status={detail.status}
+            hasEmail={!!detail.email}
+          />
           <NotInterestedButton
             businessId={detail.id}
             status={detail.status}

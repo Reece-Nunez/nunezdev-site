@@ -18,10 +18,12 @@
  */
 import { revalidatePath } from "next/cache";
 import { requireOwner } from "@/lib/authz";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   triggerStageOnApi,
   triggerProspectOnApi,
   getJobFromApi,
+  getBusiness,
   updateOperatorProfile,
   sendOutreachEmail,
   sendSmsOutreach as sendSmsOutreachOnApi,
@@ -445,6 +447,139 @@ export async function snoozeFollowUp(
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : "snooze failed" };
   }
+}
+
+
+// ── CRM bridge: convert prospect → lead (Phase 2 M8) ─────────────
+
+/**
+ * Convert a prospect into a CRM lead (public.leads) and mark the prospect
+ * 'converted' so it leaves the outreach funnel.
+ *
+ * The two systems share one Supabase DB but aren't one transaction: we insert
+ * the lead first, then flip the prospect status. If the status flip fails the
+ * lead still exists (re-converting dedupes on the unique email). Requires an
+ * email — leads.email is NOT NULL UNIQUE; dedupe is by that address.
+ */
+export async function convertToLead(
+  businessId: number,
+): Promise<
+  | { ok: true; leadId: string; alreadyExisted: boolean }
+  | { ok: false; message: string }
+> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+
+  let business;
+  try {
+    business = await getBusiness(businessId);
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "lookup failed" };
+  }
+  if (!business) return { ok: false, message: "prospect not found" };
+
+  const email = business.email?.trim();
+  if (!email) {
+    return {
+      ok: false,
+      message: "This prospect has no email on file. Add one before converting.",
+    };
+  }
+
+  const supabase = supabaseAdmin();
+
+  // Dedupe on the unique email so a second Convert click doesn't 23505.
+  const { data: existing } = await supabase
+    .from("leads")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  let leadId: string;
+  let alreadyExisted = false;
+
+  if (existing?.id) {
+    leadId = existing.id as string;
+    alreadyExisted = true;
+  } else {
+    const estValue = business.proposal?.estimated_value ?? null;
+    const aiScore =
+      business.ai_analysis?.opportunity_score ??
+      business.research?.opportunity_score ??
+      null;
+    const notes = [
+      `Converted from the prospecting pipeline (business #${businessId}).`,
+      business.website ? `Website: ${business.website}` : null,
+      aiScore != null ? `AI opportunity score: ${aiScore}/10` : null,
+      estValue != null ? `Estimated project value: $${estValue.toLocaleString()}` : null,
+      business.address ? `Address: ${business.address}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const { data: inserted, error } = await supabase
+      .from("leads")
+      .insert({
+        email,
+        name: business.name,
+        phone: business.phone ?? null,
+        company: business.name,
+        // leads.source CHECK allows only contact_form|appointment|manual — the
+        // operator-driven convert is 'manual'; the 'prospecting' tag carries
+        // the real origin.
+        source: "manual",
+        status: "qualified",
+        tags: ["prospecting", business.category].filter(Boolean),
+        notes,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      // 23505 = a lead with this email was created in a race; fall back to it.
+      if (error.code === "23505") {
+        const { data: raced } = await supabase
+          .from("leads").select("id").eq("email", email).maybeSingle();
+        if (raced?.id) {
+          leadId = raced.id as string;
+          alreadyExisted = true;
+        } else {
+          return { ok: false, message: "lead already exists but could not be loaded" };
+        }
+      } else {
+        return { ok: false, message: error.message || "failed to create lead" };
+      }
+    } else {
+      leadId = inserted.id as string;
+    }
+  }
+
+  // Mark the prospect converted (audited). Non-fatal if it fails — the lead is
+  // already in the CRM; surface a soft warning instead of losing the work.
+  try {
+    if (business.status !== "converted") {
+      await setBusinessStatusOnApi(businessId, {
+        status: "converted",
+        actor: guard.user?.email ?? null,
+        note: `Converted to CRM lead ${leadId}`,
+      });
+    }
+  } catch (err) {
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    return {
+      ok: false,
+      message:
+        "Lead created in the CRM, but marking the prospect 'converted' failed: " +
+        (err instanceof Error ? err.message : "unknown error"),
+    };
+  }
+
+  revalidatePath(`/dashboard/leadgen/${businessId}`);
+  revalidatePath("/dashboard/leadgen");
+  return { ok: true, leadId, alreadyExisted };
 }
 
 

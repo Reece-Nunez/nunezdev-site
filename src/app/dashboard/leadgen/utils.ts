@@ -48,6 +48,9 @@ export function availableStages(status: BusinessStatus): Stage[] {
     // A replied lead is hot — keep every stage available so the operator can
     // rebuild the proposal or regenerate outreach while the conversation's warm.
     case "replied":        return ["research", "build", "outreach"];
+    // A converted lead has been handed to the CRM — the outreach funnel is
+    // done, so no pipeline stages run.
+    case "converted":      return [];
     // A declined lead is dormant — no stages run until it's reopened.
     // This mirrors the pipeline-side send guard (outreach refuses to email
     // a not_interested business) so the UI can't offer an action the API

@@ -92,6 +92,10 @@ describe("availableStages", () => {
     // outreach or rebuild the proposal mid-conversation, so keep all stages.
     assert.deepEqual(availableStages("replied"), ["research", "build", "outreach"]);
   });
+
+  it("'converted' offers no stages (handed off to the CRM)", () => {
+    assert.deepEqual(availableStages("converted"), []);
+  });
 });
 
 describe("reasonLabel", () => {

@@ -24,6 +24,7 @@ const ALL_STATUSES: (BusinessStatus | "all")[] = [
   "proposal_built",
   "contacted",
   "replied",
+  "converted",
   "not_interested",
 ];
 
@@ -34,6 +35,8 @@ const STATUS_STYLES: Record<BusinessStatus, string> = {
   contacted:       "bg-gray-100 text-gray-700 border-gray-200",
   // 'replied' is the hot signal — a warm orange so it jumps out of the list.
   replied:         "bg-orange-50 text-orange-700 border-orange-200",
+  // 'converted' is the win — solid green.
+  converted:       "bg-green-100 text-green-800 border-green-300",
   not_interested:  "bg-red-50 text-red-700 border-red-200",
 };
 
@@ -43,6 +46,7 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
   replied:         "Replied",
+  converted:       "Converted",
   not_interested:  "Not interested",
 };
 
