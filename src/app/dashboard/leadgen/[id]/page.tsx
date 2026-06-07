@@ -31,6 +31,7 @@ import {
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
 import ConvertToLeadButton from "./ConvertToLeadButton";
+import LogCallButton from "./LogCallButton";
 import SendEmailButton from "./SendEmailButton";
 import SmsSendButton from "./SmsSendButton";
 import NotInterestedButton from "./NotInterestedButton";
@@ -180,6 +181,7 @@ export default async function LeadgenDetail({ params }: PageProps) {
         <SectionTitle>Pipeline actions</SectionTitle>
         <StageButtons businessId={detail.id} status={detail.status} />
         <div className="flex flex-wrap items-center gap-3 pt-1">
+          <LogCallButton businessId={detail.id} />
           <ConvertToLeadButton
             businessId={detail.id}
             status={detail.status}
@@ -490,6 +492,7 @@ const EVENT_META: Record<
   complained: { label: "Spam report", icon: ExclamationTriangleIcon, cls: "text-red-600" },
   replied:    { label: "Replied",     icon: ChatBubbleLeftRightIcon, cls: "text-orange-600" },
   failed:     { label: "Failed",      icon: XCircleIcon,             cls: "text-red-500" },
+  call:       { label: "Call",        icon: PhoneIcon,               cls: "text-gray-600" },
 };
 
 function EngagementRow({ event }: { event: OutreachEvent }) {

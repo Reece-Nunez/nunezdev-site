@@ -34,6 +34,7 @@ import {
   sendFollowUpOnApi,
   skipFollowUpOnApi,
   snoozeFollowUpOnApi,
+  logCallOnApi,
   type JobRecord,
   type OperatorProfile,
   type Stage,
@@ -446,6 +447,34 @@ export async function snoozeFollowUp(
     return { ok: true };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : "snooze failed" };
+  }
+}
+
+
+// ── Phone-call logging (Phase 2 M9) ──────────────────────────────
+
+/**
+ * Log a phone-call outcome against a prospect. 'interested' warms the lead to
+ * 'replied'; other outcomes just land in the engagement timeline.
+ */
+export async function logCall(
+  businessId: number,
+  outcome: string,
+  note?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  if (!outcome) return { ok: false, message: "pick a call outcome" };
+  try {
+    await logCallOnApi(businessId, outcome, note?.trim() || null);
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "failed to log call" };
   }
 }
 

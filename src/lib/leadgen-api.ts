@@ -493,6 +493,39 @@ export async function recordReply(
 }
 
 
+// ── Phone-call logging (Phase 2 M9) ──────────────────────────────
+
+export const CALL_OUTCOMES: { value: string; label: string }[] = [
+  { value: "no_answer", label: "No answer" },
+  { value: "left_voicemail", label: "Left voicemail" },
+  { value: "spoke", label: "Spoke with them" },
+  { value: "interested", label: "Interested" },
+  { value: "wrong_number", label: "Wrong number" },
+  { value: "do_not_call", label: "Asked not to call" },
+];
+
+export interface LogCallResult {
+  business_id: number;
+  status: BusinessStatus;
+}
+
+/** Log a phone-call outcome. 'interested' warms the lead to 'replied'. */
+export async function logCallOnApi(
+  businessId: number,
+  outcome: string,
+  note?: string | null,
+): Promise<LogCallResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Logging a call requires LEADGEN_API_URL.");
+  }
+  return apiFetch<LogCallResult>(`/businesses/${businessId}/log-call`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ outcome, note: note ?? null }),
+  });
+}
+
+
 // ── Follow-up cadence (Phase 2 M7) ───────────────────────────────
 
 export interface FollowUpRow {
