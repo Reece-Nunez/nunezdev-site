@@ -493,6 +493,51 @@ export async function recordReply(
 }
 
 
+// ── Analytics + integration health (Phase 2 M10) ─────────────────
+
+export interface AnalyticsResult {
+  by_status: Record<BusinessStatus, number>;
+  total_businesses: number;
+  pipeline_value: number;
+  emails_sent: number;
+  emails_delivered: number;
+  emails_opened: number;
+  emails_bounced: number;
+  replies: number;
+  calls_logged: number;
+  reach: number;
+  reply_rate: number | null;
+  convert_rate: number | null;
+  open_rate: number | null;
+  follow_ups_due: number;
+}
+
+export async function getAnalytics(): Promise<AnalyticsResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Analytics requires LEADGEN_API_URL.");
+  }
+  return apiFetch<AnalyticsResult>("/analytics");
+}
+
+export interface IntegrationsHealth {
+  database: boolean;
+  anthropic: boolean;
+  google_places: boolean;
+  resend: boolean;
+  resend_webhook: boolean;
+  twilio: boolean;
+  storage_s3: boolean;
+  public_base_url: boolean;
+}
+
+export async function getIntegrationsHealth(): Promise<IntegrationsHealth> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Health check requires LEADGEN_API_URL.");
+  }
+  return apiFetch<IntegrationsHealth>("/health/integrations");
+}
+
+
 // ── Phone-call logging (Phase 2 M9) ──────────────────────────────
 
 export const CALL_OUTCOMES: { value: string; label: string }[] = [

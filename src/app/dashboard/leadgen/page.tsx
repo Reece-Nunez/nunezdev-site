@@ -12,7 +12,7 @@ import {
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import ProspectCard from "./ProspectCard";
 import CitiesAccordion, { type CityGroup } from "./CitiesAccordion";
-import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -273,6 +273,13 @@ function PageHeader() {
         </p>
       </div>
       <div className="flex items-center gap-2">
+        <Link
+          href="/dashboard/leadgen/health"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
+        >
+          <ChartBarIcon className="w-4 h-4" />
+          Health
+        </Link>
         <Link
           href="/dashboard/leadgen/follow-ups"
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
