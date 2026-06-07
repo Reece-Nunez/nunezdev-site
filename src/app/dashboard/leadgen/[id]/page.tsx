@@ -5,6 +5,8 @@ import {
   getBusiness,
   type BusinessStatus,
   type OutreachRow,
+  type OutreachEvent,
+  type OutreachEventType,
   type SmsConsentBasis,
 } from "@/lib/leadgen-api";
 import { businessOutputDirName } from "@/lib/leadgen-paths";
@@ -19,6 +21,13 @@ import {
   DevicePhoneMobileIcon,
   PhoneArrowUpRightIcon,
   ArrowTopRightOnSquareIcon,
+  PaperAirplaneIcon,
+  CheckCircleIcon,
+  EnvelopeOpenIcon,
+  CursorArrowRaysIcon,
+  ExclamationTriangleIcon,
+  ChatBubbleLeftRightIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
 import SendEmailButton from "./SendEmailButton";
@@ -34,6 +43,7 @@ const STATUS_STYLES: Record<BusinessStatus, string> = {
   researched:      "bg-purple-50 text-purple-700 border-purple-200",
   proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
   contacted:       "bg-gray-100 text-gray-700 border-gray-200",
+  replied:         "bg-orange-50 text-orange-700 border-orange-200",
   not_interested:  "bg-red-50 text-red-700 border-red-200",
 };
 const STATUS_LABELS: Record<BusinessStatus, string> = {
@@ -41,6 +51,7 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   researched:      "Researched",
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
+  replied:         "Replied",
   not_interested:  "Not interested",
 };
 
@@ -353,6 +364,18 @@ export default async function LeadgenDetail({ params }: PageProps) {
         )}
       </Card>
 
+      {/* ── Engagement timeline ─────────────────────────────────── */}
+      {detail.outreach_events.length > 0 && (
+        <Card>
+          <SectionTitle>Engagement</SectionTitle>
+          <ol className="space-y-3">
+            {detail.outreach_events.map((e) => (
+              <EngagementRow key={e.id} event={e} />
+            ))}
+          </ol>
+        </Card>
+      )}
+
       {/* ── Status history ──────────────────────────────────────── */}
       {detail.status_events.length > 0 && (
         <Card>
@@ -441,6 +464,47 @@ function Field({
       </div>
       <div className="text-gray-800">{children}</div>
     </div>
+  );
+}
+
+// Per-event presentation for the engagement timeline. Positive signals
+// (delivered/opened/clicked/replied) read warm; failures (bounced/complained/
+// failed) read red. Mirrors OutreachEventType in leadgen-db.ts.
+const EVENT_META: Record<
+  OutreachEventType,
+  { label: string; icon: React.ComponentType<{ className?: string }>; cls: string }
+> = {
+  sent:       { label: "Sent",        icon: PaperAirplaneIcon,       cls: "text-gray-400" },
+  delivered:  { label: "Delivered",   icon: CheckCircleIcon,         cls: "text-blue-500" },
+  opened:     { label: "Opened",      icon: EnvelopeOpenIcon,        cls: "text-emerald-500" },
+  clicked:    { label: "Clicked",     icon: CursorArrowRaysIcon,     cls: "text-emerald-600" },
+  bounced:    { label: "Bounced",     icon: ExclamationTriangleIcon, cls: "text-red-500" },
+  complained: { label: "Spam report", icon: ExclamationTriangleIcon, cls: "text-red-600" },
+  replied:    { label: "Replied",     icon: ChatBubbleLeftRightIcon, cls: "text-orange-600" },
+  failed:     { label: "Failed",      icon: XCircleIcon,             cls: "text-red-500" },
+};
+
+function EngagementRow({ event }: { event: OutreachEvent }) {
+  const meta = EVENT_META[event.event_type];
+  const Icon = meta.icon;
+  // Prefer the provider's event time; fall back to when we recorded it.
+  const when = event.occurred_at ?? event.created_at;
+  return (
+    <li className="flex gap-3 text-sm">
+      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${meta.cls}`} />
+      <div className="min-w-0">
+        <div className="text-gray-800">
+          {meta.label}
+          <span className="text-gray-400"> · {event.channel.toUpperCase()}</span>
+        </div>
+        {event.detail && (
+          <div className="text-gray-600 mt-0.5 break-words">{event.detail}</div>
+        )}
+        <div className="text-xs text-gray-400 mt-0.5">
+          {new Date(when).toLocaleString()}
+        </div>
+      </div>
+    </li>
   );
 }
 

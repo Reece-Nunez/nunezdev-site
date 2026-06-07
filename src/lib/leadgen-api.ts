@@ -46,6 +46,8 @@ export type {
   ResearchRow,
   ProposalRow,
   OutreachRow,
+  OutreachEvent,
+  OutreachEventType,
 } from "./leadgen-db";
 
 import type { BusinessStatus, StatusReason, SmsConsentBasis } from "./leadgen-db";
@@ -440,6 +442,51 @@ export async function setBusinessStatus(
       status: input.status,
       reason: input.reason ?? null,
       note: input.note ?? null,
+      actor: input.actor ?? null,
+    }),
+  });
+}
+
+
+// ── Inbound reply logging (Phase 2 M6 — Gmail poller) ────────────
+
+export interface RecordReplyResult {
+  business_id: number;
+  /** false when the reply was already logged (deduped on a re-poll). */
+  recorded: boolean;
+  status: BusinessStatus;
+}
+
+/**
+ * Record an inbound reply against a business (used by the Gmail reply-sync
+ * cron). Idempotent server-side — re-polling the same message is a no-op that
+ * returns recorded:false. Throws on a non-2xx (400 invalid channel, 404
+ * unknown business).
+ */
+export async function recordReply(
+  businessId: number,
+  input: {
+    channel: "email" | "sms";
+    provider: string;
+    providerMessageId?: string | null;
+    snippet?: string | null;
+    actor?: string | null;
+  },
+): Promise<RecordReplyResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(
+      500,
+      "Recording replies requires LEADGEN_API_URL — the local-dev backend is read-only.",
+    );
+  }
+  return apiFetch<RecordReplyResult>(`/businesses/${businessId}/record-reply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      channel: input.channel,
+      provider: input.provider,
+      provider_message_id: input.providerMessageId ?? null,
+      snippet: input.snippet ?? null,
       actor: input.actor ?? null,
     }),
   });

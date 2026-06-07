@@ -8,6 +8,7 @@ type GoogleApiClient = {
   sheets: any;
   tasks: any;
   analyticsdata: any;
+  gmail: any;
 };
 
 type ServiceName = keyof GoogleApiClient;
@@ -49,6 +50,15 @@ const SERVICE_CONFIGS: Record<ServiceName, ServiceConfig> = {
   analyticsdata: {
     version: 'v1beta',
     scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
+  },
+  // gmail.readonly powers leadgen reply detection (cron/leadgen-reply-sync).
+  // Read-only — we only search for prospect replies, never send from here.
+  // NOTE: this scope must be authorized for the service account in the Google
+  // Workspace Admin console (Security → API controls → Domain-wide delegation)
+  // alongside the others, or the impersonated client 403s at call time.
+  gmail: {
+    version: 'v1',
+    scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
   },
 };
 
@@ -194,6 +204,10 @@ class GoogleServiceFactory {
 
   async getAnalyticsDataClient() {
     return this.getClient('analyticsdata');
+  }
+
+  async getGmailClient() {
+    return this.getClient('gmail');
   }
 
   isAvailable(): boolean {

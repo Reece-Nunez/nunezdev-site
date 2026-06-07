@@ -86,6 +86,12 @@ describe("availableStages", () => {
     // the UI must not surface stage actions the API would reject.
     assert.deepEqual(availableStages("not_interested"), []);
   });
+
+  it("'replied' allows every stage (hot lead, can rebuild/re-pitch)", () => {
+    // A reply is the warmest signal — the operator may want to regenerate
+    // outreach or rebuild the proposal mid-conversation, so keep all stages.
+    assert.deepEqual(availableStages("replied"), ["research", "build", "outreach"]);
+  });
 });
 
 describe("reasonLabel", () => {

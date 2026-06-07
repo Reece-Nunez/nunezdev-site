@@ -15,11 +15,15 @@ import { LEADGEN_DB_PATH } from "./leadgen-paths";
 
 // ── Schema-shaped types ───────────────────────────────────────────
 
+// Mirrors statuses.py::BUSINESS_STATUSES and the businesses_status_check
+// constraint (migration 009). Keep all three in sync. 'replied' is set
+// automatically when a prospect responds to outreach (engagement.mark_replied).
 export type BusinessStatus =
   | "new"
   | "researched"
   | "proposal_built"
   | "contacted"
+  | "replied"
   | "not_interested";
 
 // Categorized loss reasons for a not-interested lead. Mirrors
@@ -120,6 +124,31 @@ export interface OutreachRow {
   created_at: string;
 }
 
+// Engagement event type — mirrors engagement.EVENT_TYPES and the
+// outreach_events.event_type CHECK (migration 009).
+export type OutreachEventType =
+  | "sent"
+  | "delivered"
+  | "opened"
+  | "clicked"
+  | "bounced"
+  | "complained"
+  | "replied"
+  | "failed";
+
+// One row of the pipeline's outreach_events log — a provider-reported
+// delivery/open/bounce or an inbound reply. Drives the engagement timeline.
+export interface OutreachEvent {
+  id: number;
+  business_id: number;
+  channel: "email" | "sms";
+  event_type: OutreachEventType;
+  provider: string | null;
+  detail: string | null;
+  occurred_at: string | null;
+  created_at: string;
+}
+
 // ── Joined view types for the UI ──────────────────────────────────
 
 export interface BusinessSummary extends BusinessRow {
@@ -149,6 +178,9 @@ export interface BusinessDetail extends BusinessRow {
   // Status history, newest first. Empty for the local SQLite backend,
   // which predates the status_events table.
   status_events: StatusEvent[];
+  // Engagement events (sent/delivered/opened/bounced/replied), newest first.
+  // Empty for the local SQLite backend, which predates the table.
+  outreach_events: OutreachEvent[];
   // SMS compliance state — gates the SMS send button.
   sms_consent: SmsConsentInfo | null;
   sms_opted_out: boolean;
@@ -207,6 +239,7 @@ export function getStats(): DashboardStats {
     researched: 0,
     proposal_built: 0,
     contacted: 0,
+    replied: 0,
     not_interested: 0,
   };
   for (const r of statusRows) by_status[r.status] = r.c;
@@ -377,6 +410,7 @@ export function getBusiness(id: number): BusinessDetail | null {
     // those live only in the pipeline's Postgres. Surface empty/false so the
     // detail page renders identically against either backend.
     status_events: [],
+    outreach_events: [],
     sms_consent: null,
     sms_opted_out: false,
   };

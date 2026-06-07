@@ -11,7 +11,7 @@ import {
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import ProspectCard from "./ProspectCard";
 import CitiesAccordion, { type CityGroup } from "./CitiesAccordion";
-import { MagnifyingGlassIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,6 +22,7 @@ const ALL_STATUSES: (BusinessStatus | "all")[] = [
   "researched",
   "proposal_built",
   "contacted",
+  "replied",
   "not_interested",
 ];
 
@@ -30,6 +31,8 @@ const STATUS_STYLES: Record<BusinessStatus, string> = {
   researched:      "bg-purple-50 text-purple-700 border-purple-200",
   proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
   contacted:       "bg-gray-100 text-gray-700 border-gray-200",
+  // 'replied' is the hot signal — a warm orange so it jumps out of the list.
+  replied:         "bg-orange-50 text-orange-700 border-orange-200",
   not_interested:  "bg-red-50 text-red-700 border-red-200",
 };
 
@@ -38,6 +41,7 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   researched:      "Researched",
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
+  replied:         "Replied",
   not_interested:  "Not interested",
 };
 
@@ -160,6 +164,22 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
 
       {/* ── Prospecting trigger ──────────────────────────────────── */}
       <ProspectCard />
+
+      {/* ── Needs-attention banner ───────────────────────────────────
+          Replies are the whole point — when a prospect responds, surface it
+          loudly at the top and deep-link straight to the replied filter. */}
+      {stats.by_status.replied > 0 && (
+        <Link
+          href="/dashboard/leadgen?status=replied"
+          className="flex items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-800 hover:bg-orange-100 transition"
+        >
+          <span className="flex items-center gap-2">
+            <EnvelopeIcon className="w-5 h-5" />
+            {stats.by_status.replied} lead{stats.by_status.replied === 1 ? "" : "s"} replied — needs your attention
+          </span>
+          <span aria-hidden className="text-orange-500">→</span>
+        </Link>
+      )}
 
       {/* ── Stat cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

@@ -13,6 +13,7 @@ const STATUS_STYLES: Record<BusinessStatus, string> = {
   researched:      "bg-purple-50 text-purple-700 border-purple-200",
   proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
   contacted:       "bg-gray-100 text-gray-700 border-gray-200",
+  replied:         "bg-orange-50 text-orange-700 border-orange-200",
   not_interested:  "bg-red-50 text-red-700 border-red-200",
 };
 
@@ -21,6 +22,7 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   researched:      "Researched",
   proposal_built:  "Proposal built",
   contacted:       "Contacted",
+  replied:         "Replied",
   not_interested:  "Not interested",
 };
 
