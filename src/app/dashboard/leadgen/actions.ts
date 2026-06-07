@@ -451,6 +451,40 @@ export async function snoozeFollowUp(
 }
 
 
+// ── Bulk stage actions (Phase 2 M11) ─────────────────────────────
+
+const BULK_MAX = 100;
+
+/**
+ * Enqueue a pipeline stage (research/build/outreach) for many businesses at
+ * once. Each is an independent job — we fan out with allSettled and report how
+ * many enqueued vs. failed. Capped at BULK_MAX so a runaway selection can't
+ * flood the queue.
+ */
+export async function bulkRunStage(
+  stage: Stage,
+  businessIds: number[],
+): Promise<{ ok: true; enqueued: number; failed: number } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!["research", "build", "outreach"].includes(stage)) {
+    return { ok: false, message: "invalid stage" };
+  }
+  const ids = (businessIds ?? []).filter((id) => Number.isInteger(id) && id > 0);
+  if (ids.length === 0) return { ok: false, message: "no leads selected" };
+  if (ids.length > BULK_MAX) {
+    return { ok: false, message: `select at most ${BULK_MAX} leads at a time` };
+  }
+
+  const results = await Promise.allSettled(ids.map((id) => triggerStageOnApi(stage, id)));
+  const enqueued = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.length - enqueued;
+
+  revalidatePath("/dashboard/leadgen");
+  return { ok: true, enqueued, failed };
+}
+
+
 // ── Phone-call logging (Phase 2 M9) ──────────────────────────────
 
 /**

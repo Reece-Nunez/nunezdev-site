@@ -35,16 +35,39 @@ export default function BusinessesTable({
   // already provides those. Default flat=false preserves the original
   // standalone look on the index page.
   flat = false,
+  // Optional multi-select. When selectedIds + onToggleRow are provided, a
+  // leading checkbox column appears. onToggleAll drives the header checkbox.
+  selectedIds,
+  onToggleRow,
+  onToggleAll,
 }: {
   businesses: BusinessSummary[];
   flat?: boolean;
+  selectedIds?: Set<number>;
+  onToggleRow?: (id: number) => void;
+  onToggleAll?: (ids: number[], select: boolean) => void;
 }) {
+  const selectable = !!selectedIds && !!onToggleRow;
+  const ids = businesses.map((b) => b.id);
+  const allSelected = selectable && ids.length > 0 && ids.every((id) => selectedIds!.has(id));
+
   return (
     <div className={flat ? "overflow-hidden" : "rounded-xl border bg-white overflow-hidden"}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
             <tr>
+              {selectable && (
+                <th className="w-10 px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all in this group"
+                    checked={allSelected}
+                    onChange={(e) => onToggleAll?.(ids, e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                </th>
+              )}
               <th className="text-left px-4 py-2.5 font-medium">Business</th>
               <th className="text-left px-4 py-2.5 font-medium hidden md:table-cell">Category</th>
               <th className="text-center px-3 py-2.5 font-medium w-20">AI</th>
@@ -55,7 +78,18 @@ export default function BusinessesTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {businesses.map((b) => (
-              <tr key={b.id} className="hover:bg-gray-50">
+              <tr key={b.id} className={`hover:bg-gray-50 ${selectable && selectedIds!.has(b.id) ? "bg-blue-50/40" : ""}`}>
+                {selectable && (
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${b.name}`}
+                      checked={selectedIds!.has(b.id)}
+                      onChange={() => onToggleRow!(b.id)}
+                      className="rounded border-gray-300"
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <Link
                     href={`/dashboard/leadgen/${b.id}`}

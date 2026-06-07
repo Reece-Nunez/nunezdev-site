@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronRightIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import {
+  ChevronRightIcon,
+  MapPinIcon,
+  BeakerIcon,
+  DocumentCheckIcon,
+  PaperAirplaneIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import type { BusinessSummary } from "@/lib/leadgen-db";
 import BusinessesTable from "./BusinessesTable";
+import { bulkRunStage } from "./actions";
+import type { Stage } from "./utils";
 
 export interface CityGroup {
   city: string;
@@ -12,6 +23,46 @@ export interface CityGroup {
 }
 
 export default function CitiesAccordion({ groups }: { groups: CityGroup[] }) {
+  const router = useRouter();
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [isPending, startTransition] = useTransition();
+
+  function toggleRow(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll(ids: number[], select: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (select) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  function runBulk(stage: Stage) {
+    const ids = [...selected];
+    startTransition(async () => {
+      const r = await bulkRunStage(stage, ids);
+      if (r.ok) {
+        toast.success(
+          `Enqueued ${stage} for ${r.enqueued} lead${r.enqueued === 1 ? "" : "s"}` +
+            (r.failed ? ` (${r.failed} failed)` : ""),
+        );
+        setSelected(new Set());
+        router.refresh();
+      } else {
+        toast.error(r.message);
+      }
+    });
+  }
   // Default-expand the first (largest) city so the operator sees
   // a real list on load rather than a wall of closed accordions.
   // Subsequent toggles are sticky for the session.
@@ -103,13 +154,73 @@ export default function CitiesAccordion({ groups }: { groups: CityGroup[] }) {
             </button>
             {isOpen && (
               <div className="border-t">
-                <BusinessesTable businesses={g.businesses} flat />
+                <BusinessesTable
+                  businesses={g.businesses}
+                  flat
+                  selectedIds={selected}
+                  onToggleRow={toggleRow}
+                  onToggleAll={toggleAll}
+                />
               </div>
             )}
           </div>
         );
       })}
+
+      {/* ── Bulk action bar ──────────────────────────────────────────
+          Floats at the bottom while leads are selected. Fans out the chosen
+          stage as independent jobs (see bulkRunStage). */}
+      {selected.size > 0 && (
+        <div className="sticky bottom-4 z-10 mx-auto flex flex-wrap items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium text-gray-900">
+            {selected.size} selected
+          </span>
+          <span className="text-gray-300">·</span>
+          <BulkButton onClick={() => runBulk("research")} disabled={isPending} icon={BeakerIcon}>
+            Research
+          </BulkButton>
+          <BulkButton onClick={() => runBulk("build")} disabled={isPending} icon={DocumentCheckIcon}>
+            Build
+          </BulkButton>
+          <BulkButton onClick={() => runBulk("outreach")} disabled={isPending} icon={PaperAirplaneIcon}>
+            Outreach
+          </BulkButton>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            disabled={isPending}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+          >
+            <XMarkIcon className="w-4 h-4" />
+            Clear
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+function BulkButton({
+  onClick,
+  disabled,
+  icon: Icon,
+  children,
+}: {
+  onClick: () => void;
+  disabled: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <Icon className="w-4 h-4" />
+      {children}
+    </button>
   );
 }
 
