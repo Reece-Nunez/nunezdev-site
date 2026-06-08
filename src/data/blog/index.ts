@@ -1,11 +1,15 @@
 import type { BlogPost } from "./types";
 import howMuchDoesAWebsiteCost from "./posts/how-much-does-a-small-business-website-cost";
+import googleBusinessProfileOptimization from "./posts/google-business-profile-optimization-local-seo";
 
 /**
  * Blog post registry. Add new posts here (newest first ordering is handled
  * by the date sort below, so order in this array doesn't matter).
  */
-const allPosts: BlogPost[] = [howMuchDoesAWebsiteCost];
+const allPosts: BlogPost[] = [
+  howMuchDoesAWebsiteCost,
+  googleBusinessProfileOptimization,
+];
 
 export const posts: BlogPost[] = [...allPosts].sort(
   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
