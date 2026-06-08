@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { projects } from "@/data/projects";
+import { posts } from "@/data/blog";
 
 const BASE_URL = "https://www.nunezdev.com";
 
@@ -22,6 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/services`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE_URL}/portfolio`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE_URL}/web-design-ponca-city`, changeFrequency: "monthly", priority: 0.9 },
+    { url: `${BASE_URL}/blog`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE_URL}/privacy-policy`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/terms-of-service`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/sms-terms`, changeFrequency: "yearly", priority: 0.3 },
@@ -39,5 +41,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...servicePages, ...portfolioPages];
+  const blogPages: MetadataRoute.Sitemap = posts.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: new Date(post.updated ?? post.date),
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...servicePages, ...portfolioPages, ...blogPages];
 }

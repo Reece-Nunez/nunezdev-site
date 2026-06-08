@@ -20,6 +20,7 @@ const navItems = [
   { label: "Services", href: "/services", hasDropdown: true },
   { label: "Portfolio", href: "/portfolio" },
   { label: "Pricing", href: "/pricing" },
+  { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];
 
