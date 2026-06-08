@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import { PHONE_DISPLAY, PHONE_TEL } from "@/lib/contact";
+import ThreeBackground from "@/components/ThreeBackground";
 
 // Dedicated post-submit landing page. The LeadForm redirects here on a
 // successful POST so that:
@@ -22,6 +23,7 @@ export const metadata = {
 export default function ContactThanksPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-32 pb-24 text-offwhite">
+      <ThreeBackground />
       <div className="bg-white/5 backdrop-blur-sm border border-yellow/40 rounded-2xl p-8 sm:p-12 text-center max-w-lg z-10">
         <div className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
           <FontAwesomeIcon icon={faCheck} className="text-green-400 text-xl" />
