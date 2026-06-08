@@ -32,6 +32,7 @@ import {
 import StageButtons from "../StageButtons";
 import ConvertToLeadButton from "./ConvertToLeadButton";
 import LogCallButton from "./LogCallButton";
+import EditEmailField from "./EditEmailField";
 import SendEmailButton from "./SendEmailButton";
 import SmsSendButton from "./SmsSendButton";
 import NotInterestedButton from "./NotInterestedButton";
@@ -207,11 +208,9 @@ export default async function LeadgenDetail({ params }: PageProps) {
               <a className="text-blue-700 hover:underline" href={`tel:${detail.phone}`}>{detail.phone}</a>
             </Field>
           )}
-          {detail.email && (
-            <Field icon={EnvelopeIcon} label="Email">
-              <a className="text-blue-700 hover:underline" href={`mailto:${detail.email}`}>{detail.email}</a>
-            </Field>
-          )}
+          <Field icon={EnvelopeIcon} label="Email">
+            <EditEmailField businessId={detail.id} email={detail.email} />
+          </Field>
           {detail.website && (
             <Field icon={GlobeAltIcon} label="Website">
               <a className="text-blue-700 hover:underline break-all" href={detail.website} target="_blank" rel="noopener">

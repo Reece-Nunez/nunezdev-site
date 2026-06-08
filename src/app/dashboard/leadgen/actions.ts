@@ -485,6 +485,35 @@ export async function bulkRunStage(
 }
 
 
+// ── Manual email entry (M9b) ─────────────────────────────────────
+
+/**
+ * Set/correct a lead's contact email by hand — for prospects whose email isn't
+ * scrapeable (Facebook-only pages, no website, obfuscated beyond reach). The
+ * API validates the format (400 on garbage) and persists it on the business.
+ */
+export async function setLeadEmail(
+  businessId: number,
+  email: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  const trimmed = email.trim();
+  if (!trimmed) return { ok: false, message: "Enter an email address" };
+  try {
+    await setBusinessEmailOnApi(businessId, trimmed);
+    revalidatePath(`/dashboard/leadgen/${businessId}`);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "failed to save email" };
+  }
+}
+
+
 // ── Phone-call logging (Phase 2 M9) ──────────────────────────────
 
 /**
