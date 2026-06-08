@@ -5,7 +5,7 @@ const post: BlogPost = {
   slug: "how-much-does-a-small-business-website-cost",
   title: "How Much Does a Small Business Website Cost in 2026?",
   description:
-    "A developer's honest breakdown of small business website costs in 2026 — DIY builders vs. freelancers vs. agencies, hidden fees, and what you should actually pay.",
+    "A developer's honest breakdown of small business website costs in 2026: DIY builders vs. freelancers vs. agencies, hidden fees, and what you should actually pay.",
   date: "2026-06-07",
   category: "Pricing & Planning",
   keywords: [
@@ -39,7 +39,7 @@ const post: BlogPost = {
     {
       question: "Why do agency quotes cost so much more than freelancers?",
       answer:
-        "Agencies carry overhead — project managers, account reps, office costs — that gets built into your quote. You're often paying 2–4x more for the same deliverable. A solo developer or small studio gives you direct access to the person writing the code.",
+        "Agencies carry overhead, like project managers, account reps, and office costs, that gets built into your quote. You're often paying 2 to 4x more for the same deliverable. A solo developer or small studio gives you direct access to the person writing the code.",
     },
   ],
   content: (
@@ -48,13 +48,13 @@ const post: BlogPost = {
         Ask five different providers what a small business website costs and
         you&apos;ll get five wildly different answers: $15 a month from Wix,
         $2,000 from a freelancer, $20,000 from an agency. None of them are
-        lying — they&apos;re just selling very different things.
+        lying. They&apos;re just selling very different things.
       </p>
       <p>
         I build websites and custom software for small businesses here in
         Oklahoma and across the country, so I see these quotes from the other
         side of the table. Here&apos;s an honest breakdown of what you&apos;re
-        actually paying for at each price point — and where the money gets
+        actually paying for at each price point, and where the money gets
         wasted.
       </p>
 
@@ -64,7 +64,7 @@ const post: BlogPost = {
       <p>
         Wix, Squarespace, and GoDaddy builders advertise low monthly prices,
         but the math compounds. At $25/month you&apos;ll spend $1,500 over five
-        years — and you still don&apos;t own anything. Cancel the subscription
+        years, and you still don&apos;t own anything. Cancel the subscription
         and the site disappears.
       </p>
       <p>The real costs are the invisible ones:</p>
@@ -74,7 +74,7 @@ const post: BlogPost = {
           category, because they are.
         </li>
         <li>
-          Slower page loads than hand-built sites — and{" "}
+          Slower page loads than hand-built sites, and{" "}
           <Link href="/services/seo-optimization">page speed is a ranking
           factor</Link> Google uses to decide who shows up first.
         </li>
@@ -98,8 +98,8 @@ const post: BlogPost = {
       <ul>
         <li>
           <strong>$300–1,500:</strong> a clean, fast, hand-coded brochure site
-          — home, services, about, contact. This is where most local
-          businesses should start. (My own{" "}
+          with home, services, about, and contact pages. This is where most
+          local businesses should start. (My own{" "}
           <Link href="/pricing">quotes start at $300</Link> for exactly this.)
         </li>
         <li>
@@ -111,7 +111,7 @@ const post: BlogPost = {
           <strong>$5,000–10,000+:</strong> e-commerce, customer portals,
           dashboards, or{" "}
           <Link href="/services/automation-integration">automation that
-          connects your website to the tools you already use</Link> — think
+          connects your website to the tools you already use</Link>, like
           invoicing, CRMs, and scheduling.
         </li>
       </ul>
@@ -125,8 +125,8 @@ const post: BlogPost = {
       <p>
         Agencies do good work, and for large companies with brand guidelines,
         legal review, and six stakeholders, the overhead is worth it. For a
-        small business, you&apos;re mostly paying for that overhead — project
-        managers, account reps, and office space — stacked on top of the same
+        small business, you&apos;re mostly paying for that overhead (project
+        managers, account reps, and office space) stacked on top of the same
         build a good independent developer would deliver.
       </p>
       <p>
@@ -159,7 +159,7 @@ const post: BlogPost = {
         </li>
         <li>
           <strong>SEO sold separately.</strong> Title tags, schema markup,
-          sitemaps, and mobile performance should be part of the build — not a
+          sitemaps, and mobile performance should be part of the build, not a
           $500 add-on for work that takes an experienced developer an hour.
         </li>
       </ul>
@@ -181,13 +181,13 @@ const post: BlogPost = {
           you are and what you do.
         </li>
         <li>
-          A clear call to action — call, book, or get a quote — above the fold
+          A clear call to action (call, book, or get a quote) above the fold
           on every page.
         </li>
       </ul>
       <p>
         A $300 site that does those three things will outperform a $15,000
-        site that doesn&apos;t. I&apos;ve seen it happen more than once — you
+        site that doesn&apos;t. I&apos;ve seen it happen more than once, and you
         can browse <Link href="/portfolio">real examples in my portfolio</Link>.
       </p>
 
@@ -196,8 +196,8 @@ const post: BlogPost = {
         For most small businesses in 2026, the right answer is a hand-built
         site in the $300–5,000 range from someone who answers their own phone:
         you own the code, hosting costs stay near zero, and local SEO is baked
-        in from day one. Pay more only when your business genuinely needs more
-        — online ordering, customer portals, custom software.
+        in from day one. Pay more only when your business genuinely needs more,
+        like online ordering, customer portals, or custom software.
       </p>
       <p>
         If you want a real number instead of a range,{" "}

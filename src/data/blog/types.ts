@@ -5,6 +5,17 @@ export interface BlogFaq {
   answer: string;
 }
 
+export interface BlogSource {
+  /** Display title of the cited source. */
+  title: string;
+  /** Publisher or site name, e.g. "Google", "BrightLocal". */
+  publisher?: string;
+  /** Full URL to the source. */
+  url: string;
+  /** Optional year of the data/report, e.g. "2025". */
+  year?: string;
+}
+
 export interface BlogPost {
   slug: string;
   title: string;
@@ -21,6 +32,8 @@ export interface BlogPost {
   excerpt: string;
   /** Optional FAQ rendered on-page and emitted as FAQPage JSON-LD. */
   faq?: BlogFaq[];
+  /** Cited sources for any statistics or factual claims in the post. */
+  sources?: BlogSource[];
   /** Post body as JSX. Use bare h2/h3/p/ul/ol/a/blockquote tags — PostBody styles them. */
   content: ReactNode;
 }

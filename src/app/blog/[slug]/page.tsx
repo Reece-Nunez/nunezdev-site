@@ -97,6 +97,9 @@ export default async function BlogPostPage({ params }: Props) {
               },
             },
             mainEntityOfPage: { "@type": "WebPage", "@id": url },
+            ...(post.sources && post.sources.length > 0
+              ? { citation: post.sources.map((s) => s.url) }
+              : {}),
           }),
         }}
       />
@@ -182,6 +185,29 @@ export default async function BlogPostPage({ params }: Props) {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Sources */}
+        {post.sources && post.sources.length > 0 && (
+          <section className="mt-14 border-t border-white/10 pt-8">
+            <h2 className="text-white text-lg font-semibold mb-4">Sources</h2>
+            <ol className="list-decimal pl-5 space-y-2 text-sm text-white/60">
+              {post.sources.map((s) => (
+                <li key={s.url}>
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="text-yellow/90 underline underline-offset-2 hover:text-yellow"
+                  >
+                    {s.title}
+                  </a>
+                  {s.publisher ? `, ${s.publisher}` : ""}
+                  {s.year ? ` (${s.year})` : ""}
+                </li>
+              ))}
+            </ol>
           </section>
         )}
 
