@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
 import { posts } from "@/data/blog";
+import ThreeBackground from "@/components/ThreeBackground";
 
 const BASE_URL = "https://www.nunezdev.com";
 
@@ -40,6 +41,7 @@ function formatDate(iso: string) {
 export default function BlogPage() {
   return (
     <main className="flex min-h-screen flex-col items-center text-offwhite overflow-hidden pt-24">
+      <ThreeBackground />
       <Script
         id="blog-jsonld"
         type="application/ld+json"

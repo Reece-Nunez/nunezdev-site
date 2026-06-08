@@ -4,6 +4,7 @@ import Script from "next/script";
 import { notFound } from "next/navigation";
 import { posts, getPostBySlug } from "@/data/blog";
 import BreadcrumbJsonLd from "@/components/BreadcrumbJsonLd";
+import ThreeBackground from "@/components/ThreeBackground";
 
 const BASE_URL = "https://www.nunezdev.com";
 
@@ -61,6 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <main className="flex min-h-screen flex-col items-center text-offwhite overflow-hidden pt-24">
+      <ThreeBackground />
       <BreadcrumbJsonLd
         items={[
           { name: "Home", url: BASE_URL },
