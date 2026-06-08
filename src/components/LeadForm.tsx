@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faSpinner } from "@fortawesome/free-solid-svg-icons";
@@ -48,6 +49,7 @@ export default function LeadForm({
   source: string;
   compact?: boolean;
 }) {
+  const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -113,8 +115,14 @@ export default function LeadForm({
         project_type: payload.projectType,
         budget: payload.budget,
       });
+      // GA4 recommended lead event — mark as a key event in GA4 and import
+      // into Google Ads so bidding optimizes on real form submissions.
+      trackEvent("generate_lead", { source });
       setStatus("success");
       form.reset();
+      // Land on a dedicated thank-you URL so Google Ads can also count a
+      // clean page-load conversion (and so success is a distinct page view).
+      router.push("/contact/thanks");
     } catch (err: unknown) {
       setStatus("error");
       setErrorMessage(
