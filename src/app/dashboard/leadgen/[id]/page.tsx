@@ -28,6 +28,7 @@ import {
   ExclamationTriangleIcon,
   ChatBubbleLeftRightIcon,
   XCircleIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import StageButtons from "../StageButtons";
 import ConvertToLeadButton from "./ConvertToLeadButton";
@@ -494,6 +495,7 @@ const EVENT_META: Record<
   replied:    { label: "Replied",     icon: ChatBubbleLeftRightIcon, cls: "text-orange-600" },
   failed:     { label: "Failed",      icon: XCircleIcon,             cls: "text-red-500" },
   call:       { label: "Call",        icon: PhoneIcon,               cls: "text-gray-600" },
+  claimed:    { label: "Claimed site", icon: SparklesIcon,           cls: "text-green-600" },
 };
 
 function EngagementRow({ event }: { event: OutreachEvent }) {

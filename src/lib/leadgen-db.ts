@@ -136,14 +136,15 @@ export type OutreachEventType =
   | "complained"
   | "replied"
   | "failed"
-  | "call";
+  | "call"
+  | "claimed";
 
 // One row of the pipeline's outreach_events log — a provider-reported
 // delivery/open/bounce or an inbound reply. Drives the engagement timeline.
 export interface OutreachEvent {
   id: number;
   business_id: number;
-  channel: "email" | "sms" | "phone";
+  channel: "email" | "sms" | "phone" | "web";
   event_type: OutreachEventType;
   provider: string | null;
   detail: string | null;
