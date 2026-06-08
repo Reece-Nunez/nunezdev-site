@@ -32,6 +32,7 @@ import {
 import StageButtons from "../StageButtons";
 import ConvertToLeadButton from "./ConvertToLeadButton";
 import LogCallButton from "./LogCallButton";
+import CallButton from "./CallButton";
 import EditEmailField from "./EditEmailField";
 import SendEmailButton from "./SendEmailButton";
 import SmsSendButton from "./SmsSendButton";
@@ -182,6 +183,7 @@ export default async function LeadgenDetail({ params }: PageProps) {
         <SectionTitle>Pipeline actions</SectionTitle>
         <StageButtons businessId={detail.id} status={detail.status} />
         <div className="flex flex-wrap items-center gap-3 pt-1">
+          <CallButton businessId={detail.id} hasPhone={!!detail.phone} />
           <LogCallButton businessId={detail.id} />
           <ConvertToLeadButton
             businessId={detail.id}

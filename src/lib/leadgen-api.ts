@@ -538,6 +538,23 @@ export async function getIntegrationsHealth(): Promise<IntegrationsHealth> {
 }
 
 
+// ── Click-to-call (voice bridge, M9c) ────────────────────────────
+
+export interface ClickToCallResult {
+  ok: boolean;
+  call_sid: string | null;
+  ring: string | null;   // the operator number Twilio is ringing
+}
+
+/** Bridge a call: Twilio rings the operator, then dials the prospect. */
+export async function clickToCallOnApi(businessId: number): Promise<ClickToCallResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Calling requires LEADGEN_API_URL.");
+  }
+  return apiFetch<ClickToCallResult>(`/calls/${businessId}/click-to-call`, { method: "POST" });
+}
+
+
 // ── Phone-call logging (Phase 2 M9) ──────────────────────────────
 //
 // CALL_OUTCOMES lives in ./leadgen/utils (NOT here) because the client

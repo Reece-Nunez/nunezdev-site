@@ -35,6 +35,7 @@ import {
   skipFollowUpOnApi,
   snoozeFollowUpOnApi,
   logCallOnApi,
+  clickToCallOnApi,
   type JobRecord,
   type OperatorProfile,
   type Stage,
@@ -482,6 +483,30 @@ export async function bulkRunStage(
 
   revalidatePath("/dashboard/leadgen");
   return { ok: true, enqueued, failed };
+}
+
+
+// ── Click-to-call (M9c) ──────────────────────────────────────────
+
+/**
+ * Start a click-to-call: Twilio rings the operator's phone, then bridges to the
+ * prospect with the Twilio number as caller ID. Returns the operator number
+ * being rung so the UI can tell them which phone to answer.
+ */
+export async function callLead(
+  businessId: number,
+): Promise<{ ok: true; ring: string | null } | { ok: false; message: string }> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!Number.isInteger(businessId) || businessId <= 0) {
+    return { ok: false, message: "invalid business id" };
+  }
+  try {
+    const r = await clickToCallOnApi(businessId);
+    return { ok: true, ring: r.ring };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "could not start the call" };
+  }
 }
 
 
