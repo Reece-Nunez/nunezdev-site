@@ -97,6 +97,37 @@ export default function CitiesAccordion({ groups }: { groups: CityGroup[] }) {
 
   return (
     <div className="space-y-3">
+      {/* ── Bulk action bar ──────────────────────────────────────────
+          Sticks to the top while leads are selected so it's reachable without
+          scrolling. Fans out the chosen stage as independent jobs (see
+          bulkRunStage). */}
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-gray-300 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium text-gray-900">
+            {selected.size} selected
+          </span>
+          <span className="text-gray-300">·</span>
+          <BulkButton onClick={() => runBulk("research")} disabled={isPending} icon={BeakerIcon}>
+            Research
+          </BulkButton>
+          <BulkButton onClick={() => runBulk("build")} disabled={isPending} icon={DocumentCheckIcon}>
+            Build
+          </BulkButton>
+          <BulkButton onClick={() => runBulk("outreach")} disabled={isPending} icon={PaperAirplaneIcon}>
+            Outreach
+          </BulkButton>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            disabled={isPending}
+            className="ml-auto inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+          >
+            <XMarkIcon className="w-4 h-4" />
+            Clear
+          </button>
+        </div>
+      )}
+
       {groups.length > 1 && (
         <div className="flex items-center gap-3 text-xs">
           <button
@@ -167,35 +198,6 @@ export default function CitiesAccordion({ groups }: { groups: CityGroup[] }) {
         );
       })}
 
-      {/* ── Bulk action bar ──────────────────────────────────────────
-          Floats at the bottom while leads are selected. Fans out the chosen
-          stage as independent jobs (see bulkRunStage). */}
-      {selected.size > 0 && (
-        <div className="sticky bottom-4 z-10 mx-auto flex flex-wrap items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
-          <span className="text-sm font-medium text-gray-900">
-            {selected.size} selected
-          </span>
-          <span className="text-gray-300">·</span>
-          <BulkButton onClick={() => runBulk("research")} disabled={isPending} icon={BeakerIcon}>
-            Research
-          </BulkButton>
-          <BulkButton onClick={() => runBulk("build")} disabled={isPending} icon={DocumentCheckIcon}>
-            Build
-          </BulkButton>
-          <BulkButton onClick={() => runBulk("outreach")} disabled={isPending} icon={PaperAirplaneIcon}>
-            Outreach
-          </BulkButton>
-          <button
-            type="button"
-            onClick={() => setSelected(new Set())}
-            disabled={isPending}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-          >
-            <XMarkIcon className="w-4 h-4" />
-            Clear
-          </button>
-        </div>
-      )}
     </div>
   );
 }
