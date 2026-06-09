@@ -63,7 +63,7 @@ export default function SettingsForm({ initialProfile }: Props) {
             className={inputClasses}
           />
         </Field>
-        <Field label="Phone" hint="Optional. Used in phone-script outreach">
+        <Field label="Your cell phone" hint="We ring this for click-to-call. Kept private — prospects see your Twilio number in outreach, not this.">
           <input
             type="tel"
             value={profile.phone}
