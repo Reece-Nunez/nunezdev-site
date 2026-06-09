@@ -7,11 +7,10 @@ import {
   listFollowUps,
   isRemoteBackend,
   type BusinessStatus,
-  type BusinessSummary,
 } from "@/lib/leadgen-api";
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import ProspectCard from "./ProspectCard";
-import CitiesAccordion, { type CityGroup } from "./CitiesAccordion";
+import ProspectsExplorer from "./ProspectsExplorer";
 import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
@@ -60,28 +59,6 @@ function formatCurrency(n: number): string {
 
 interface PageProps {
   searchParams: Promise<{ status?: string }>;
-}
-
-/**
- * Group a flat list of businesses by (city, state). Cities with NULL
- * city land in an "Unknown" bucket at the end. Returned in descending
- * order of group size — biggest city first, "Unknown" always last.
- */
-function groupBusinessesByCity(rows: BusinessSummary[]): CityGroup[] {
-  const map = new Map<string, CityGroup>();
-  for (const r of rows) {
-    const city = r.city ?? "Unknown";
-    const state = r.state ?? null;
-    const key = `${city}|${state ?? ""}`;
-    const existing = map.get(key);
-    if (existing) existing.businesses.push(r);
-    else map.set(key, { city, state, businesses: [r] });
-  }
-  return Array.from(map.values()).sort((a, b) => {
-    if (a.city === "Unknown") return 1;
-    if (b.city === "Unknown") return -1;
-    return b.businesses.length - a.businesses.length;
-  });
 }
 
 export default async function LeadgenIndex({ searchParams }: PageProps) {
@@ -162,7 +139,6 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
     listBusinesses({ status: activeStatus, limit: 500 }),
     listFollowUps("due", 200),
   ]);
-  const cityGroups = groupBusinessesByCity(businesses);
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
@@ -251,8 +227,8 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
         })}
       </div>
 
-      {/* ── Businesses grouped by city ───────────────────────────── */}
-      <CitiesAccordion groups={cityGroups} />
+      {/* ── Prospects: filter / sort / search + bulk actions ─────── */}
+      <ProspectsExplorer businesses={businesses} />
     </div>
   );
 }

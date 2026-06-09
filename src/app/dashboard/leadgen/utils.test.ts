@@ -12,7 +12,61 @@ import {
   availableStages,
   reasonLabel,
   NOT_INTERESTED_REASONS,
+  filterSortProspects,
 } from "./utils";
+import type { BusinessSummary } from "@/lib/leadgen-db";
+
+function biz(p: Partial<BusinessSummary>): BusinessSummary {
+  return {
+    id: 1, name: "Biz", address: null, phone: null, email: null, website: null,
+    category: null, place_id: null, rating: null, review_count: null,
+    status: "new", opportunity_score: 0, source: null, city: null, state: null,
+    created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+    ai_score: null, website_score: null, ...p,
+  };
+}
+
+describe("filterSortProspects", () => {
+  const rows = [
+    biz({ id: 1, name: "Acme Plumbing", ai_score: 9, email: "a@acme.com", city: "Provo", review_count: 50, rating: 4.5 }),
+    biz({ id: 2, name: "Bob's Bakery", ai_score: 4, email: null, city: "Provo", review_count: 10, rating: 4.9 }),
+    biz({ id: 3, name: "Carl Cleaning", ai_score: null, email: "c@carl.com", city: "Orem", review_count: 200, rating: 3.8 }),
+  ];
+
+  it("filters to leads with an email", () => {
+    const out = filterSortProspects(rows, { email: "has" });
+    assert.deepEqual(out.map((b) => b.id).sort(), [1, 3]);
+  });
+
+  it("filters to leads with no email", () => {
+    const out = filterSortProspects(rows, { email: "none" });
+    assert.deepEqual(out.map((b) => b.id), [2]);
+  });
+
+  it("sorts AI score high → low, un-scored last", () => {
+    const out = filterSortProspects(rows, { sort: "ai_desc" });
+    assert.deepEqual(out.map((b) => b.id), [1, 2, 3]); // 9, 4, null
+  });
+
+  it("sorts AI score low → high, un-scored still last (not first)", () => {
+    const out = filterSortProspects(rows, { sort: "ai_asc" });
+    assert.deepEqual(out.map((b) => b.id), [2, 1, 3]); // 4, 9, null
+  });
+
+  it("sorts by most reviews", () => {
+    const out = filterSortProspects(rows, { sort: "reviews_desc" });
+    assert.deepEqual(out.map((b) => b.id), [3, 1, 2]); // 200, 50, 10
+  });
+
+  it("searches across name + city (case-insensitive)", () => {
+    assert.deepEqual(filterSortProspects(rows, { search: "bakery" }).map((b) => b.id), [2]);
+    assert.deepEqual(filterSortProspects(rows, { search: "orem" }).map((b) => b.id), [3]);
+  });
+
+  it("filters by city", () => {
+    assert.deepEqual(filterSortProspects(rows, { city: "Provo", sort: "ai_desc" }).map((b) => b.id), [1, 2]);
+  });
+});
 
 describe("aiScoreClass", () => {
   it("returns the null/unknown class when score is null or undefined", () => {

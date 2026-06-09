@@ -8,7 +8,7 @@
  * module into the client. Server actions re-export `Stage` for callers
  * that already import from actions.ts.
  */
-import type { BusinessStatus, Stage, StatusReason, SmsConsentBasis } from "@/lib/leadgen-db";
+import type { BusinessStatus, BusinessSummary, Stage, StatusReason, SmsConsentBasis } from "@/lib/leadgen-db";
 
 // Re-export Stage so existing callers (./StageButtons, ./actions) keep
 // working — the canonical definition lives in leadgen-db.ts next to the
@@ -98,6 +98,80 @@ export const SMS_CONSENT_BASES: { value: SmsConsentBasis; label: string }[] = [
 export function smsConsentLabel(basis: SmsConsentBasis | null | undefined): string {
   if (!basis) return "";
   return SMS_CONSENT_BASES.find((b) => b.value === basis)?.label ?? basis;
+}
+
+// ── Prospects explorer: filter + sort (pure, unit-tested) ────────────
+
+export type ProspectSort =
+  | "ai_desc"
+  | "ai_asc"
+  | "reviews_desc"
+  | "rating_desc"
+  | "name";
+
+export const PROSPECT_SORTS: { value: ProspectSort; label: string }[] = [
+  { value: "ai_desc",      label: "AI score: high → low" },
+  { value: "ai_asc",       label: "AI score: low → high" },
+  { value: "reviews_desc", label: "Most reviews" },
+  { value: "rating_desc",  label: "Highest rating" },
+  { value: "name",         label: "Name (A–Z)" },
+];
+
+export interface ProspectFilters {
+  search?: string;
+  email?: "all" | "has" | "none";
+  website?: "all" | "has" | "none";
+  city?: string; // "all" or an exact city name
+  sort?: ProspectSort;
+}
+
+/**
+ * Filter + sort the prospect list for the dashboard explorer. Pure so it's
+ * unit-testable and reusable. Search is case-insensitive across name, category,
+ * address, email, phone, and city. AI-score sorts push un-scored leads to the
+ * bottom either way (ascending uses +Infinity so "no score" never ranks first).
+ */
+export function filterSortProspects(
+  rows: BusinessSummary[],
+  f: ProspectFilters = {},
+): BusinessSummary[] {
+  const needle = (f.search ?? "").trim().toLowerCase();
+  const email = f.email ?? "all";
+  const website = f.website ?? "all";
+  const city = f.city ?? "all";
+  const sort = f.sort ?? "ai_desc";
+
+  const filtered = rows.filter((b) => {
+    if (email === "has" && !b.email) return false;
+    if (email === "none" && b.email) return false;
+    if (website === "has" && !b.website) return false;
+    if (website === "none" && b.website) return false;
+    if (city !== "all" && (b.city ?? "") !== city) return false;
+    if (needle) {
+      const hay = [b.name, b.category, b.address, b.email, b.phone, b.city]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(needle)) return false;
+    }
+    return true;
+  });
+
+  return [...filtered].sort((a, b) => {
+    switch (sort) {
+      case "ai_asc":
+        return (a.ai_score ?? Infinity) - (b.ai_score ?? Infinity);
+      case "reviews_desc":
+        return (b.review_count ?? -1) - (a.review_count ?? -1);
+      case "rating_desc":
+        return (b.rating ?? -1) - (a.rating ?? -1);
+      case "name":
+        return a.name.localeCompare(b.name);
+      case "ai_desc":
+      default:
+        return (b.ai_score ?? -1) - (a.ai_score ?? -1);
+    }
+  });
 }
 
 /**
