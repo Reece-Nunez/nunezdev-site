@@ -41,10 +41,10 @@ export async function sendPortalMagicLink({
         }
 
         .header {
-          background: #ffc312;
-          padding: 20px;
+          background: #3d5a80;
+          padding: 24px 20px;
           text-align: center;
-          color: #111;
+          color: #ffffff;
         }
 
         .content {

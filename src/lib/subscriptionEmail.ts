@@ -174,9 +174,9 @@ function renderLayout({
     <tr><td align="center">
       <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
         <tr>
-          <td style="background:#ffc312;padding:18px 24px;text-align:center;">
+          <td style="background:#3d5a80;padding:18px 24px;text-align:center;">
             <img src="${BASE_URL}/logo.png" alt="NunezDev" width="48" height="48" style="display:block;margin:0 auto 6px;">
-            <div style="font-size:18px;font-weight:600;color:#111;">NunezDev</div>
+            <div style="font-size:18px;font-weight:600;color:#ffffff;">NunezDev</div>
           </td>
         </tr>
         <tr>

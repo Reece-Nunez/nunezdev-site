@@ -66,11 +66,11 @@ export async function sendInvoiceEmail({
           -ms-text-size-adjust: 100%;
         }
         
-        .header { 
-          background: #ffc312; 
-          padding: 20px; 
-          text-align: center; 
-          color: #111; 
+        .header {
+          background: #3d5a80;
+          padding: 24px 20px;
+          text-align: center;
+          color: #ffffff;
         }
         
         .content { 
