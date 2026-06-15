@@ -27,6 +27,7 @@ export async function GET(req: Request) {
         client_id,
         email,
         token_expires_at,
+        session_version,
         clients!inner(name)
       `)
       .eq('access_token', token)
@@ -64,6 +65,7 @@ export async function GET(req: Request) {
       clientId: portalUser.client_id,
       email: portalUser.email,
       clientName: clientData.name,
+      sessionVersion: (portalUser.session_version as number) ?? 0,
     });
 
     // Set session cookie

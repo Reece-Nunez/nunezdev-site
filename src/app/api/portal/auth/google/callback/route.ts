@@ -92,6 +92,7 @@ export async function GET(req: Request) {
         email,
         is_active,
         google_id,
+        session_version,
         clients!inner(name)
       `)
       .eq('email', email)
@@ -127,6 +128,7 @@ export async function GET(req: Request) {
       clientId: portalUser.client_id,
       email: portalUser.email,
       clientName,
+      sessionVersion: (portalUser.session_version as number) ?? 0,
     });
 
     await setPortalSessionCookie(sessionToken);

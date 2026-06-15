@@ -14,6 +14,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Brute-force protection: lock the account after this many consecutive failed
+// password attempts, for this many minutes.
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
 export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
@@ -34,6 +39,9 @@ export async function POST(req: Request) {
         email,
         password_hash,
         is_active,
+        session_version,
+        failed_login_attempts,
+        locked_until,
         clients!inner(name)
       `)
       .eq('email', email.toLowerCase().trim())
@@ -44,6 +52,14 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
+      );
+    }
+
+    // Brute-force lockout: reject while the account is in a lock window.
+    if (portalUser.locked_until && new Date(portalUser.locked_until) > new Date()) {
+      return NextResponse.json(
+        { error: 'Too many failed attempts. Please try again in a few minutes.' },
+        { status: 429 }
       );
     }
 
@@ -58,16 +74,34 @@ export async function POST(req: Request) {
     // Verify password
     const isValid = await verifyPassword(password, portalUser.password_hash);
     if (!isValid) {
+      // Count the failure and lock the account once the threshold is reached.
+      const attempts = (portalUser.failed_login_attempts ?? 0) + 1;
+      const updates: { failed_login_attempts: number; locked_until?: string } = {
+        failed_login_attempts: attempts,
+      };
+      if (attempts >= MAX_FAILED_ATTEMPTS) {
+        updates.locked_until = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString();
+        updates.failed_login_attempts = 0; // reset counter; the lock now gates access
+      }
+      await supabase
+        .from('client_portal_users')
+        .update(updates)
+        .eq('id', portalUser.id);
+
       return NextResponse.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Update last login
+    // Success: clear any failure state and update last login.
     await supabase
       .from('client_portal_users')
-      .update({ last_login_at: new Date().toISOString() })
+      .update({
+        last_login_at: new Date().toISOString(),
+        failed_login_attempts: 0,
+        locked_until: null,
+      })
       .eq('id', portalUser.id);
 
     // Create session
@@ -77,6 +111,7 @@ export async function POST(req: Request) {
       clientId: portalUser.client_id,
       email: portalUser.email,
       clientName,
+      sessionVersion: (portalUser.session_version as number) ?? 0,
     });
 
     await setPortalSessionCookie(sessionToken);
