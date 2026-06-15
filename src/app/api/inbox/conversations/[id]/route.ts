@@ -10,6 +10,14 @@
 import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { generatePresignedViewUrl } from '@/lib/s3';
+
+interface StoredAttachment {
+  key: string;
+  filename: string;
+  contentType: string;
+  size: number;
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -57,11 +65,11 @@ export async function GET(_req: Request, context: Ctx) {
     lead_id: string | null;
   };
 
-  const { data: messages, error: msgErr } = await supabase
+  const { data: messagesRaw, error: msgErr } = await supabase
     .from('messages')
     .select(
       'id, direction, channel, from_address, to_address, subject, ' +
-      'body_text, status, error, created_at',
+      'body_text, status, error, attachments, created_at',
     )
     .eq('conversation_id', id)
     .order('created_at', { ascending: true })
@@ -70,6 +78,27 @@ export async function GET(_req: Request, context: Ctx) {
   if (msgErr) {
     return NextResponse.json({ error: msgErr.message }, { status: 500 });
   }
+
+  // Mint a fresh presigned view URL for each stored attachment (private
+  // bucket → no durable public URL). Best-effort per file so one bad key
+  // doesn't blank the whole thread.
+  const messages = await Promise.all(
+    ((messagesRaw ?? []) as unknown as Array<{ attachments?: StoredAttachment[] }>).map(
+      async (m) => {
+        const atts = Array.isArray(m.attachments) ? m.attachments : [];
+        const withUrls = await Promise.all(
+          atts.map(async (a) => {
+            try {
+              return { ...a, url: await generatePresignedViewUrl(a.key, 3600) };
+            } catch {
+              return { ...a, url: null };
+            }
+          }),
+        );
+        return { ...m, attachments: withUrls };
+      },
+    ),
+  );
 
   // Mark read on open. Best-effort: a failure here shouldn't block reading.
   if (conversation.unread) {

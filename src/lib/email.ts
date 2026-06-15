@@ -30,6 +30,8 @@ export async function sendEmail(params: {
   from?: string;
   replyTo?: string;
   cc?: string[];
+  /** Resend attachments: base64 content (or Buffer) + filename. */
+  attachments?: { filename: string; content: string | Buffer; contentType?: string }[];
 }): Promise<SendEmailResult> {
   const to = Array.isArray(params.to) ? params.to : [params.to];
 
@@ -38,6 +40,7 @@ export async function sendEmail(params: {
       to,
       subject: params.subject,
       replyTo: params.replyTo,
+      attachments: params.attachments?.map((a) => a.filename),
     });
     return { ok: true, id: 'no-email-service' };
   }
@@ -56,6 +59,7 @@ export async function sendEmail(params: {
       // Resend requires at least one of html/text; we guaranteed that above.
       html: params.html,
       text: params.text,
+      attachments: params.attachments,
     } as Parameters<typeof resend.emails.send>[0]);
 
     if (result.error) {

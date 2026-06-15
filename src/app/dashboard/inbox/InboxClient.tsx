@@ -10,10 +10,20 @@ import {
   PencilSquareIcon,
   ArrowLeftIcon,
   XMarkIcon,
+  PaperClipIcon,
 } from "@heroicons/react/24/outline";
 import Composer from "./Composer";
+import AttachmentPicker, { type InboxAttachment } from "./AttachmentPicker";
 
 type Channel = "email" | "sms";
+
+interface MessageAttachment {
+  key: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  url: string | null;
+}
 
 interface ConversationListItem {
   id: string;
@@ -39,6 +49,7 @@ interface Message {
   body_text: string | null;
   status: string;
   error: string | null;
+  attachments?: MessageAttachment[];
   created_at: string;
 }
 
@@ -221,13 +232,16 @@ function Thread({
 }) {
   const { conversation: c, messages } = detail;
   const [reply, setReply] = useState("");
+  const [attachments, setAttachments] = useState<InboxAttachment[]>([]);
   const [sending, setSending] = useState(false);
 
-  const recipient = c.channel === "email" ? c.contact_email : c.contact_phone;
+  const isEmail = c.channel === "email";
+  const recipient = isEmail ? c.contact_email : c.contact_phone;
 
   async function sendReply() {
     const text = reply.trim();
-    if (!text) return;
+    // Email may go out with only attachments; SMS needs text.
+    if (!text && !(isEmail && attachments.length > 0)) return;
     if (!recipient) {
       toast.error("No recipient address on this conversation");
       return;
@@ -240,9 +254,10 @@ function Thread({
         body: JSON.stringify({
           channel: c.channel,
           to: recipient,
-          subject: c.channel === "email" ? c.subject ?? undefined : undefined,
+          subject: isEmail ? c.subject ?? undefined : undefined,
           body: text,
           conversationId: c.id,
+          attachments: isEmail ? attachments : undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -251,6 +266,7 @@ function Thread({
         return;
       }
       setReply("");
+      setAttachments([]);
       onSent();
     } catch {
       toast.error("Network error — reply not sent");
@@ -292,15 +308,44 @@ function Thread({
                     {m.subject}
                   </div>
                 )}
-                <div
-                  className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm ${
-                    outbound
-                      ? "rounded-br-sm bg-brand-yellow text-brand-black"
-                      : "rounded-bl-sm border bg-white text-gray-800"
-                  }`}
-                >
-                  {m.body_text || <span className="italic text-gray-400">(no text)</span>}
-                </div>
+                {(m.body_text || !m.attachments?.length) && (
+                  <div
+                    className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-sm ${
+                      outbound
+                        ? "rounded-br-sm bg-brand-yellow text-brand-black"
+                        : "rounded-bl-sm border bg-white text-gray-800"
+                    }`}
+                  >
+                    {m.body_text || <span className="italic text-gray-400">(no text)</span>}
+                  </div>
+                )}
+                {!!m.attachments?.length && (
+                  <div className={`mt-1 flex flex-wrap gap-2 ${outbound ? "justify-end" : ""}`}>
+                    {m.attachments.map((a) =>
+                      a.contentType.startsWith("image/") && a.url ? (
+                        <a key={a.key} href={a.url} target="_blank" rel="noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={a.url}
+                            alt={a.filename}
+                            className="max-h-48 max-w-[12rem] rounded-lg border object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <a
+                          key={a.key}
+                          href={a.url ?? "#"}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                        >
+                          <PaperClipIcon className="h-3 w-3 text-gray-400" />
+                          <span className="max-w-[160px] truncate">{a.filename}</span>
+                        </a>
+                      ),
+                    )}
+                  </div>
+                )}
                 <div className={`mt-0.5 flex items-center gap-1 text-[11px] text-gray-400 ${outbound ? "justify-end" : ""}`}>
                   <span>{relativeTime(m.created_at)}</span>
                   {m.status === "failed" && <span className="text-red-500">· failed</span>}
@@ -313,6 +358,15 @@ function Thread({
 
       {/* Reply box */}
       <div className="border-t p-3">
+        {isEmail && (
+          <div className="mb-2">
+            <AttachmentPicker
+              attachments={attachments}
+              setAttachments={setAttachments}
+              disabled={sending}
+            />
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             value={reply}
@@ -325,14 +379,14 @@ function Thread({
               }
             }}
             rows={2}
-            placeholder={c.channel === "email" ? "Write a reply…" : "Write a text…"}
+            placeholder={isEmail ? "Write a reply…" : "Write a text…"}
             disabled={sending}
             className="flex-1 resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-400 focus:outline-none"
           />
           <button
             type="button"
             onClick={sendReply}
-            disabled={sending || !reply.trim()}
+            disabled={sending || (!reply.trim() && attachments.length === 0)}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-yellow px-3 py-2 text-sm font-medium text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <PaperAirplaneIcon className="h-4 w-4" />

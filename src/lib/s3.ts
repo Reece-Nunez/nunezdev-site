@@ -81,6 +81,20 @@ export function getPublicUrl(key: string): string {
 }
 
 /**
+ * Presigned GET URL WITHOUT a content-disposition override, so the browser
+ * renders the object inline (e.g. an <img src>) instead of forcing a download.
+ * Used to show inbox image attachments inside a thread. The bucket is private,
+ * so each view needs a fresh short-lived signed URL.
+ */
+export async function generatePresignedViewUrl(
+  key: string,
+  expiresIn = 3600,
+): Promise<string> {
+  const command = new GetObjectCommand({ Bucket: BUCKET_NAME, Key: key });
+  return getSignedUrl(s3Client, command, { expiresIn });
+}
+
+/**
  * Copy an S3 object from `fromKey` to `toKey` inside the same bucket.
  * Returns true on success, false on failure (caller decides whether to retry).
  */

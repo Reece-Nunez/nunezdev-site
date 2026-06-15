@@ -158,6 +158,9 @@ export interface RecordMessageParams {
   status?: 'queued' | 'sent' | 'delivered' | 'failed' | 'received';
   error?: string | null;
   sentBy?: string | null;
+  /** Stored on the message row; durable S3 keys + display metadata (no
+   *  presigned URLs — those are minted fresh when a thread is viewed). */
+  attachments?: { key: string; filename: string; contentType: string; size: number }[];
 }
 
 /**
@@ -186,6 +189,7 @@ export async function recordMessage(
       status: params.status ?? 'sent',
       error: params.error ?? null,
       sent_by: params.sentBy ?? null,
+      attachments: params.attachments ?? [],
     })
     .select('id')
     .single();

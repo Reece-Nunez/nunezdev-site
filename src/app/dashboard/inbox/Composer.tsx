@@ -3,6 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { PaperAirplaneIcon, EnvelopeIcon, ChatBubbleOvalLeftIcon } from "@heroicons/react/24/outline";
+import AttachmentPicker, { type InboxAttachment } from "./AttachmentPicker";
 
 type Channel = "email" | "sms";
 
@@ -23,6 +24,7 @@ export default function Composer({
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [attachments, setAttachments] = useState<InboxAttachment[]>([]);
   const [sending, setSending] = useState(false);
 
   const isEmail = channel === "email";
@@ -30,7 +32,8 @@ export default function Composer({
   function validate(): string | null {
     if (isEmail && !EMAIL_RE.test(to.trim())) return "Enter a valid email address";
     if (!isEmail && to.replace(/\D/g, "").length < 10) return "Enter a valid US phone number";
-    if (!body.trim()) return "Message body is required";
+    // An email carrying attachments may have an empty body (just a screenshot).
+    if (!body.trim() && !(isEmail && attachments.length > 0)) return "Message body is required";
     return null;
   }
 
@@ -50,6 +53,7 @@ export default function Composer({
           to: to.trim(),
           subject: isEmail ? subject.trim() : undefined,
           body: body.trim(),
+          attachments: isEmail ? attachments : undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -61,6 +65,7 @@ export default function Composer({
       // Keep the recipient (likely sending a follow-up); clear the message.
       setSubject("");
       setBody("");
+      setAttachments([]);
       if (data.conversationId) onSent?.(data.conversationId, channel);
     } catch {
       toast.error("Network error — message not sent");
@@ -138,6 +143,14 @@ export default function Composer({
             <div className="mt-1 text-right text-xs text-gray-400">{body.length} chars</div>
           )}
         </div>
+
+        {isEmail && (
+          <AttachmentPicker
+            attachments={attachments}
+            setAttachments={setAttachments}
+            disabled={sending}
+          />
+        )}
 
         <div className="flex justify-end">
           <button

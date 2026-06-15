@@ -18,6 +18,7 @@ import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { sendEmail } from '@/lib/email';
 import { sendSms, normalizePhoneE164, getSmsFromNumber } from '@/lib/sms';
+import { getS3Object } from '@/lib/s3';
 import {
   findOrCreateConversation,
   recordMessage,
@@ -29,6 +30,49 @@ export const dynamic = 'force-dynamic';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const FROM_EMAIL = 'reece@nunezdev.com';
+
+const MAX_ATTACHMENTS = 10;
+// Resend caps total message size at ~40MB; stay well under after base64 (~33%
+// overhead) by limiting raw attachment bytes to 20MB total.
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+
+interface AttachmentRef {
+  key: string;
+  filename: string;
+  contentType: string;
+  size: number;
+}
+
+/**
+ * Load attachment refs from S3 into Resend-ready base64 content, returning both
+ * the Resend payload and the durable metadata to store on the message. Throws
+ * on over-limit or a missing object so the send fails loudly rather than
+ * silently dropping a file the operator thinks they attached.
+ */
+async function loadAttachments(refs: AttachmentRef[]): Promise<{
+  resend: { filename: string; content: string; contentType: string }[];
+  meta: AttachmentRef[];
+}> {
+  if (refs.length > MAX_ATTACHMENTS) {
+    throw new Error(`too many attachments (max ${MAX_ATTACHMENTS})`);
+  }
+  const total = refs.reduce((sum, r) => sum + (r.size || 0), 0);
+  if (total > MAX_ATTACHMENT_BYTES) {
+    throw new Error('attachments exceed 20MB total');
+  }
+
+  const resend: { filename: string; content: string; contentType: string }[] = [];
+  for (const ref of refs) {
+    const obj = await getS3Object(ref.key);
+    const bytes = await obj.Body!.transformToByteArray();
+    resend.push({
+      filename: ref.filename,
+      content: Buffer.from(bytes).toString('base64'),
+      contentType: ref.contentType,
+    });
+  }
+  return { resend, meta: refs };
+}
 
 /** Minimal HTML rendering of a composed plaintext body — escape, then keep
  *  line breaks. Resend wants html or text; we send both. */
@@ -52,16 +96,21 @@ export async function POST(req: Request) {
     subject?: string;
     body?: string;
     conversationId?: string;
+    attachments?: AttachmentRef[];
   };
 
   const channel = body.channel;
   const to = (body.to ?? '').trim();
   const text = (body.body ?? '').trim();
+  const attachmentRefs = Array.isArray(body.attachments) ? body.attachments : [];
 
   if (channel !== 'email' && channel !== 'sms') {
     return NextResponse.json({ error: 'channel must be "email" or "sms"' }, { status: 400 });
   }
-  if (!text) {
+  // Body is required, EXCEPT an email that's carrying attachments (sending just
+  // a screenshot with no text is legitimate). SMS always needs text.
+  const allowEmptyBody = channel === 'email' && attachmentRefs.length > 0;
+  if (!text && !allowEmptyBody) {
     return NextResponse.json({ error: 'message body is required' }, { status: 400 });
   }
 
@@ -76,13 +125,25 @@ export async function POST(req: Request) {
       ? { id: body.conversationId }
       : await findOrCreateConversation({ channel: 'email', contactEmail: to, subject });
 
+    // Pull attachments from S3 into base64 before sending. A failure here
+    // (missing object, over-limit) aborts the send — better than emailing the
+    // client a message that's silently missing the file they expect.
+    let loaded;
+    try {
+      loaded = await loadAttachments(attachmentRefs);
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'attachment load failed';
+      return NextResponse.json({ error, conversationId: conv.id }, { status: 400 });
+    }
+
     const result = await sendEmail({
       to,
       subject,
-      text,
+      text: text || ' ',
       html: textToHtml(text),
       from: `Reece Nunez <${FROM_EMAIL}>`,
       replyTo: buildReplyToAddress(conv.id),
+      attachments: loaded.resend.length ? loaded.resend : undefined,
     });
 
     const msg = await recordMessage({
@@ -99,6 +160,7 @@ export async function POST(req: Request) {
       status: result.ok ? 'sent' : 'failed',
       error: result.ok ? null : result.error,
       sentBy: guard.user!.id,
+      attachments: loaded.meta,
     });
 
     if (!result.ok) {
