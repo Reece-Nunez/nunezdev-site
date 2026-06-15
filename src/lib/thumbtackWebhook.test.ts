@@ -9,7 +9,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { verifyWebhookSecret } from './thumbtackWebhook';
+import { verifyWebhookSecret, parseThumbtackEvent } from './thumbtackWebhook';
 
 const SECRET = 'dbc179b2d0bdccbcb502db060647becc50db99c1607c3429f3fe77b7a9498d6a';
 
@@ -46,5 +46,59 @@ describe('verifyWebhookSecret', () => {
     assert.equal(verifyWebhookSecret(SECRET, undefined), false);
     assert.equal(verifyWebhookSecret(SECRET, ''), false);
     assert.equal(verifyWebhookSecret('', undefined), false);
+  });
+});
+
+// Trimmed from a real NegotiationCreatedV4 test delivery (2026-06-15).
+const REAL_LEAD_EVENT = {
+  data: {
+    status: 'Open',
+    request: { requestID: '582419362778267654', customerID: '582419362773041165' },
+    business: { name: 'Test Business for Webhooks', businessID: '553306875926847497' },
+    customer: { firstName: 'Test', lastName: 'Customer', phone: '1234567890' },
+    estimate: { type: 'Fixed', total: '$150.00' },
+    leadPrice: '$25.00',
+    negotiationID: '582419362774474767',
+    createdAt: '2026-06-15T23:09:22Z',
+  },
+  event: { eventType: 'NegotiationCreatedV4', webhookID: '582415950855946243' },
+};
+
+describe('parseThumbtackEvent', () => {
+  it('extracts eventType / negotiationID / businessID from a real lead event', () => {
+    assert.deepEqual(parseThumbtackEvent(REAL_LEAD_EVENT), {
+      eventType: 'NegotiationCreatedV4',
+      externalId: '582419362774474767', // data.negotiationID — the dedup key
+      businessId: '553306875926847497',
+    });
+  });
+
+  it('does NOT stringify a nested object (regression: event_type was "[object Object]")', () => {
+    const parsed = parseThumbtackEvent(REAL_LEAD_EVENT);
+    assert.notEqual(parsed.eventType, '[object Object]');
+    assert.equal(typeof parsed.eventType, 'string');
+  });
+
+  it('falls back to requestID when negotiationID is absent', () => {
+    const payload = { event: { eventType: 'X' }, data: { request: { requestID: 'r1' } } };
+    assert.equal(parseThumbtackEvent(payload).externalId, 'r1');
+  });
+
+  it('degrades to all-null on empty / malformed payloads (never throws)', () => {
+    assert.deepEqual(parseThumbtackEvent({}), {
+      eventType: null,
+      externalId: null,
+      businessId: null,
+    });
+    assert.deepEqual(parseThumbtackEvent(null), {
+      eventType: null,
+      externalId: null,
+      businessId: null,
+    });
+    assert.deepEqual(parseThumbtackEvent('not-json'), {
+      eventType: null,
+      externalId: null,
+      businessId: null,
+    });
   });
 });

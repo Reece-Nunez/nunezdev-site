@@ -14,7 +14,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { verifyWebhookSecret } from '@/lib/thumbtackWebhook';
+import { verifyWebhookSecret, parseThumbtackEvent } from '@/lib/thumbtackWebhook';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,20 +31,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 
-  // Best-effort field extraction. The exact payload shape is unknown until real
-  // deliveries arrive, so we probe a few likely keys and otherwise rely on the
-  // raw jsonb. Nothing here is allowed to drop the event.
-  const body = (payload ?? {}) as Record<string, unknown>;
-  const eventType = body.event_type ?? body.type ?? body.event ?? null;
-  const externalId = body.id ?? body.event_id ?? body.lead_id ?? null;
-  const businessId = body.business_id ?? body.business ?? body.profile_id ?? null;
+  // Pull the indexed columns from the payload (full body is stored raw either
+  // way). Extraction is defensive — it never throws and never drops the event.
+  const { eventType, externalId, businessId } = parseThumbtackEvent(payload);
 
   const supabase = supabaseAdmin();
   const { error } = await supabase.from('thumbtack_events').insert({
-    event_type: eventType != null ? String(eventType) : null,
-    external_id: externalId != null ? String(externalId) : null,
-    business_id: businessId != null ? String(businessId) : null,
-    payload: body,
+    event_type: eventType,
+    external_id: externalId,
+    business_id: businessId,
+    payload: payload ?? {},
   });
 
   if (error) {
