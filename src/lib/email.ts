@@ -12,6 +12,33 @@ export interface SendEmailResult {
   error?: string;
 }
 
+export interface ReceivedEmail {
+  from: string;
+  to: string[];
+  subject: string | null;
+  html: string | null;
+  text: string | null;
+  attachments?: { filename: string; content_type?: string; size?: number }[];
+}
+
+/**
+ * Fetch a received (inbound) email's full content. The email.received webhook
+ * is metadata-only, so the body must be retrieved separately. SDK 6.0.1 has no
+ * emails.receiving.get(), so we hit the REST endpoint directly.
+ */
+export async function getReceivedEmail(id: string): Promise<ReceivedEmail | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  const res = await fetch(`https://api.resend.com/emails/receiving/${id}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    console.error('[email] getReceivedEmail failed', { id, status: res.status });
+    return null;
+  }
+  return (await res.json()) as ReceivedEmail;
+}
+
 /**
  * Generic, free-form email send for the dashboard inbox. Distinct from the
  * templated senders (sendInvoiceEmail etc.) — this is the "compose anything"

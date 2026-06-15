@@ -321,29 +321,47 @@ function Thread({
                 )}
                 {!!m.attachments?.length && (
                   <div className={`mt-1 flex flex-wrap gap-2 ${outbound ? "justify-end" : ""}`}>
-                    {m.attachments.map((a) =>
-                      a.contentType.startsWith("image/") && a.url ? (
-                        <a key={a.key} href={a.url} target="_blank" rel="noreferrer">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={a.url}
-                            alt={a.filename}
-                            className="max-h-48 max-w-[12rem] rounded-lg border object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <a
-                          key={a.key}
-                          href={a.url ?? "#"}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                    {m.attachments.map((a, i) => {
+                      const chipKey = a.key ?? `${a.filename}-${i}`;
+                      if (a.contentType.startsWith("image/") && a.url) {
+                        return (
+                          <a key={chipKey} href={a.url} target="_blank" rel="noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={a.url}
+                              alt={a.filename}
+                              className="max-h-48 max-w-[12rem] rounded-lg border object-cover"
+                            />
+                          </a>
+                        );
+                      }
+                      if (a.url) {
+                        return (
+                          <a
+                            key={chipKey}
+                            href={a.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md border bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                          >
+                            <PaperClipIcon className="h-3 w-3 text-gray-400" />
+                            <span className="max-w-[160px] truncate">{a.filename}</span>
+                          </a>
+                        );
+                      }
+                      // No URL (inbound attachment we don't host) — show it,
+                      // but make clear it isn't downloadable here.
+                      return (
+                        <span
+                          key={chipKey}
+                          title="Attachment not downloadable in-app yet"
+                          className="inline-flex items-center gap-1 rounded-md border border-dashed bg-gray-50 px-2 py-1 text-xs text-gray-400"
                         >
-                          <PaperClipIcon className="h-3 w-3 text-gray-400" />
+                          <PaperClipIcon className="h-3 w-3" />
                           <span className="max-w-[160px] truncate">{a.filename}</span>
-                        </a>
-                      ),
-                    )}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
                 <div className={`mt-0.5 flex items-center gap-1 text-[11px] text-gray-400 ${outbound ? "justify-end" : ""}`}>

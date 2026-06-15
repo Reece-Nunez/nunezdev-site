@@ -159,8 +159,10 @@ export interface RecordMessageParams {
   error?: string | null;
   sentBy?: string | null;
   /** Stored on the message row; durable S3 keys + display metadata (no
-   *  presigned URLs — those are minted fresh when a thread is viewed). */
-  attachments?: { key: string; filename: string; contentType: string; size: number }[];
+   *  presigned URLs — those are minted fresh when a thread is viewed).
+   *  Inbound attachments have no S3 key (we don't host them yet) — key is
+   *  omitted there and the thread shows them as non-downloadable. */
+  attachments?: { key?: string; filename: string; contentType: string; size: number }[];
 }
 
 /**

@@ -13,7 +13,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { generatePresignedViewUrl } from '@/lib/s3';
 
 interface StoredAttachment {
-  key: string;
+  key?: string; // absent for inbound attachments (not hosted in our S3 yet)
   filename: string;
   contentType: string;
   size: number;
@@ -88,6 +88,8 @@ export async function GET(_req: Request, context: Ctx) {
         const atts = Array.isArray(m.attachments) ? m.attachments : [];
         const withUrls = await Promise.all(
           atts.map(async (a) => {
+            // Inbound attachments have no S3 key — nothing to sign.
+            if (!a.key) return { ...a, url: null };
             try {
               return { ...a, url: await generatePresignedViewUrl(a.key, 3600) };
             } catch {
