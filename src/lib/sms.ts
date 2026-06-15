@@ -50,6 +50,15 @@ function resolveFromNumber(): string | undefined {
 }
 
 /**
+ * Public accessor for the configured "from" number (E.164). The inbox
+ * records it as the from_address on outbound SMS messages. Returns null
+ * when SMS isn't configured.
+ */
+export function getSmsFromNumber(): string | null {
+  return resolveFromNumber() ?? null;
+}
+
+/**
  * Cheap pre-flight check: are all the env vars necessary to send an SMS
  * present? Useful when you want to fail fast before doing destructive
  * state changes (e.g., voiding invoices in the combine flow) only to
