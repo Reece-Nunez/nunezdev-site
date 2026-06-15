@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
+import { findOrCreateConversation, recordMessage } from '@/lib/inbox';
 
 export const runtime = 'nodejs';
 
@@ -79,10 +80,46 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Any other inbound message — log it as an interaction so the operator
-  // can see the client texted back, but don't auto-reply.
+  // Any other inbound message — a real conversational reply. Thread it into
+  // the inbox AND keep the client_activity_log audit entry. Don't auto-reply.
+  // (STOP/START/HELP are deliberately NOT threaded — they're handled by the
+  // opt-out flow above, not operator conversation.)
+  await recordInboundSms(from, verdict.params.To || '', body, verdict.params.MessageSid);
   await logInbound(from, body);
   return twimlResponse(emptyTwiml());
+}
+
+/**
+ * Thread an inbound text into the inbox: upsert the SMS conversation for this
+ * number and record the message. Works even when the number matches no
+ * client/lead (conversation still anchors on the phone). Idempotent on the
+ * Twilio MessageSid so a webhook retry won't double-insert.
+ *
+ * Best-effort: a failure here must NOT break the webhook — opt-out handling
+ * already ran and Twilio needs a 200 TwiML response, so we swallow + log.
+ */
+async function recordInboundSms(
+  from: string,
+  to: string,
+  body: string,
+  messageSid: string | undefined,
+): Promise<void> {
+  try {
+    const conv = await findOrCreateConversation({ channel: 'sms', contactPhone: from });
+    await recordMessage({
+      conversationId: conv.id,
+      direction: 'inbound',
+      channel: 'sms',
+      fromAddress: from,
+      toAddress: to,
+      bodyText: body,
+      provider: 'twilio',
+      providerId: messageSid ?? null,
+      status: 'received',
+    });
+  } catch (err) {
+    console.error('[sms-incoming] inbox record failed:', err);
+  }
 }
 
 /**

@@ -27,10 +27,12 @@ import {
   XMarkIcon,
   Bars3Icon,
   MagnifyingGlassIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },
+  { href: '/dashboard/inbox', label: 'Inbox', icon: ChatBubbleLeftRightIcon },
   { href: '/dashboard/leads', label: 'Leads', icon: UserPlusIcon },
   { href: '/dashboard/leadgen', label: 'Prospecting', icon: MagnifyingGlassIcon },
   { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },

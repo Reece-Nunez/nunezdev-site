@@ -2,6 +2,104 @@ import { Resend } from 'resend';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+/** Default From for operator-composed mail (the inbox). Invoices use their
+ *  own invoices@ identity; general correspondence comes from Reece directly. */
+const DEFAULT_FROM = 'Reece Nunez <reece@nunezdev.com>';
+
+export interface SendEmailResult {
+  ok: boolean;
+  id?: string;
+  error?: string;
+}
+
+export interface ReceivedEmail {
+  from: string;
+  to: string[];
+  subject: string | null;
+  html: string | null;
+  text: string | null;
+  attachments?: { filename: string; content_type?: string; size?: number }[];
+}
+
+/**
+ * Fetch a received (inbound) email's full content. The email.received webhook
+ * is metadata-only, so the body must be retrieved separately. SDK 6.0.1 has no
+ * emails.receiving.get(), so we hit the REST endpoint directly.
+ */
+export async function getReceivedEmail(id: string): Promise<ReceivedEmail | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  const res = await fetch(`https://api.resend.com/emails/receiving/${id}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    console.error('[email] getReceivedEmail failed', { id, status: res.status });
+    return null;
+  }
+  return (await res.json()) as ReceivedEmail;
+}
+
+/**
+ * Generic, free-form email send for the dashboard inbox. Distinct from the
+ * templated senders (sendInvoiceEmail etc.) — this is the "compose anything"
+ * path. Does NOT throw: returns { ok:false, error } so callers can surface a
+ * toast, mirroring sendSms() in src/lib/sms.ts.
+ *
+ * `replyTo` is the threading hook: the inbox passes
+ * <conversation_id>@reply.nunezdev.com so inbound replies (Phase 4) route
+ * back to the right conversation.
+ */
+export async function sendEmail(params: {
+  to: string | string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  from?: string;
+  replyTo?: string;
+  cc?: string[];
+  /** Resend attachments: base64 content (or Buffer) + filename. */
+  attachments?: { filename: string; content: string | Buffer; contentType?: string }[];
+}): Promise<SendEmailResult> {
+  const to = Array.isArray(params.to) ? params.to : [params.to];
+
+  if (!resend) {
+    console.log('📧 EMAIL WOULD BE SENT:', {
+      to,
+      subject: params.subject,
+      replyTo: params.replyTo,
+      attachments: params.attachments?.map((a) => a.filename),
+    });
+    return { ok: true, id: 'no-email-service' };
+  }
+
+  if (!params.html && !params.text) {
+    return { ok: false, error: 'email body is empty' };
+  }
+
+  try {
+    const result = await resend.emails.send({
+      from: params.from ?? DEFAULT_FROM,
+      to,
+      cc: params.cc,
+      replyTo: params.replyTo,
+      subject: params.subject,
+      // Resend requires at least one of html/text; we guaranteed that above.
+      html: params.html,
+      text: params.text,
+      attachments: params.attachments,
+    } as Parameters<typeof resend.emails.send>[0]);
+
+    if (result.error) {
+      return { ok: false, error: result.error.message };
+    }
+    return { ok: true, id: result.data?.id };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    console.error('[email] send failed', { to, error });
+    return { ok: false, error };
+  }
+}
+
 interface SendInvoiceEmailParams {
   to: string;
   cc?: string[];
