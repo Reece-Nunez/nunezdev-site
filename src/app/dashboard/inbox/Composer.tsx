@@ -9,11 +9,16 @@ type Channel = "email" | "sms";
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 /**
- * Phase-2 composer: send a free-form email or text from the dashboard. The
- * full inbox (thread list + conversation view) lands in Phase 5; for now this
- * exercises the outbound pipe and logs every send into the messages table.
+ * Composer: send a free-form email or text from the dashboard. Used both for
+ * starting a brand-new conversation (the inbox "New message" panel) and as a
+ * standalone send tool. On success, onSent fires with the conversation id so
+ * the inbox can jump straight to the new thread.
  */
-export default function Composer() {
+export default function Composer({
+  onSent,
+}: {
+  onSent?: (conversationId: string, channel: Channel) => void;
+}) {
   const [channel, setChannel] = useState<Channel>("email");
   const [to, setTo] = useState("");
   const [subject, setSubject] = useState("");
@@ -56,6 +61,7 @@ export default function Composer() {
       // Keep the recipient (likely sending a follow-up); clear the message.
       setSubject("");
       setBody("");
+      if (data.conversationId) onSent?.(data.conversationId, channel);
     } catch {
       toast.error("Network error — message not sent");
     } finally {
