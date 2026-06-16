@@ -16,6 +16,7 @@ import {
   parseThumbtackEvent,
   extractLeadDetails,
   isThumbtackLeadEvent,
+  isThumbtackMessageEvent,
 } from '@/lib/thumbtackWebhook';
 import { threadThumbtackMessage } from '@/lib/thumbtackInbox';
 
@@ -101,9 +102,8 @@ export async function processThumbtackEvent(eventRow: {
 
   let result: ProcessResult;
 
-  if (/message/i.test(eventType ?? '')) {
-    // Phase C: thread into the inbox (best-effort until the message payload
-    // shape is confirmed from a real delivery).
+  if (isThumbtackMessageEvent(eventType)) {
+    // Phase C: thread the message into the inbox (keyed on negotiationID).
     result = await threadThumbtackMessage(eventRow.payload);
   } else if (isThumbtackLeadEvent(eventType)) {
     result = await createLeadExpense(supabase, eventRow.payload);

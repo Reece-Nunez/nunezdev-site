@@ -15,6 +15,8 @@ import {
   parseDollarsToCents,
   extractLeadDetails,
   isThumbtackLeadEvent,
+  isThumbtackMessageEvent,
+  extractThumbtackMessage,
 } from './thumbtackWebhook';
 
 const SECRET = 'dbc179b2d0bdccbcb502db060647becc50db99c1607c3429f3fe77b7a9498d6a';
@@ -169,5 +171,57 @@ describe('extractLeadDetails', () => {
     assert.equal(d.customerName, null);
     assert.equal(d.leadPriceCents, null);
     assert.equal(d.createdAtDate, null);
+  });
+});
+
+// Trimmed from a real MessageCreatedV4 delivery (2026-06-16).
+const REAL_MESSAGE_EVENT = {
+  data: {
+    from: 'Business',
+    text: 'Did you get that PDF invoice?',
+    sentAt: '2026-06-16T14:15:43Z',
+    business: { businessID: '553306875926847497', displayName: 'NunezDev' },
+    customer: { customerID: '582339818789650438', displayName: 'Robert Evans' },
+    messageID: '582473743544885254',
+    negotiationID: '582339863924105230',
+  },
+  event: { eventType: 'MessageCreatedV4', webhookID: '582415950855946243' },
+};
+
+describe('isThumbtackMessageEvent', () => {
+  it('recognizes a message event and rejects lead/unknown', () => {
+    assert.equal(isThumbtackMessageEvent('MessageCreatedV4'), true);
+    assert.equal(isThumbtackMessageEvent('NegotiationCreatedV4'), false);
+    assert.equal(isThumbtackMessageEvent(null), false);
+  });
+});
+
+describe('extractThumbtackMessage', () => {
+  it('parses a real message event (from Business -> outbound)', () => {
+    assert.deepEqual(extractThumbtackMessage(REAL_MESSAGE_EVENT), {
+      negotiationID: '582339863924105230',
+      messageID: '582473743544885254',
+      businessName: 'NunezDev',
+      customerExternalId: '582339818789650438',
+      customerName: 'Robert Evans',
+      direction: 'outbound', // data.from === 'Business'
+      text: 'Did you get that PDF invoice?',
+      sentAt: '2026-06-16T14:15:43Z',
+    });
+  });
+
+  it('treats a message from the Customer as inbound', () => {
+    const inbound = {
+      ...REAL_MESSAGE_EVENT,
+      data: { ...REAL_MESSAGE_EVENT.data, from: 'Customer' },
+    };
+    assert.equal(extractThumbtackMessage(inbound).direction, 'inbound');
+  });
+
+  it('degrades to all-null / outbound default (never throws) on empty payload', () => {
+    const m = extractThumbtackMessage({});
+    assert.equal(m.negotiationID, null);
+    assert.equal(m.text, null);
+    assert.equal(m.direction, 'outbound');
   });
 });

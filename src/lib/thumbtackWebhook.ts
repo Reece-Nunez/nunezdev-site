@@ -99,6 +99,12 @@ export function isThumbtackLeadEvent(eventType: string | null | undefined): bool
   return !!eventType && LEAD_EVENT_TYPES.has(eventType);
 }
 
+const MESSAGE_EVENT_TYPES = new Set(['MessageCreatedV4']);
+
+export function isThumbtackMessageEvent(eventType: string | null | undefined): boolean {
+  return !!eventType && MESSAGE_EVENT_TYPES.has(eventType);
+}
+
 /**
  * Parse a Thumbtack money string ("$25.00", "$1,234.56") or number to integer
  * cents — the storage unit for expenses.amount_cents. Returns null on anything
@@ -156,5 +162,47 @@ export function extractLeadDetails(payload: unknown): ThumbtackLeadDetails {
     description: asStr(request.description),
     status: asStr(data.status),
     createdAtDate,
+  };
+}
+
+// ── Message extraction (Phase C: webhook -> inbox) ───────────────────────
+
+export interface ThumbtackMessage {
+  negotiationID: string | null; // the thread key (one conversation per negotiation)
+  messageID: string | null;     // dedup key
+  businessName: string | null;
+  customerExternalId: string | null;
+  customerName: string | null;
+  direction: 'inbound' | 'outbound';
+  text: string | null;
+  sentAt: string | null;
+}
+
+/**
+ * Parse a Thumbtack message event (MessageCreatedV4). Shape confirmed from a
+ * live delivery: body at `data.text`, sender role at `data.from` ("Business"
+ * = we sent it -> outbound; "Customer" = they sent it -> inbound), and the
+ * thread is `data.negotiationID`. Messages carry NO email/phone — only display
+ * names + ids — so conversations key on negotiationID, not a contact handle.
+ */
+export function extractThumbtackMessage(payload: unknown): ThumbtackMessage {
+  const root = isRecord(payload) ? payload : {};
+  const data = isRecord(root.data) ? root.data : {};
+  const business = isRecord(data.business) ? data.business : {};
+  const customer = isRecord(data.customer) ? data.customer : {};
+
+  const fromRole = asStr(data.from);
+  const direction: 'inbound' | 'outbound' =
+    fromRole && /customer/i.test(fromRole) ? 'inbound' : 'outbound';
+
+  return {
+    negotiationID: asStr(data.negotiationID),
+    messageID: asStr(data.messageID),
+    businessName: asStr(business.displayName),
+    customerExternalId: asStr(customer.customerID),
+    customerName: asStr(customer.displayName),
+    direction,
+    text: asStr(data.text),
+    sentAt: asStr(data.sentAt),
   };
 }
