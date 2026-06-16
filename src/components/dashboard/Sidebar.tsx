@@ -27,12 +27,14 @@ import {
   Cog6ToothIcon,
   MagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },
   { href: '/dashboard/inbox', label: 'Inbox', icon: ChatBubbleLeftRightIcon },
   { href: '/dashboard/leads', label: 'Leads', icon: UserPlusIcon },
+  { href: '/dashboard/thumbtack', label: 'Thumbtack Leads', icon: BoltIcon },
   { href: '/dashboard/leadgen', label: 'Prospecting', icon: MagnifyingGlassIcon },
   { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },

@@ -9,7 +9,13 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { verifyWebhookSecret, parseThumbtackEvent } from './thumbtackWebhook';
+import {
+  verifyWebhookSecret,
+  parseThumbtackEvent,
+  parseDollarsToCents,
+  extractLeadDetails,
+  isThumbtackLeadEvent,
+} from './thumbtackWebhook';
 
 const SECRET = 'dbc179b2d0bdccbcb502db060647becc50db99c1607c3429f3fe77b7a9498d6a';
 
@@ -53,7 +59,12 @@ describe('verifyWebhookSecret', () => {
 const REAL_LEAD_EVENT = {
   data: {
     status: 'Open',
-    request: { requestID: '582419362778267654', customerID: '582419362773041165' },
+    request: {
+      requestID: '582419362778267654',
+      customerID: '582419362773041165',
+      description: 'Need Full Service Lawn Care',
+      category: { name: 'Full Service Lawn Care', categoryID: '240123621172183344' },
+    },
     business: { name: 'Test Business for Webhooks', businessID: '553306875926847497' },
     customer: { firstName: 'Test', lastName: 'Customer', phone: '1234567890' },
     estimate: { type: 'Fixed', total: '$150.00' },
@@ -100,5 +111,63 @@ describe('parseThumbtackEvent', () => {
       externalId: null,
       businessId: null,
     });
+  });
+});
+
+describe('parseDollarsToCents', () => {
+  it('parses a plain Thumbtack money string', () => {
+    assert.equal(parseDollarsToCents('$25.00'), 2500);
+    assert.equal(parseDollarsToCents('$213.35'), 21335);
+  });
+
+  it('handles commas, bare numbers, and numeric input', () => {
+    assert.equal(parseDollarsToCents('$1,234.56'), 123456);
+    assert.equal(parseDollarsToCents('150'), 15000);
+    assert.equal(parseDollarsToCents(25), 2500);
+  });
+
+  it('rounds to the nearest cent (no float drift)', () => {
+    assert.equal(parseDollarsToCents('$0.1'), 10);
+    assert.equal(parseDollarsToCents('$79.295'), 7930);
+  });
+
+  it('returns null on unparseable / missing input (never 0)', () => {
+    assert.equal(parseDollarsToCents(''), null);
+    assert.equal(parseDollarsToCents('free'), null);
+    assert.equal(parseDollarsToCents(null), null);
+    assert.equal(parseDollarsToCents(undefined), null);
+    assert.equal(parseDollarsToCents({}), null);
+  });
+});
+
+describe('isThumbtackLeadEvent', () => {
+  it('recognizes a lead event and rejects others', () => {
+    assert.equal(isThumbtackLeadEvent('NegotiationCreatedV4'), true);
+    assert.equal(isThumbtackLeadEvent('MessageCreatedV4'), false);
+    assert.equal(isThumbtackLeadEvent(null), false);
+    assert.equal(isThumbtackLeadEvent(undefined), false);
+  });
+});
+
+describe('extractLeadDetails', () => {
+  it('pulls customer, price (as cents), category, date from a real lead event', () => {
+    assert.deepEqual(extractLeadDetails(REAL_LEAD_EVENT), {
+      negotiationID: '582419362774474767',
+      businessId: '553306875926847497',
+      customerName: 'Test Customer',
+      customerPhone: '1234567890',
+      leadPriceCents: 2500,
+      category: 'Full Service Lawn Care',
+      description: 'Need Full Service Lawn Care',
+      status: 'Open',
+      createdAtDate: '2026-06-15',
+    });
+  });
+
+  it('degrades to all-null (never throws) on an empty payload', () => {
+    const d = extractLeadDetails({});
+    assert.equal(d.customerName, null);
+    assert.equal(d.leadPriceCents, null);
+    assert.equal(d.createdAtDate, null);
   });
 });

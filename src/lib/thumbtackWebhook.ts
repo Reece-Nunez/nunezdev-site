@@ -87,3 +87,74 @@ export function parseThumbtackEvent(payload: unknown): ParsedThumbtackEvent {
 
   return { eventType, externalId, businessId };
 }
+
+// ── Lead-detail extraction (Phase A: webhook -> expense) ─────────────────
+
+// Thumbtack lead event kinds that represent a new lead we should record as a
+// lead-fee expense. NegotiationCreatedV4 is the one confirmed from a live
+// delivery; extend as new lead event types surface.
+const LEAD_EVENT_TYPES = new Set(['NegotiationCreatedV4']);
+
+export function isThumbtackLeadEvent(eventType: string | null | undefined): boolean {
+  return !!eventType && LEAD_EVENT_TYPES.has(eventType);
+}
+
+/**
+ * Parse a Thumbtack money string ("$25.00", "$1,234.56") or number to integer
+ * cents — the storage unit for expenses.amount_cents. Returns null on anything
+ * unparseable so callers can skip rather than store a bogus 0.
+ */
+export function parseDollarsToCents(input: unknown): number | null {
+  if (typeof input === 'number' && Number.isFinite(input)) return Math.round(input * 100);
+  if (typeof input !== 'string') return null;
+  const cleaned = input.replace(/[$,\s]/g, '');
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 100);
+}
+
+export interface ThumbtackLeadDetails {
+  negotiationID: string | null;
+  businessId: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  leadPriceCents: number | null;
+  category: string | null;
+  description: string | null;
+  status: string | null;
+  createdAtDate: string | null; // YYYY-MM-DD (date portion of data.createdAt)
+}
+
+/**
+ * Pull the human-meaningful lead fields out of a lead event payload. Used to
+ * build the expense row and to render the Thumbtack leads view. Defensive:
+ * every field degrades to null rather than throwing on an unexpected shape.
+ */
+export function extractLeadDetails(payload: unknown): ThumbtackLeadDetails {
+  const root = isRecord(payload) ? payload : {};
+  const data = isRecord(root.data) ? root.data : {};
+  const business = isRecord(data.business) ? data.business : {};
+  const customer = isRecord(data.customer) ? data.customer : {};
+  const request = isRecord(data.request) ? data.request : {};
+  const category = isRecord(request.category) ? request.category : {};
+
+  const first = asStr(customer.firstName);
+  const last = asStr(customer.lastName);
+  const customerName = [first, last].filter(Boolean).join(' ') || null;
+
+  const createdAt = asStr(data.createdAt);
+  const createdAtDate = createdAt ? createdAt.slice(0, 10) : null;
+
+  return {
+    negotiationID: asStr(data.negotiationID),
+    businessId: asStr(business.businessID),
+    customerName,
+    customerPhone: asStr(customer.phone),
+    leadPriceCents: parseDollarsToCents(data.leadPrice),
+    category: asStr(category.name),
+    description: asStr(request.description),
+    status: asStr(data.status),
+    createdAtDate,
+  };
+}

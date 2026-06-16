@@ -79,6 +79,16 @@ export default function ImportThumbTackLeadsPage() {
     <div className="p-8 max-w-3xl mx-auto py-36">
       <h1 className="text-2xl font-bold mb-6">Admin: Import Thumbtack Lead Fees</h1>
 
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <h2 className="font-semibold text-amber-800 mb-1">Historical backfill only</h2>
+        <p className="text-amber-700 text-sm">
+          New Thumbtack leads are now logged automatically from the live webhook (see{' '}
+          <a href="/dashboard/thumbtack" className="underline font-medium">Thumbtack Leads</a>).
+          This one-time importer is only for the 34 historical fees from before the
+          integration — don&apos;t use it for new leads.
+        </p>
+      </div>
+
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <h2 className="font-semibold text-blue-800 mb-2">What this does:</h2>
         <ul className="text-blue-700 text-sm space-y-1">
