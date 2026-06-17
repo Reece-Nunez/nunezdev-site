@@ -28,6 +28,7 @@ import {
   Bars3Icon,
   MagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
+  MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
@@ -35,6 +36,7 @@ const items = [
   { href: '/dashboard/inbox', label: 'Inbox', icon: ChatBubbleLeftRightIcon },
   { href: '/dashboard/leads', label: 'Leads', icon: UserPlusIcon },
   { href: '/dashboard/leadgen', label: 'Prospecting', icon: MagnifyingGlassIcon },
+  { href: '/dashboard/leadgen/ads', label: 'Google Ads', icon: MegaphoneIcon },
   { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
   { href: '/dashboard/invoices', label: 'Invoices', icon: DocumentTextIcon },
