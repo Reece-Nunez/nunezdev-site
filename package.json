@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p .",
-    "test": "node --import tsx --test src/lib/leadgen-paths.test.ts src/app/dashboard/leadgen/utils.test.ts src/lib/inboxThreading.test.ts src/lib/thumbtackWebhook.test.ts src/lib/sms.test.ts src/lib/resendWebhook.test.ts",
+    "test": "node --import tsx --test src/lib/leadgen-paths.test.ts src/app/dashboard/leadgen/utils.test.ts src/lib/inboxThreading.test.ts src/lib/thumbtackWebhook.test.ts src/lib/sms.test.ts src/lib/resendWebhook.test.ts src/lib/googleAdsTransform.test.ts",
     "build:css": "tailwindcss -i ./src/app/globals.css -o ./src/app/output.css --watch",
     "prepare": "husky"
   },
@@ -48,6 +48,7 @@
     "better-sqlite3": "^12.10.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.18.1",
+    "google-ads-api": "^24.1.0",
     "googleapis": "^160.0.0",
     "lucide-react": "^0.562.0",
     "next": "^15.5.9",
