@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
     GOOGLE_SERVICE_ACCOUNT_KEY_FILE: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
   },
   serverExternalPackages: ['@supabase/ssr'],
+  async redirects() {
+    return [
+      {
+        // Branded short link for collecting Google Business reviews.
+        // Points straight at the "write a review" deep link for the GBP profile.
+        source: "/review",
+        destination: "https://g.page/r/CUpKOuKc5-8FEAI/review",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     // Content-Security-Policy allowlist, grouped by directive. Shipped in
     // REPORT-ONLY mode first: violations are reported to the browser console but
