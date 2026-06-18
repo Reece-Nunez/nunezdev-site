@@ -1,48 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { processRecurringInvoices } from '@/lib/recurringInvoices';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    
+
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const baseUrl = new URL(request.url).origin;
-    const response = await fetch(`${baseUrl}/api/recurring-invoices/process`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cronSecret ? `Bearer ${cronSecret}` : '',
-      },
-    });
+    // Run the processor in-process. Previously this route did an HTTP
+    // self-fetch to /api/recurring-invoices/process, but that secondary
+    // request was intercepted by Vercel Deployment Protection (the SSO wall)
+    // and never reached the processor — silently breaking the nightly cron.
+    const { status, body } = await processRecurringInvoices();
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Failed to process recurring invoices:', error);
-      return NextResponse.json({ 
-        error: 'Failed to process recurring invoices',
-        details: error 
-      }, { status: 500 });
+    if (status >= 400) {
+      console.error('Failed to process recurring invoices:', JSON.stringify(body));
+      return NextResponse.json(body, { status });
     }
 
-    const result = await response.json();
-    
-    console.log(`Automated recurring invoice processing completed: ${result.processed} invoices processed`);
-    
+    console.log(`Automated recurring invoice processing completed: ${body.processed} invoices processed`);
+
     return NextResponse.json({
       success: true,
-      message: `Processed ${result.processed} recurring invoices`,
+      message: `Processed ${body.processed} recurring invoices`,
       timestamp: new Date().toISOString(),
-      ...result
+      ...body,
     });
-
   } catch (error) {
     console.error('Error in automated recurring invoice processing:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
 }
