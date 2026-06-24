@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   if (!gate.ok) return NextResponse.json(gate.json, { status: gate.status });
   const { supabase, orgId } = gate;
 
-  const { client_id, report_month } = await req.json();
+  const { client_id, site_id, report_month } = await req.json();
 
   if (!client_id || !report_month) {
     return NextResponse.json(
@@ -38,35 +38,55 @@ export async function POST(req: Request) {
     );
   }
 
-  // Fetch client with automation fields
-  const { data: client, error } = await supabase
-    .from("clients")
-    .select("id, name, website_url, ga4_property_id, vercel_project_id, gsc_site_url")
-    .eq("id", client_id)
-    .eq("org_id", orgId)
-    .single();
+  // Resolve the integration source: a specific site (preferred) or, for legacy
+  // callers without a site, the client row itself. Discovered IDs are persisted
+  // back to whichever row they came from.
+  const fields = "website_url, ga4_property_id, vercel_project_id, gsc_site_url";
+  let source:
+    | { website_url: string | null; ga4_property_id: string | null; vercel_project_id: string | null; gsc_site_url: string | null }
+    | null = null;
+  let persistTable: "client_sites" | "clients" = "clients";
+  let persistId = client_id;
 
-  if (error || !client) {
-    return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  if (site_id) {
+    const { data: site } = await supabase
+      .from("client_sites")
+      .select(fields)
+      .eq("id", site_id)
+      .eq("client_id", client_id)
+      .eq("org_id", orgId)
+      .single();
+    if (!site) return NextResponse.json({ error: "Site not found" }, { status: 404 });
+    source = site;
+    persistTable = "client_sites";
+    persistId = site_id;
+  } else {
+    const { data: client } = await supabase
+      .from("clients")
+      .select(fields)
+      .eq("id", client_id)
+      .eq("org_id", orgId)
+      .single();
+    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    source = client;
   }
 
-  if (!client.website_url) {
+  if (!source.website_url) {
     return NextResponse.json(
-      { error: "Client has no website URL configured. Add one in client settings." },
+      { error: "This site has no website URL configured. Add one in the client's Sites section." },
       { status: 400 },
     );
   }
 
-  // Auto-resolve any missing integration IDs from the website URL so the user
-  // never has to look them up by hand. Discovered values are persisted back to
-  // the client so later runs are instant, and never overwrite a value already
-  // set manually.
-  let ga4PropertyId = client.ga4_property_id;
-  let vercelProjectId = client.vercel_project_id;
-  let gscSiteUrl = client.gsc_site_url;
+  // Auto-resolve any missing integration IDs from the website URL, persisting
+  // discovered values back to the source so later runs are instant. Never
+  // overwrites a value already set manually.
+  let ga4PropertyId = source.ga4_property_id;
+  let vercelProjectId = source.vercel_project_id;
+  let gscSiteUrl = source.gsc_site_url;
   if (!ga4PropertyId || !vercelProjectId || !gscSiteUrl) {
     try {
-      const discovered = await discoverIntegrations(client.website_url);
+      const discovered = await discoverIntegrations(source.website_url);
       const persist: Record<string, string> = {};
       if (!ga4PropertyId && discovered.ga4.value) {
         ga4PropertyId = discovered.ga4.value;
@@ -81,23 +101,16 @@ export async function POST(req: Request) {
         persist.gsc_site_url = discovered.gsc.value;
       }
       if (Object.keys(persist).length > 0) {
-        await supabase.from("clients").update(persist).eq("id", client_id).eq("org_id", orgId);
+        await supabase.from(persistTable).update(persist).eq("id", persistId).eq("org_id", orgId);
       }
     } catch (e: any) {
       console.error("[automate] Integration auto-detect failed:", e.message);
     }
   }
 
-  console.log("[automate] Client automation fields:", {
-    website_url: client.website_url,
-    ga4_property_id: ga4PropertyId,
-    vercel_project_id: vercelProjectId,
-    gsc_site_url: gscSiteUrl,
-  });
-
   try {
     const result = await runAllAutomation({
-      websiteUrl: client.website_url,
+      websiteUrl: source.website_url,
       ga4PropertyId,
       vercelProjectId,
       gscSiteUrl,

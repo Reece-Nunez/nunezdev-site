@@ -53,6 +53,7 @@ export interface ClientReportData {
     email?: string | null;
   };
   reportMonth: string; // ISO date string for the first of the month
+  site?: { label?: string | null; websiteUrl?: string | null } | null;
   sections: {
     siteHealth: ReportSection;
     performance: ReportSection & { metrics: PerformanceMetrics };
@@ -296,6 +297,7 @@ export function generateClientReportHTML(data: ClientReportData): string {
       <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Prepared For</div>
       <div style="font-size: 18px; font-weight: 700; color: ${BRAND_DARK};">${client.name}</div>
       ${client.company ? `<div style="font-size: 13px; color: #6b7280; margin-top: 2px;">${client.company}</div>` : ''}
+      ${data.site?.label ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;"><strong style="color: ${BRAND_DARK};">Site:</strong> ${data.site.label}${data.site.websiteUrl ? ` — ${data.site.websiteUrl}` : ''}</div>` : ''}
     </div>
 
     <!-- Overall Summary Card -->

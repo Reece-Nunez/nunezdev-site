@@ -32,7 +32,7 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from("client_reports")
-    .select("id, org_id, client_id, report_month, sent_at, created_at, updated_at, clients(name, email, company)")
+    .select("id, org_id, client_id, site_id, report_month, sent_at, created_at, updated_at, clients(name, email, company), client_sites(label)")
     .eq("org_id", orgId)
     .order("report_month", { ascending: false });
 
@@ -53,24 +53,25 @@ export async function POST(req: Request) {
   const { supabase, orgId } = gate;
 
   const body = await req.json();
-  const { client_id, report_month, report_data } = body;
+  const { client_id, site_id, report_month, report_data } = body;
 
   if (!client_id || !report_month || !report_data) {
     return NextResponse.json({ error: "Missing required fields: client_id, report_month, report_data" }, { status: 400 });
   }
 
-  // Upsert: if a report for this client+month already exists, update it
+  // Upsert keyed per (client, site, month) — one report per site per month.
   const { data, error } = await supabase
     .from("client_reports")
     .upsert(
       {
         org_id: orgId,
         client_id,
+        site_id: site_id ?? null,
         report_month,
         report_data,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "org_id,client_id,report_month" }
+      { onConflict: "org_id,client_id,site_id,report_month" }
     )
     .select()
     .single();

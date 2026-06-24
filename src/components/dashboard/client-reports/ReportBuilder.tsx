@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useSWR from 'swr';
 import type { ChecklistItem, ReportSection, PerformanceMetrics, AnalyticsMetrics } from '@/lib/pdf-templates/client-report';
 import type { AutomationResult } from '@/lib/report-automation/types';
 import { SECTION_DEFS, blankItems, type CheckItem, type SectionKey, type SectionStatus } from '@/lib/report-automation/sections';
+import type { ClientSite } from '@/types/clients';
 import { useConfirm } from '@/components/ui/Toast';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -45,7 +46,23 @@ export default function ReportBuilder({ onReportSaved }: Props) {
   const clients = clientsData?.clients || [];
 
   const [clientId, setClientId] = useState('');
+  const [siteId, setSiteId] = useState('');
   const [reportMonth, setReportMonth] = useState(getMonthOptions()[1]?.value || getMonthOptions()[0]?.value); // default to last month
+
+  // Sites for the selected client. A report is generated per site.
+  const { data: sitesData } = useSWR<{ sites: ClientSite[] }>(
+    clientId ? `/api/clients/${clientId}/sites` : null,
+    fetcher,
+  );
+  const sites = sitesData?.sites || [];
+  const selectedSite = sites.find(s => s.id === siteId);
+
+  // Auto-select when a client has exactly one site; clear a stale selection.
+  useEffect(() => {
+    const list = sitesData?.sites || [];
+    if (list.length === 1) setSiteId(list[0].id);
+    else if (siteId && !list.some(s => s.id === siteId)) setSiteId('');
+  }, [sitesData, siteId]);
 
   // Section states
   type SectionState = { items: CheckItem[]; notes: string; status: SectionStatus };
@@ -163,13 +180,17 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       setMessage({ type: 'error', text: 'Please select a client first' });
       return;
     }
+    if (!siteId) {
+      setMessage({ type: 'error', text: 'Please select a site first' });
+      return;
+    }
     setAutomating(true);
     setMessage(null);
     try {
       const res = await fetch('/api/client-reports/automate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_id: clientId, report_month: reportMonth }),
+        body: JSON.stringify({ client_id: clientId, site_id: siteId, report_month: reportMonth }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -216,12 +237,17 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       recommendations,
       overallStatus,
       hoursSpent,
+      site: selectedSite ? { label: selectedSite.label, websiteUrl: selectedSite.website_url } : null,
     };
   };
 
   const handleSave = async () => {
     if (!clientId) {
       setMessage({ type: 'error', text: 'Please select a client' });
+      return;
+    }
+    if (!siteId) {
+      setMessage({ type: 'error', text: 'Please select a site' });
       return;
     }
 
@@ -233,6 +259,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           client_id: clientId,
+          site_id: siteId,
           report_month: reportMonth,
           report_data: buildReportData(),
         }),
@@ -340,7 +367,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
             <label className="block text-sm text-gray-600 mb-1">Client</label>
             <select
               value={clientId}
-              onChange={e => { setClientId(e.target.value); setSavedReportId(null); }}
+              onChange={e => { setClientId(e.target.value); setSiteId(''); setSavedReportId(null); }}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="">Select a client...</option>
@@ -352,6 +379,26 @@ export default function ReportBuilder({ onReportSaved }: Props) {
             </select>
             {selectedClient?.email && (
               <p className="text-xs text-gray-500 mt-1">Report will be sent to: {selectedClient.email}</p>
+            )}
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="block text-sm text-gray-600 mb-1">Site</label>
+            <select
+              value={siteId}
+              onChange={e => { setSiteId(e.target.value); setSavedReportId(null); }}
+              disabled={!clientId || sites.length === 0}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
+            >
+              <option value="">{!clientId ? 'Select a client first…' : sites.length === 0 ? 'No sites — add one on the client page' : 'Select a site…'}</option>
+              {sites.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.label}{s.website_url ? ` — ${s.website_url}` : ''}
+                </option>
+              ))}
+            </select>
+            {clientId && sites.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">This client has no sites yet. Add one in the client&apos;s Sites &amp; Reporting section.</p>
             )}
           </div>
 
@@ -406,7 +453,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
         <div className="mt-4 pt-4 border-t border-gray-100">
           <button
             onClick={handleAutoFill}
-            disabled={automating || !clientId}
+            disabled={automating || !clientId || !siteId}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-indigo-600 text-white px-4 py-3 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {automating ? (
@@ -629,7 +676,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleSave}
-            disabled={saving || !clientId}
+            disabled={saving || !clientId || !siteId}
             className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-4 py-3 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Saving...' : savedReportId ? 'Update Report' : 'Save Report'}

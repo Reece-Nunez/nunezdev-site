@@ -10,6 +10,7 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 interface ReportRecord {
   id: string;
   client_id: string;
+  site_id: string | null;
   report_month: string;
   sent_at: string | null;
   created_at: string;
@@ -19,6 +20,7 @@ interface ReportRecord {
     email: string | null;
     company: string | null;
   };
+  client_sites: { label: string } | null;
 }
 
 export default function ReportHistory() {
@@ -123,7 +125,10 @@ export default function ReportHistory() {
                   <tr key={report.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{report.clients.name}</div>
-                      {report.clients.company && (
+                      {report.client_sites?.label && (
+                        <div className="text-xs text-gray-500">{report.client_sites.label}</div>
+                      )}
+                      {!report.client_sites?.label && report.clients.company && (
                         <div className="text-xs text-gray-500">{report.clients.company}</div>
                       )}
                     </td>

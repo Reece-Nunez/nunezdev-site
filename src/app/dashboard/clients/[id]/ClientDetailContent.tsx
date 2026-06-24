@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import ClientForm from '@/components/client-detail/ClientForm';
+import ClientSites from '@/components/client-detail/ClientSites';
 import ClientNotes from '@/components/client-detail/ClientNotes';
 import ClientTasks from '@/components/client-detail/ClientTasks';
 import { ClientInvoices } from '@/components/client-detail/Related';
@@ -57,6 +58,8 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
       </div>
 
       <ClientForm clientId={clientId} />
+
+      <ClientSites clientId={clientId} />
 
       <section className="rounded-lg border p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">

@@ -20,7 +20,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
   const { data, mutate } = useSWR<ClientSWRResponse>(`/api/clients/${clientId}`, (u: string) => fetch(u).then((r) => r.json()));
   const client = data?.client;
   const [saving, setSaving] = useState(false);
-  const [detecting, setDetecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { toasts, success, error, removeToast } = useToast();
@@ -33,10 +32,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
     company: '',
     status: 'Lead' as ClientStatus,
     tags: [] as string[],
-    website_url: '',
-    ga4_property_id: '',
-    vercel_project_id: '',
-    gsc_site_url: '',
   });
   
   const [hasChanges, setHasChanges] = useState(false);
@@ -51,10 +46,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
         company: client.company ?? '',
         status: client.status as ClientStatus,
         tags: client.tags ?? [],
-        website_url: client.website_url ?? '',
-        ga4_property_id: client.ga4_property_id ?? '',
-        vercel_project_id: client.vercel_project_id ?? '',
-        gsc_site_url: client.gsc_site_url ?? '',
       });
     }
   }, [client]);
@@ -90,59 +81,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
   function updateField(field: keyof typeof formData, value: any) {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
-  }
-
-  async function handleDetect() {
-    if (!formData.website_url.trim()) {
-      error('Add a Website URL first, then auto-detect.');
-      return;
-    }
-    setDetecting(true);
-    try {
-      const res = await fetch(`/api/clients/${clientId}/detect-integrations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ website_url: formData.website_url }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Detection failed');
-
-      // Only fill blank fields so we never clobber a deliberate manual override.
-      const found: string[] = [];
-      const missed: string[] = [];
-      setFormData(prev => {
-        const next = { ...prev };
-        if (data.ga4_property_id && !prev.ga4_property_id.trim()) {
-          next.ga4_property_id = data.ga4_property_id;
-          found.push(`GA4 ${data.ga4_property_id}`);
-        } else if (!data.ga4_property_id) {
-          missed.push(`GA4 (${data.diagnostics?.ga4?.reason || 'not found'})`);
-        }
-        if (data.vercel_project_id && !prev.vercel_project_id.trim()) {
-          next.vercel_project_id = data.vercel_project_id;
-          found.push('Vercel project');
-        } else if (!data.vercel_project_id) {
-          missed.push(`Vercel (${data.diagnostics?.vercel?.reason || 'not found'})`);
-        }
-        if (data.gsc_site_url && !prev.gsc_site_url.trim()) {
-          next.gsc_site_url = data.gsc_site_url;
-          found.push(`Search Console ${data.gsc_site_url}`);
-        } else if (!data.gsc_site_url) {
-          missed.push(`Search Console (${data.diagnostics?.gsc?.reason || 'not found'})`);
-        }
-        return next;
-      });
-      if (found.length) {
-        setHasChanges(true);
-        success(`Detected: ${found.join(', ')}. Review and Save to keep.`);
-      }
-      if (missed.length) error(`Couldn't detect: ${missed.join('; ')}`);
-      if (!found.length && !missed.length) success('Integrations already filled in.');
-    } catch (err) {
-      error(err instanceof Error ? err.message : 'Detection failed');
-    } finally {
-      setDetecting(false);
-    }
   }
 
   async function handleDelete() {
@@ -220,43 +158,6 @@ export default function ClientForm({ clientId }: { clientId: string }) {
           value={formData.tags.join(', ')}
           onChange={(v) => updateField('tags', v.split(',').map(s => s.trim()).filter(Boolean))}
         />
-      </div>
-
-      <div className="pt-2 border-t">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-700">Report Automation</h3>
-          <button
-            type="button"
-            onClick={handleDetect}
-            disabled={detecting || !formData.website_url.trim()}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Match the website against your Vercel projects and GA4 properties"
-          >
-            {detecting ? 'Detecting…' : 'Auto-detect from website'}
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Field
-            label="Website URL"
-            value={formData.website_url}
-            onChange={(v) => updateField('website_url', v)}
-          />
-          <Field
-            label="GA4 Property ID"
-            value={formData.ga4_property_id}
-            onChange={(v) => updateField('ga4_property_id', v)}
-          />
-          <Field
-            label="Vercel Project ID"
-            value={formData.vercel_project_id}
-            onChange={(v) => updateField('vercel_project_id', v)}
-          />
-          <Field
-            label="GSC Site URL"
-            value={formData.gsc_site_url}
-            onChange={(v) => updateField('gsc_site_url', v)}
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-sm">
