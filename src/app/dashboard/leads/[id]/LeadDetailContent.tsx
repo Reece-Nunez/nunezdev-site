@@ -261,15 +261,23 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
             </h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <Field label="Email">
-                <a href={`mailto:${lead.email}`} className="text-emerald-700 hover:underline">
+                {/* Open the conversation in the dashboard inbox instead of a
+                    mailto: handoff, so replies thread + stay on-platform. */}
+                <Link
+                  href={`/dashboard/inbox?compose=email&to=${encodeURIComponent(lead.email)}`}
+                  className="text-emerald-700 hover:underline"
+                >
                   {lead.email}
-                </a>
+                </Link>
               </Field>
               <Field label="Phone">
                 {lead.phone ? (
-                  <a href={`tel:${lead.phone}`} className="text-emerald-700 hover:underline">
+                  <Link
+                    href={`/dashboard/inbox?compose=sms&to=${encodeURIComponent(lead.phone)}`}
+                    className="text-emerald-700 hover:underline"
+                  >
                     {lead.phone}
-                  </a>
+                  </Link>
                 ) : (
                   <span className="text-gray-400">Not provided</span>
                 )}

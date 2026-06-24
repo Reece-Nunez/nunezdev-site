@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import toast from "react-hot-toast";
 import {
@@ -81,8 +82,12 @@ function relativeTime(iso: string | null): string {
 }
 
 export default function InboxClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
+  const [composeInitial, setComposeInitial] = useState<{ channel: Channel; to: string } | null>(null);
+  const deepLinkHandled = useRef(false);
 
   const { data: listData, mutate: mutateList } = useSWR<{ conversations: ConversationListItem[] }>(
     "/api/inbox/conversations",
@@ -104,6 +109,35 @@ export default function InboxClient() {
     setTimeout(() => mutateList(), 400);
   }
 
+  // Deep link from a lead/client (e.g. clicking their email/phone):
+  // ?compose=email|sms&to=<address>. Open the existing thread if one matches
+  // that contact, otherwise the composer pre-filled. Runs once, after the
+  // conversation list has loaded so the match can be found.
+  useEffect(() => {
+    if (deepLinkHandled.current || !listData) return;
+    const compose = searchParams.get("compose");
+    const to = searchParams.get("to");
+    if (!compose || !to) return;
+    deepLinkHandled.current = true;
+
+    const channel: Channel = compose === "sms" ? "sms" : "email";
+    const last10 = (s: string | null) => (s ?? "").replace(/\D/g, "").slice(-10);
+    const match = conversations.find((c) =>
+      channel === "email"
+        ? c.channel === "email" && (c.contact_email ?? "").toLowerCase() === to.toLowerCase()
+        : c.channel === "sms" && last10(c.contact_phone) === last10(to),
+    );
+
+    if (match) {
+      setSelectedId(match.id);
+    } else {
+      setComposeInitial({ channel, to });
+      setComposing(true);
+    }
+    // Drop the query params so a refresh / SWR poll doesn't re-trigger this.
+    router.replace("/dashboard/inbox");
+  }, [listData, conversations, searchParams, router]);
+
   return (
     <div className="flex h-[calc(100vh-7rem)] lg:h-[calc(100vh-3rem)] overflow-hidden rounded-xl border bg-white shadow-sm">
       {/* ── List pane ───────────────────────────────────────────────── */}
@@ -114,7 +148,10 @@ export default function InboxClient() {
           <h1 className="text-base font-semibold text-gray-900">Inbox</h1>
           <button
             type="button"
-            onClick={() => setComposing(true)}
+            onClick={() => {
+              setComposeInitial(null);
+              setComposing(true);
+            }}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-yellow px-2.5 py-1.5 text-xs font-medium text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 transition-colors"
           >
             <PencilSquareIcon className="h-4 w-4" />
@@ -207,8 +244,11 @@ export default function InboxClient() {
               </button>
             </div>
             <Composer
+              initialChannel={composeInitial?.channel}
+              initialTo={composeInitial?.to}
               onSent={(conversationId) => {
                 setComposing(false);
+                setComposeInitial(null);
                 mutateList();
                 openConversation(conversationId);
               }}

@@ -17,11 +17,16 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
  */
 export default function Composer({
   onSent,
+  initialChannel,
+  initialTo,
 }: {
   onSent?: (conversationId: string, channel: Channel) => void;
+  /** Pre-select the channel/recipient (e.g. opened from a lead's email/phone). */
+  initialChannel?: Channel;
+  initialTo?: string;
 }) {
-  const [channel, setChannel] = useState<Channel>("email");
-  const [to, setTo] = useState("");
+  const [channel, setChannel] = useState<Channel>(initialChannel ?? "email");
+  const [to, setTo] = useState(initialTo ?? "");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [attachments, setAttachments] = useState<InboxAttachment[]>([]);
