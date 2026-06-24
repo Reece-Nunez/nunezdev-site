@@ -29,9 +29,12 @@
  *   --name <name>    first name used in the SMS copy (default: "there")
  *   --redirect <url> base app URL for the magic link (default: prod site)
  */
-import { loadEnvConfig } from '@next/env';
+import nextEnv from '@next/env';
+const { loadEnvConfig } = nextEnv;
 import { createClient } from '@supabase/supabase-js';
-import { Twilio } from 'twilio';
+// twilio is CommonJS — default-import then pull Twilio off it (named ESM import fails).
+import twilioPkg from 'twilio';
+const { Twilio } = twilioPkg;
 
 loadEnvConfig(process.cwd());
 
