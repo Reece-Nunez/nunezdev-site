@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { resolveContact } from '@/lib/inbox';
 import { generatePresignedViewUrl } from '@/lib/s3';
 
 interface StoredAttachment {
@@ -64,6 +65,17 @@ export async function GET(_req: Request, context: Ctx) {
     client_id: string | null;
     lead_id: string | null;
   };
+
+  // Cross-reference the contact against clients/leads so the thread header
+  // shows a known contact's name instead of a bare phone/email — fresh at read
+  // time, so it works even if the match didn't exist at conversation creation.
+  const resolved = await resolveContact({
+    email: conversation.contact_email,
+    phone: conversation.contact_phone,
+  });
+  if (resolved.contactName) {
+    conversation.contact_name = resolved.contactName;
+  }
 
   const { data: messagesRaw, error: msgErr } = await supabase
     .from('messages')

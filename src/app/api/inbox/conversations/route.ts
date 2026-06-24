@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { buildContactNameMaps, resolveDisplayName } from '@/lib/inboxContacts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,5 +34,22 @@ export async function GET(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ conversations: data ?? [] });
+
+  // Cross-reference each thread's phone/email against the client + lead lists
+  // so a known contact shows as their name, not a bare number — even if the
+  // match didn't exist when the conversation was first created. Falls back to
+  // the stored contact_name, then phone/email, in the UI.
+  type ConvRow = {
+    contact_name: string | null;
+    contact_email: string | null;
+    contact_phone: string | null;
+  };
+  const conversations = (data ?? []) as unknown as ConvRow[];
+  const maps = await buildContactNameMaps();
+  const enriched = conversations.map((c) => ({
+    ...c,
+    contact_name: resolveDisplayName(maps, c) ?? c.contact_name,
+  }));
+
+  return NextResponse.json({ conversations: enriched });
 }
