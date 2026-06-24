@@ -18,6 +18,7 @@
  * any record where that phone appears.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
 import { findOrCreateConversation, recordMessage, resolveContact } from '@/lib/inbox';
@@ -26,6 +27,13 @@ import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { notifyInboundSms } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
+
+// This Twilio number is shared with the leadgen pipeline. Inbound used to route
+// straight to leadgen-api; now it routes here (CRM) first, and we forward a copy
+// there so prospecting replies keep working. Overridable via env.
+const LEADGEN_SMS_INBOUND_URL =
+  process.env.LEADGEN_SMS_INBOUND_URL ||
+  'https://leadgen-api-moonlit-fog-100.fly.dev/sms/inbound';
 
 const STOP_KEYWORDS = new Set([
   'STOP',
@@ -76,6 +84,11 @@ export async function POST(request: NextRequest) {
     contactName: contact.contactName,
     orgId: contact.orgId,
   });
+
+  // Shared number: keep the leadgen pipeline working by forwarding every
+  // inbound to leadgen-api too. Best-effort — a leadgen hiccup must not affect
+  // the CRM's handling or the webhook response.
+  await forwardToLeadgen(verdict.params);
 
   if (STOP_KEYWORDS.has(firstWord)) {
     await markOptedOut(from, body);
@@ -145,6 +158,38 @@ async function recordInboundSms(
     });
   } catch (err) {
     console.error('[sms-incoming] inbox record failed:', err);
+  }
+}
+
+/**
+ * Forward an inbound Twilio webhook to the leadgen-api endpoint, preserving the
+ * exact form params. Twilio's original signature was computed over OUR URL, so
+ * we re-sign for leadgen's URL with the same auth token — leadgen's own
+ * `validateRequest` check then passes without any change on its side.
+ *
+ * Best-effort: never throws into the webhook. No-op if Twilio isn't configured.
+ */
+async function forwardToLeadgen(params: Record<string, string>): Promise<void> {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (!authToken || !LEADGEN_SMS_INBOUND_URL) return;
+  try {
+    // Twilio signature = base64(HMAC-SHA1(authToken, url + sorted key+value)).
+    let data = LEADGEN_SMS_INBOUND_URL;
+    for (const key of Object.keys(params).sort()) data += key + params[key];
+    const signature = createHmac('sha1', authToken)
+      .update(Buffer.from(data, 'utf-8'))
+      .digest('base64');
+
+    await fetch(LEADGEN_SMS_INBOUND_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Twilio-Signature': signature,
+      },
+      body: new URLSearchParams(params).toString(),
+    });
+  } catch (err) {
+    console.error('[sms-incoming] leadgen forward failed:', err);
   }
 }
 
