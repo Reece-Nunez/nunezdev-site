@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
 import { findOrCreateConversation, recordMessage, resolveContact } from '@/lib/inbox';
+import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { notifyInboundSms } from '@/lib/notifications';
 
@@ -87,19 +88,25 @@ export async function POST(request: NextRequest) {
   if (START_KEYWORDS.has(firstWord)) {
     // A YES/START reply is an affirmative opt-in. Grant fresh consent (not
     // just reverse a prior STOP) so the double-opt-in loop completes, then
-    // reply with the friendly "you're in" confirmation — mirrored into the
-    // inbox thread so both sides of the conversation are visible.
+    // deliver the friendly "you're in" confirmation.
+    //
+    // Send it through the Twilio API (sendTrackedSms), NOT a TwiML <Message>
+    // reply: a TwiML reply only reaches the client if the number's inbound
+    // config honors it, and we saw it get recorded-but-not-delivered. The API
+    // send is guaranteed delivery to the client's phone and threads the
+    // confirmation into the inbox with a real provider SID. Empty TwiML back.
     const matchedName = await grantConsent(from);
-    const reply = buildWelcomeSms({ name: matchedName });
-    await recordOutboundReply(from, toNumber, reply);
-    return twimlResponse(messageTwiml(reply));
+    await sendTrackedSms({ to: from, body: buildWelcomeSms({ name: matchedName }) });
+    return twimlResponse(emptyTwiml());
   }
 
   if (HELP_KEYWORDS.has(firstWord)) {
-    const reply =
-      "NunezDev here! 👋 We text invoices, quotes & project updates. Reply STOP to opt out anytime. Questions? Email reece@nunezdev.com. Msg & data rates may apply.";
-    await recordOutboundReply(from, toNumber, reply);
-    return twimlResponse(messageTwiml(reply));
+    await sendTrackedSms({
+      to: from,
+      body:
+        "NunezDev here! 👋 We text invoices, quotes & project updates. Reply STOP to opt out anytime. Questions? Email reece@nunezdev.com. Msg & data rates may apply.",
+    });
+    return twimlResponse(emptyTwiml());
   }
 
   // Any other inbound message — a real conversational reply. Already threaded
@@ -138,37 +145,6 @@ async function recordInboundSms(
     });
   } catch (err) {
     console.error('[sms-incoming] inbox record failed:', err);
-  }
-}
-
-/**
- * Record an auto-reply (YES confirmation, HELP info) as an outbound message on
- * the same SMS thread, so the inbox shows both sides of the exchange. The TwiML
- * reply is what the client actually receives — this mirror is best-effort and
- * must never break the webhook response.
- *
- * clientNumber = the client's phone (inbound `From`); the thread is keyed on it.
- * ourNumber    = our Twilio number (inbound `To`); the reply's from-address.
- */
-async function recordOutboundReply(
-  clientNumber: string,
-  ourNumber: string,
-  body: string,
-): Promise<void> {
-  try {
-    const conv = await findOrCreateConversation({ channel: 'sms', contactPhone: clientNumber });
-    await recordMessage({
-      conversationId: conv.id,
-      direction: 'outbound',
-      channel: 'sms',
-      fromAddress: ourNumber || 'system',
-      toAddress: clientNumber,
-      bodyText: body,
-      provider: 'twilio',
-      status: 'sent',
-    });
-  } catch (err) {
-    console.error('[sms-incoming] outbound reply record failed:', err);
   }
 }
 
@@ -322,14 +298,4 @@ function twimlResponse(twiml: string): NextResponse {
 }
 function emptyTwiml(): string {
   return '<?xml version="1.0" encoding="UTF-8"?><Response/>';
-}
-function messageTwiml(text: string): string {
-  // Twilio TwiML <Message> verb echoes a reply over SMS. Body text
-  // needs XML-escaping; our messages are static so no escape required,
-  // but be defensive in case the templates ever take user input.
-  const escaped = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  return `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${escaped}</Message></Response>`;
 }
