@@ -49,6 +49,18 @@ function unwrap<T extends AutomationSectionResult>(
 }
 
 /**
+ * Ensure the website URL has a scheme so `fetch` / `new URL()` can parse it.
+ * Operators enter URLs inconsistently ("www.gogoldman.com", "gogoldman.com",
+ * "https://…"); a scheme-less value made every check throw "Failed to parse
+ * URL". Defaults to https.
+ */
+export function normalizeWebsiteUrl(input: string): string {
+  const trimmed = (input || '').trim();
+  if (!trimmed) return trimmed;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+/**
  * Roll section statuses up to a headline. `unknown` (a check that could not
  * run) is treated as "not fully verified" so it can't inflate the report to
  * "Excellent".
@@ -60,7 +72,8 @@ export function computeOverallStatus(statuses: SectionStatus[]): string {
 }
 
 export async function runAllAutomation(input: AutomationInput): Promise<AutomationResult> {
-  const { websiteUrl, ga4PropertyId, vercelProjectId, gscSiteUrl, reportMonth, orgId, supabase } = input;
+  const { ga4PropertyId, vercelProjectId, gscSiteUrl, reportMonth, orgId, supabase } = input;
+  const websiteUrl = normalizeWebsiteUrl(input.websiteUrl);
 
   const [
     siteHealthResult,
