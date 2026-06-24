@@ -412,7 +412,15 @@ export default function DashboardInvoices() {
       setSelectedInvoices(new Set());
 
       const dr = data.delivery_results as
-        | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; emailError?: string; smsError?: string }
+        | {
+            email?: 'sent' | 'failed';
+            // 'opt_in_requested' = client not consented, so we texted a
+            // "reply YES" request instead of the invoice (handled by the
+            // generic-message branch below, not treated as sent or failed).
+            sms?: 'sent' | 'failed' | 'opt_in_requested';
+            emailError?: string;
+            smsError?: string;
+          }
         | undefined;
       const anySent = dr?.email === 'sent' || dr?.sms === 'sent';
       const anyFailed = dr?.email === 'failed' || dr?.sms === 'failed';

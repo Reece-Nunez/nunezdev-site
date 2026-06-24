@@ -3,6 +3,7 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
 import { sendInvoiceEmail } from "@/lib/email";
 import { sendInvoiceSmsWithGuards } from "@/lib/invoiceSms";
+import { requestSmsConsent } from "@/lib/smsConsent";
 import { isTwilioConfigured, normalizePhoneE164 } from "@/lib/sms";
 import { currency } from "@/lib/ui";
 import Stripe from "stripe";
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
         id, client_id, status, amount_cents, subtotal_cents, discount_cents,
         line_items, payment_terms, title, description, invoice_number, notes,
         require_signature, issued_at, due_at,
-        clients!inner(id, name, email, phone, stripe_customer_id),
+        clients!inner(id, name, email, phone, stripe_customer_id, sms_consent, sms_opted_out_at),
         invoice_payments(amount_cents)
       `)
       .eq("org_id", orgId)
@@ -139,7 +140,15 @@ export async function POST(req: NextRequest) {
 
     // Handle client - could be array or single object from Supabase join
     const clientData = invoices[0].clients;
-    const client = (Array.isArray(clientData) ? clientData[0] : clientData) as { id: string; name: string; email: string; phone?: string | null; stripe_customer_id?: string };
+    const client = (Array.isArray(clientData) ? clientData[0] : clientData) as {
+      id: string;
+      name: string;
+      email: string;
+      phone?: string | null;
+      stripe_customer_id?: string;
+      sms_consent?: boolean | null;
+      sms_opted_out_at?: string | null;
+    };
 
     // Calculate remaining balance for each invoice (handle partial payments)
     const invoicesWithBalance = invoices.map(inv => {
@@ -279,6 +288,17 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+      // If they've opted out and SMS is the ONLY channel, bail before voiding
+      // originals — we can't text them, and there's no email fallback. (For
+      // 'both', email still goes out and we just skip the text below.)
+      if (client.sms_opted_out_at && delivery_method === 'sms') {
+        return NextResponse.json(
+          {
+            error: `This client opted out of texts (replied STOP). Pick "Email" instead, or reach them another way.`,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // ----- IDEMPOTENCY CHECK -----------------------------------------------
@@ -407,7 +427,13 @@ export async function POST(req: NextRequest) {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
       const secureInvoiceUrl = `${baseUrl}/invoice/${accessToken}`;
 
-      const deliveryResults: { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; smsError?: string; emailError?: string } = {};
+      const deliveryResults: {
+        email?: 'sent' | 'failed';
+        sms?: 'sent' | 'failed' | 'opt_in_requested';
+        smsError?: string;
+        emailError?: string;
+        smsOptInTo?: string;
+      } = {};
 
       if (needsEmail) {
         try {
@@ -430,25 +456,51 @@ export async function POST(req: NextRequest) {
       }
 
       if (needsSms) {
-        const smsResult = await sendInvoiceSmsWithGuards({
-          invoiceId: newInvoice.id,
-          orgId,
-          to: sms_to ?? null,
-          clientPhoneOnFile: client.phone ?? null,
-          bodyOverride: null,
-          clientName: client.name,
-          clientId: client.id,
-          invoiceNumber: newInvoiceNumber,
-          amountCents: combinedTotal,
-          accessToken,
-        });
-        if (smsResult.ok) {
-          deliveryResults.sms = 'sent';
-          console.log(`Combined invoice SMS sent to ${smsResult.to}`);
-        } else {
+        // Same double-opt-in gate as the per-invoice "Send via Text" button:
+        // never text an invoice to someone who hasn't agreed to texts.
+        if (client.sms_opted_out_at) {
+          // Only reachable for 'both' (sms-only opted-out bailed in pre-flight).
+          // Email already went out above — just skip the text.
           deliveryResults.sms = 'failed';
-          deliveryResults.smsError = smsResult.error;
-          console.error("Combined invoice SMS failed:", smsResult.error);
+          deliveryResults.smsError = 'client opted out of texts (replied STOP)';
+        } else if (!client.sms_consent) {
+          // First contact: send the friendly "reply YES" request instead of
+          // the invoice. They opt in, then a re-send delivers the link.
+          const consentReq = await requestSmsConsent({
+            to: sms_to ?? client.phone ?? null,
+            clientName: client.name,
+            clientId: client.id,
+          });
+          if (consentReq.ok) {
+            deliveryResults.sms = 'opt_in_requested';
+            deliveryResults.smsOptInTo = consentReq.to;
+            console.log(`Combined invoice opt-in request sent to ${consentReq.to}`);
+          } else {
+            deliveryResults.sms = 'failed';
+            deliveryResults.smsError = consentReq.error;
+            console.error("Combined invoice opt-in request failed:", consentReq.error);
+          }
+        } else {
+          const smsResult = await sendInvoiceSmsWithGuards({
+            invoiceId: newInvoice.id,
+            orgId,
+            to: sms_to ?? null,
+            clientPhoneOnFile: client.phone ?? null,
+            bodyOverride: null,
+            clientName: client.name,
+            clientId: client.id,
+            invoiceNumber: newInvoiceNumber,
+            amountCents: combinedTotal,
+            accessToken,
+          });
+          if (smsResult.ok) {
+            deliveryResults.sms = 'sent';
+            console.log(`Combined invoice SMS sent to ${smsResult.to}`);
+          } else {
+            deliveryResults.sms = 'failed';
+            deliveryResults.smsError = smsResult.error;
+            console.error("Combined invoice SMS failed:", smsResult.error);
+          }
         }
       }
 
@@ -457,7 +509,13 @@ export async function POST(req: NextRequest) {
     }
 
     const deliveryResults = (newInvoice as Record<string, unknown>).delivery_results as
-      | { email?: 'sent' | 'failed'; sms?: 'sent' | 'failed'; smsError?: string; emailError?: string }
+      | {
+          email?: 'sent' | 'failed';
+          sms?: 'sent' | 'failed' | 'opt_in_requested';
+          smsError?: string;
+          emailError?: string;
+          smsOptInTo?: string;
+        }
       | undefined;
 
     // Public invoice URL — always returned so 'manual' delivery (and the
@@ -478,12 +536,23 @@ export async function POST(req: NextRequest) {
       if (deliveryResults?.email === 'failed') failed.push('email');
       if (deliveryResults?.sms === 'sent') sent.push('texted');
       if (deliveryResults?.sms === 'failed') failed.push(`text (${deliveryResults.smsError || 'unknown error'})`);
+
+      // Opt-in pending is neither success nor failure — the client hasn't
+      // consented, so we texted a "reply YES" request instead of the invoice.
+      // Call it out explicitly so the operator knows to re-send after the YES.
+      const optInNote =
+        deliveryResults?.sms === 'opt_in_requested'
+          ? ` ${deliveryResults.smsOptInTo ?? 'The client'} hasn't opted into texts yet, so we sent an opt-in request — re-send the text once they reply YES.`
+          : '';
+
       if (sent.length && !failed.length) {
-        message = `Combined ${invoices.length} invoices — ${sent.join(' and ')}.`;
+        message = `Combined ${invoices.length} invoices — ${sent.join(' and ')}.${optInNote}`;
       } else if (sent.length && failed.length) {
-        message = `Combined ${invoices.length} invoices. Successfully ${sent.join(' and ')}, but failed to send via ${failed.join(' and ')}.`;
+        message = `Combined ${invoices.length} invoices. Successfully ${sent.join(' and ')}, but failed to send via ${failed.join(' and ')}.${optInNote}`;
       } else if (failed.length) {
-        message = `Combined ${invoices.length} invoices but delivery failed: ${failed.join(', ')}. You can resend manually from the invoice detail page.`;
+        message = `Combined ${invoices.length} invoices but delivery failed: ${failed.join(', ')}. You can resend manually from the invoice detail page.${optInNote}`;
+      } else if (optInNote) {
+        message = `Combined ${invoices.length} invoices into ${newInvoiceNumber}.${optInNote}`;
       } else {
         message = `Combined ${invoices.length} invoices into ${newInvoiceNumber}.`;
       }
