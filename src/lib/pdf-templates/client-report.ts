@@ -24,6 +24,19 @@ function itemOutcome(item: ChecklistItem): ItemOutcome {
   return item.checked ? 'pass' : 'pending';
 }
 
+/**
+ * Escape text pulled from the live site (page titles, notes, URLs) before
+ * embedding it in the report HTML, so a stray `&`/`<` can't break layout or
+ * inject markup.
+ */
+function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export interface ReportSection {
   items: ChecklistItem[];
   notes: string;
@@ -119,12 +132,12 @@ function renderItem(item: ChecklistItem): string {
   const outcome = itemOutcome(item);
   const s = OUTCOME_STYLE[outcome];
   const detail = item.detail
-    ? `<span style="color: #9ca3af; font-size: 11px;"> — ${item.detail}</span>`
+    ? `<span style="color: #9ca3af; font-size: 11px;"> — ${esc(item.detail)}</span>`
     : '';
   return `
     <div style="display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font-size: 12px;">
       <span style="color: ${s.mark}; font-size: 14px; flex-shrink: 0;">${s.glyph}</span>
-      <span style="color: ${s.label};">${item.label}${detail}</span>
+      <span style="color: ${s.label};">${esc(item.label)}${detail}</span>
     </div>
   `;
 }
@@ -167,7 +180,7 @@ function renderSection(title: string, section: ReportSection, extraContent?: str
       ${extraContent || ''}
       ${section.notes ? `
         <div style="margin-top: 12px; padding: 10px 14px; background: #f9fafb; border-left: 3px solid ${BRAND_YELLOW}; border-radius: 0 6px 6px 0; font-size: 12px; color: #4b5563;">
-          <strong style="color: ${BRAND_DARK};">Notes:</strong> ${section.notes}
+          <strong style="color: ${BRAND_DARK};">Notes:</strong> ${esc(section.notes)}
         </div>
       ` : ''}
     </div>
@@ -226,7 +239,7 @@ export function generateClientReportHTML(data: ClientReportData): string {
       </div>
       <div style="background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center;">
         <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Top Page</div>
-        <div style="font-size: 13px; font-weight: 600; color: ${BRAND_DARK};">${sections.analytics.metrics.topPage || '-'}</div>
+        <div style="font-size: 13px; font-weight: 600; color: ${BRAND_DARK};">${esc(sections.analytics.metrics.topPage) || '-'}</div>
       </div>
       <div style="background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center;">
         <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Form Submissions</div>
@@ -295,9 +308,9 @@ export function generateClientReportHTML(data: ClientReportData): string {
     <!-- Client Info -->
     <div style="background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f3 100%); border-left: 4px solid ${BRAND_YELLOW}; padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 28px;">
       <div style="font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Prepared For</div>
-      <div style="font-size: 18px; font-weight: 700; color: ${BRAND_DARK};">${client.name}</div>
-      ${client.company ? `<div style="font-size: 13px; color: #6b7280; margin-top: 2px;">${client.company}</div>` : ''}
-      ${data.site?.label ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;"><strong style="color: ${BRAND_DARK};">Site:</strong> ${data.site.label}${data.site.websiteUrl ? ` — ${data.site.websiteUrl}` : ''}</div>` : ''}
+      <div style="font-size: 18px; font-weight: 700; color: ${BRAND_DARK};">${esc(client.name)}</div>
+      ${client.company ? `<div style="font-size: 13px; color: #6b7280; margin-top: 2px;">${esc(client.company)}</div>` : ''}
+      ${data.site?.label ? `<div style="font-size: 12px; color: #6b7280; margin-top: 4px;"><strong style="color: ${BRAND_DARK};">Site:</strong> ${esc(data.site.label)}${data.site.websiteUrl ? ` — ${esc(data.site.websiteUrl)}` : ''}</div>` : ''}
     </div>
 
     <!-- Overall Summary Card -->
@@ -337,7 +350,7 @@ export function generateClientReportHTML(data: ClientReportData): string {
         ${recommendations.filter(r => r.trim()).map((rec, i) => `
           <div style="display: flex; gap: 12px; padding: 12px 14px; background: ${i % 2 === 0 ? '#f9fafb' : '#fff'}; border-radius: 6px; margin-bottom: 4px;">
             <span style="display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: ${BRAND_YELLOW}; color: ${BRAND_DARK}; font-weight: 700; font-size: 12px; flex-shrink: 0;">${i + 1}</span>
-            <span style="font-size: 12px; color: #374151; line-height: 1.6; padding-top: 2px;">${rec}</span>
+            <span style="font-size: 12px; color: #374151; line-height: 1.6; padding-top: 2px;">${esc(rec)}</span>
           </div>
         `).join('')}
       </div>

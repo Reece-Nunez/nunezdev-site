@@ -34,9 +34,43 @@ function extractLinks(html: string, baseUrl: string): string[] {
  * answer a generic bot UA with 403/429 while serving real browsers a 200,
  * so presenting as a browser cuts down on false "blocked" results.
  */
-const LINK_CHECK_UA =
+export const LINK_CHECK_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+/**
+ * Pick the response charset, preferring the Content-Type header, then a
+ * <meta charset>/<meta http-equiv> in the document head, defaulting to utf-8.
+ * Sites that serve windows-1252 (or omit the charset) were decoded as utf-8,
+ * turning em-dashes and smart quotes in <title> into the U+FFFD replacement
+ * char ("Goldman Financial � Business Loans") in the client report.
+ */
+export function detectCharset(contentType: string | null, htmlHead: string): string {
+  const fromHeader = (contentType || '').match(/charset=["']?([\w-]+)/i)?.[1];
+  if (fromHeader) return fromHeader.toLowerCase();
+  const fromMeta =
+    htmlHead.match(/<meta[^>]+charset=["']?([\w-]+)/i)?.[1] ||
+    htmlHead.match(/charset=["']?([\w-]+)/i)?.[1];
+  return (fromMeta || 'utf-8').toLowerCase();
+}
+
+/** Fetch HTML and decode it with the document's actual charset. */
+async function fetchHtml(url: string): Promise<string> {
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(10000),
+    headers: { 'User-Agent': 'NunezDev-ReportBot/1.0' },
+  });
+  if (!res.ok) return '';
+  const buf = await res.arrayBuffer();
+  // Sniff the head as latin1 (1 byte = 1 char) just to read the <meta charset>.
+  const head = new TextDecoder('latin1').decode(new Uint8Array(buf.slice(0, 2048)));
+  const charset = detectCharset(res.headers.get('content-type'), head);
+  try {
+    return new TextDecoder(charset).decode(buf);
+  } catch {
+    return new TextDecoder('utf-8').decode(buf);
+  }
+}
 
 export type LinkVerdict = 'ok' | 'broken' | 'unverified';
 
@@ -71,15 +105,10 @@ export async function checkSEO(websiteUrl: string): Promise<AutomationSectionRes
 
   let html = '';
 
-  // Fetch homepage for meta tag analysis
+  // Fetch homepage for meta tag analysis (charset-aware so the title renders
+  // correctly in the report).
   try {
-    const res = await fetch(websiteUrl, {
-      signal: AbortSignal.timeout(10000),
-      headers: { 'User-Agent': 'NunezDev-ReportBot/1.0' },
-    });
-    if (res.ok) {
-      html = await res.text();
-    }
+    html = await fetchHtml(websiteUrl);
   } catch { /* handled below */ }
 
   // Sitemap

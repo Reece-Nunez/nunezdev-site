@@ -10,7 +10,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { classifyLink, type LinkVerdict } from "./seo";
+import { classifyLink, detectCharset, type LinkVerdict } from "./seo";
 
 describe("classifyLink", () => {
   it("counts 404, 410, and 5xx as broken", () => {
@@ -43,5 +43,22 @@ describe("classifyLink", () => {
       .map(classifyLink)
       .filter((v: LinkVerdict) => v === "broken");
     assert.equal(broken.length, 0);
+  });
+});
+
+describe("detectCharset", () => {
+  it("prefers the Content-Type header charset", () => {
+    assert.equal(detectCharset("text/html; charset=windows-1252", ""), "windows-1252");
+    assert.equal(detectCharset("text/html; charset=UTF-8", ""), "utf-8");
+  });
+
+  it("falls back to the <meta charset> when the header omits it", () => {
+    assert.equal(detectCharset("text/html", '<meta charset="ISO-8859-1">'), "iso-8859-1");
+    assert.equal(detectCharset(null, '<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">'), "windows-1252");
+  });
+
+  it("defaults to utf-8 when nothing declares a charset", () => {
+    assert.equal(detectCharset("text/html", "<html><head></head>"), "utf-8");
+    assert.equal(detectCharset(null, ""), "utf-8");
   });
 });
