@@ -1,0 +1,87 @@
+/**
+ * Outbound SMS opt-in requests (the double-opt-in front door).
+ *
+ * When we want to text a contact who has NO consent on file, we don't send
+ * them the real message — we send a friendly "reply YES to opt in" request
+ * first. Their YES (handled by the inbound webhook) becomes the consent, and
+ * future messages flow normally.
+ *
+ * This helper centralizes that send so every caller (invoice SMS today,
+ * anything else later) gets the same copy, idempotency, and audit logging.
+ */
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { sendSms, normalizePhoneE164 } from '@/lib/sms';
+import { buildOptInRequestSms } from '@/lib/smsWelcome';
+
+export type RequestSmsConsentResult =
+  | { ok: true; to: string; alreadyRequested?: boolean }
+  | { ok: false; status: number; error: string };
+
+export interface RequestSmsConsentInput {
+  /** Target phone (any common US format). */
+  to: string | null | undefined;
+  /** Client name for the greeting. */
+  clientName?: string | null;
+  /** Client id for activity logging (null when texting a non-client). */
+  clientId?: string | null;
+}
+
+/**
+ * Send the one-time "can we text you?" request. Idempotent: if we already
+ * asked this client in the last 24h, we skip the resend (so re-clicking
+ * "send" doesn't spam them) and report it as already-requested.
+ */
+export async function requestSmsConsent(
+  input: RequestSmsConsentInput
+): Promise<RequestSmsConsentResult> {
+  const phoneE164 = normalizePhoneE164((input.to ?? '').trim());
+  if (!phoneE164) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Couldn't parse phone number: "${input.to ?? ''}". Use a US format like (405) 555-1234.`,
+    };
+  }
+
+  const supabase = supabaseAdmin();
+
+  // Idempotency: don't re-ask the same client within 24h.
+  if (input.clientId) {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recent } = await supabase
+      .from('client_activity_log')
+      .select('id, activity_data')
+      .eq('client_id', input.clientId)
+      .eq('activity_type', 'sms_optin_requested')
+      .gte('created_at', oneDayAgo)
+      .limit(20);
+    type Row = { id: string; activity_data?: { to?: string } | null };
+    if ((recent as Row[] | null)?.some((r) => r.activity_data?.to === phoneE164)) {
+      return { ok: true, to: phoneE164, alreadyRequested: true };
+    }
+  }
+
+  const result = await sendSms({
+    to: phoneE164,
+    body: buildOptInRequestSms({ name: input.clientName }),
+  });
+  if (!result.ok) {
+    return { ok: false, status: 500, error: result.error || 'Failed to send opt-in request' };
+  }
+
+  // Audit trail — don't fail the request if logging errors.
+  if (input.clientId) {
+    await supabase
+      .from('client_activity_log')
+      .insert({
+        client_id: input.clientId,
+        activity_type: 'sms_optin_requested',
+        activity_data: { to: phoneE164, sid: result.sid },
+      })
+      .then(({ error }) => {
+        if (error) console.warn('[sms-consent] optin_requested log failed', error);
+      });
+  }
+
+  return { ok: true, to: phoneE164 };
+}

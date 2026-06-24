@@ -223,7 +223,18 @@ export default function InvoiceDetailPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
-      showToast(`SMS sent to ${data.to}`, 'success');
+      if (data.optInRequested) {
+        // Client hasn't consented yet — we sent a "reply YES" opt-in request
+        // instead of the invoice. Tell the operator what to expect.
+        showToast(
+          data.alreadyRequested
+            ? `Already asked ${data.to} to opt in — waiting on their YES. Re-send the invoice once they reply.`
+            : `${data.to} hasn't opted into texts yet, so we sent them a quick opt-in request. Once they reply YES, re-send and the invoice will go through.`,
+          'success',
+        );
+      } else {
+        showToast(`SMS sent to ${data.to}`, 'success');
+      }
       setShowSmsModal(false);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to send SMS', 'error');

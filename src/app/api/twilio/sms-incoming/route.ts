@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
 import { findOrCreateConversation, recordMessage } from '@/lib/inbox';
+import { buildWelcomeSms } from '@/lib/smsWelcome';
 
 export const runtime = 'nodejs';
 
@@ -47,9 +48,12 @@ export async function POST(request: NextRequest) {
 
   const from = (verdict.params.From || '').trim();
   const body = (verdict.params.Body || '').trim();
-  // First word, uppercased — keyword matching is whitespace + case
-  // insensitive, but only checks the first token (Twilio convention).
-  const firstWord = body.split(/\s+/)[0]?.toUpperCase() ?? '';
+  // First word, uppercased with punctuation stripped — keyword matching is
+  // whitespace + case insensitive and ignores trailing punctuation, so real
+  // replies like "Yes!" / "STOP." / "opt-out" still match. Only the first
+  // token is checked (Twilio convention). Note: stripping non-letters maps
+  // "OPT-OUT"->"OPTOUT" and "OPT-IN"->"OPTIN", both already in the sets.
+  const firstWord = (body.split(/\s+/)[0] ?? '').toUpperCase().replace(/[^A-Z]/g, '');
 
   if (!from) {
     return twimlResponse(emptyTwiml());
@@ -64,18 +68,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (START_KEYWORDS.has(firstWord)) {
-    await markOptedIn(from);
-    return twimlResponse(
-      messageTwiml(
-        'NunezDev: You have re-subscribed to invoice reminders. Reply STOP to opt out at any time. Msg & data rates may apply.',
-      ),
-    );
+    // A YES/START reply is an affirmative opt-in. Grant fresh consent (not
+    // just reverse a prior STOP) so the double-opt-in loop completes, then
+    // reply with the friendly "you're in" confirmation.
+    const matchedName = await grantConsent(from);
+    return twimlResponse(messageTwiml(buildWelcomeSms({ name: matchedName })));
   }
 
   if (HELP_KEYWORDS.has(firstWord)) {
     return twimlResponse(
       messageTwiml(
-        'NunezDev: Invoice reminders. Reply STOP to opt out. For support email reece@nunezdev.com. Msg & data rates may apply.',
+        "NunezDev here! 👋 We text invoices, quotes & project updates. Reply STOP to opt out anytime. Questions? Email reece@nunezdev.com. Msg & data rates may apply.",
       ),
     );
   }
@@ -168,25 +171,61 @@ async function markOptedOut(fromE164: string, body: string): Promise<void> {
 }
 
 /**
- * Re-opt-in via START. Mirrors markOptedOut but clears the timestamp
- * and only on records that previously consented (we don't grant fresh
- * consent here — START just reverses a prior STOP).
+ * Grant SMS consent from an inbound YES/START reply — the back half of the
+ * double opt-in. Unlike the old re-subscribe-only behavior, this sets
+ * sms_consent=true on matching clients/leads (and clears any prior opt-out),
+ * because a YES reply IS fresh, affirmative consent. Idempotent: re-texting
+ * YES just re-affirms.
+ *
+ * Returns the first matched client/lead name (for the friendly reply), or
+ * null when the number matches no record.
  */
-async function markOptedIn(fromE164: string): Promise<void> {
+async function grantConsent(fromE164: string): Promise<string | null> {
   const supabase = supabaseAdmin();
   const variants = phoneVariants(fromE164);
-  const { error } = await supabase
-    .from('clients')
-    .update({ sms_opted_out_at: null })
-    .in('phone', variants)
-    .eq('sms_consent', true);
-  if (error) console.error('[sms-incoming] clients re-opt-in failed:', error);
+  const nowIso = new Date().toISOString();
+  const consentUpdate = {
+    sms_consent: true,
+    sms_consent_at: nowIso,
+    sms_consent_source: 'sms_reply',
+    sms_opted_out_at: null,
+  };
 
-  await supabase
+  const { error: clientErr } = await supabase
+    .from('clients')
+    .update(consentUpdate)
+    .in('phone', variants);
+  if (clientErr) console.error('[sms-incoming] clients opt-in failed:', clientErr);
+
+  const { error: leadErr } = await supabase
     .from('leads')
-    .update({ sms_opted_out_at: null })
+    .update(consentUpdate)
+    .in('phone', variants);
+  if (leadErr) console.error('[sms-incoming] leads opt-in failed:', leadErr);
+
+  // Audit trail + resolve a name for the confirmation reply.
+  const { data: matchedClients } = await supabase
+    .from('clients')
+    .select('id, name')
+    .in('phone', variants);
+  if (matchedClients?.length) {
+    await supabase.from('client_activity_log').insert(
+      matchedClients.map((c) => ({
+        client_id: c.id,
+        activity_type: 'sms_opt_in',
+        activity_data: { from_e164: fromE164, source: 'sms_reply' },
+      })),
+    );
+    return matchedClients[0].name ?? null;
+  }
+
+  // No client match — try a lead name so the reply can still greet them.
+  const { data: matchedLeads } = await supabase
+    .from('leads')
+    .select('name')
     .in('phone', variants)
-    .eq('sms_consent', true);
+    .limit(1);
+  return matchedLeads?.[0]?.name ?? null;
 }
 
 async function logInbound(fromE164: string, body: string): Promise<void> {
