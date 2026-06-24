@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireOwner } from '@/lib/authz';
+import { requireProspecting } from '@/lib/authz';
 
 export async function GET(request: NextRequest) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   try {
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   try {

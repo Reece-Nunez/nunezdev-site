@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import { getLeadSourceROI } from "@/lib/leadAnalytics";
 
 export async function GET() {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   try {

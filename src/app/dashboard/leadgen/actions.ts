@@ -17,7 +17,7 @@
  * fetch/auth concerns out of UI code.
  */
 import { revalidatePath } from "next/cache";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   triggerStageOnApi,
@@ -95,7 +95,7 @@ export async function triggerStage(
   stage: Stage,
   businessId: number,
 ): Promise<TriggerResult> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Unauthorized" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "Invalid business id" };
@@ -127,7 +127,7 @@ export async function triggerProspect(
   zip: string,
   max: number,
 ): Promise<TriggerResult> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Unauthorized" };
   if (!/^\d{5}$/.test(zip)) {
     return { ok: false, message: "Zip must be 5 digits" };
@@ -170,7 +170,7 @@ export async function sendEmailOutreach(
   businessId: number,
   overrideEmail?: string,
 ): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return { ok: false, message: "Owner access required" };
   }
@@ -210,7 +210,7 @@ export async function sendEmailOutreach(
 export async function saveOperatorProfile(
   profile: OperatorProfile,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return { ok: false, message: "Owner access required" };
   }
@@ -241,7 +241,7 @@ export async function markNotInterested(
   reason: StatusReason,
   note: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return { ok: false, message: "Owner access required" };
   }
@@ -278,7 +278,7 @@ export async function reopenLead(
   businessId: number,
   status: BusinessStatus,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return { ok: false, message: "Owner access required" };
   }
@@ -314,7 +314,7 @@ export async function saveOutreachDraft(
   message: string,
   subject?: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return { ok: false, message: "Owner access required" };
   }
@@ -348,7 +348,7 @@ export async function recordSmsConsent(
   basis: SmsConsentBasis,
   note?: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "invalid business id" };
@@ -371,7 +371,7 @@ export async function recordSmsConsent(
 export async function sendSmsOutreach(
   businessId: number,
 ): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "invalid business id" };
@@ -398,7 +398,7 @@ export async function sendSmsOutreach(
 export async function sendFollowUp(
   followUpId: number,
 ): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(followUpId) || followUpId <= 0) {
     return { ok: false, message: "invalid follow-up id" };
@@ -416,7 +416,7 @@ export async function sendFollowUp(
 export async function skipFollowUp(
   followUpId: number,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(followUpId) || followUpId <= 0) {
     return { ok: false, message: "invalid follow-up id" };
@@ -434,7 +434,7 @@ export async function snoozeFollowUp(
   followUpId: number,
   days: number,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(followUpId) || followUpId <= 0) {
     return { ok: false, message: "invalid follow-up id" };
@@ -466,7 +466,7 @@ export async function bulkRunStage(
   stage: Stage,
   businessIds: number[],
 ): Promise<{ ok: true; enqueued: number; failed: number } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!["research", "build", "outreach"].includes(stage)) {
     return { ok: false, message: "invalid stage" };
@@ -496,7 +496,7 @@ export async function bulkRunStage(
 export async function callLead(
   businessId: number,
 ): Promise<{ ok: true; ring: string | null } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "invalid business id" };
@@ -521,7 +521,7 @@ export async function setLeadEmail(
   businessId: number,
   email: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "invalid business id" };
@@ -550,7 +550,7 @@ export async function logCall(
   outcome: string,
   note?: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "invalid business id" };
@@ -584,7 +584,7 @@ export async function convertToLead(
   | { ok: true; leadId: string; alreadyExisted: boolean }
   | { ok: false; message: string }
 > {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
     return { ok: false, message: "invalid business id" };
@@ -701,7 +701,7 @@ export async function convertToLead(
 
 
 export async function pollJob(jobId: string): Promise<JobStatus | null> {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return null;
   if (typeof jobId !== "string" || jobId.length === 0) return null;
 

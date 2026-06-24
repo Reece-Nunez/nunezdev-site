@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { requireOwner } from '@/lib/authz';
+import { requireProspecting } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import LeadDetailContent from './LeadDetailContent';
 
@@ -12,7 +12,7 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) redirect(`/login?next=/dashboard/leads/${id}`);
 
   const supabase = supabaseAdmin();

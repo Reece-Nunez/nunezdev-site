@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireOwner } from '@/lib/authz';
+import { requireProspecting } from '@/lib/authz';
 
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await context.params;
@@ -29,7 +29,7 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await context.params;
@@ -71,7 +71,7 @@ export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { id } = await context.params;

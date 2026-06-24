@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import LogoutButton from '../LogOutButton';
 import NotificationBell from './NotificationBell';
+import { PROSPECTOR_NAV_HREFS } from '@/lib/prospectorAccess';
+import type { OrgRole } from '@/lib/authz';
 import {
   HomeIcon,
   UsersIcon,
@@ -60,11 +62,18 @@ const adminTools = [
   { href: '/dashboard/admin/backfill-stripe-fees', label: 'Backfill Stripe Fees' },
 ];
 
-export default function MobileNavigation() {
+export default function MobileNavigation({ role }: { role?: OrgRole }) {
   const [isOpen, setIsOpen] = useState(false);
   const [adminToolsOpen, setAdminToolsOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href;
+
+  // Prospectors only see the lead-gen surface (no admin tools / New Client /
+  // notifications). Middleware is the actual access backstop.
+  const isProspector = role === 'prospector';
+  const navItems = isProspector
+    ? items.filter((it) => PROSPECTOR_NAV_HREFS.includes(it.href))
+    : items;
 
   const closeMenu = () => setIsOpen(false);
 
@@ -107,7 +116,7 @@ export default function MobileNavigation() {
         </Link>
 
         <div className="flex items-center gap-1">
-          <NotificationBell />
+          {!isProspector && <NotificationBell />}
           <button
             onClick={() => setIsOpen(true)}
             className="p-3 rounded-lg text-gray-700 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
@@ -161,7 +170,7 @@ export default function MobileNavigation() {
             <p className="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Workspace
             </p>
-            {items.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
               return (
@@ -185,6 +194,7 @@ export default function MobileNavigation() {
             })}
           </nav>
 
+          {!isProspector && (
           <div className="px-3 pb-3">
             <button
               onClick={() => setAdminToolsOpen(!adminToolsOpen)}
@@ -218,17 +228,20 @@ export default function MobileNavigation() {
               </nav>
             )}
           </div>
+          )}
         </div>
 
         <div className="p-3 border-t border-gray-100 shrink-0 space-y-2 bg-white">
-          <Link
-            href="/dashboard/clients/new"
-            onClick={closeMenu}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-colors"
-          >
-            <PlusIcon className="w-5 h-5" />
-            New Client
-          </Link>
+          {!isProspector && (
+            <Link
+              href="/dashboard/clients/new"
+              onClick={closeMenu}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-colors"
+            >
+              <PlusIcon className="w-5 h-5" />
+              New Client
+            </Link>
+          )}
           <div onClick={closeMenu}>
             <LogoutButton />
           </div>

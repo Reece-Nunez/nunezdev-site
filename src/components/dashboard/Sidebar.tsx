@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import LogoutButton from '../LogOutButton';
 import NotificationBell from './NotificationBell';
+import { PROSPECTOR_NAV_HREFS } from '@/lib/prospectorAccess';
+import type { OrgRole } from '@/lib/authz';
 import {
   HomeIcon,
   UsersIcon,
@@ -61,12 +63,19 @@ const adminTools = [
   { href: '/dashboard/admin/backfill-stripe-fees', label: 'Backfill Stripe Fees' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ role }: { role?: OrgRole }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [adminToolsOpen, setAdminToolsOpen] = useState(false);
   const [inboxUnread, setInboxUnread] = useState(0);
   const isActive = (href: string) => pathname === href;
+
+  // A prospector only gets the lead-gen surface: filter the nav and drop the
+  // owner-only chrome (admin tools, notifications, "New Client").
+  const isProspector = role === 'prospector';
+  const navItems = isProspector
+    ? items.filter((it) => PROSPECTOR_NAV_HREFS.includes(it.href))
+    : items;
 
   // Poll the unread-inbox count for the nav badge. Mirrors NotificationBell:
   // 60s interval + refetch on tab focus. `pathname` is a dep so navigating
@@ -83,6 +92,9 @@ export default function Sidebar() {
   }, []);
 
   useEffect(() => {
+    // Prospectors have no inbox access, so don't poll the unread endpoint
+    // (it would 403 on a 60s loop).
+    if (isProspector) return;
     fetchInboxUnread();
     const interval = setInterval(fetchInboxUnread, 60000);
     const onVisible = () => {
@@ -93,7 +105,7 @@ export default function Sidebar() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [fetchInboxUnread, pathname]);
+  }, [fetchInboxUnread, pathname, isProspector]);
 
   return (
     <aside className={`${isCollapsed ? 'w-16' : 'w-56'} shrink-0 border-r bg-white h-screen sticky top-0 transition-all duration-300 flex flex-col`}>
@@ -129,13 +141,15 @@ export default function Sidebar() {
         </button>
       </div>
 
-      <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-3 py-2 border-b border-gray-100 shrink-0`}>
-        <NotificationBell collapsed={isCollapsed} />
-      </div>
+      {!isProspector && (
+        <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-3 py-2 border-b border-gray-100 shrink-0`}>
+          <NotificationBell collapsed={isCollapsed} />
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
       <nav className="p-2 space-y-1">
-        {items.map((it) => {
+        {navItems.map((it) => {
           const Icon = it.icon;
           const badge = it.href === '/dashboard/inbox' ? inboxUnread : 0;
           const badgeText = badge > 9 ? '9+' : String(badge);
@@ -174,8 +188,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Admin Tools Section - Collapsible */}
-      {!isCollapsed && (
+      {/* Admin Tools Section - Collapsible (owner only) */}
+      {!isCollapsed && !isProspector && (
         <div className="px-2 pt-4">
           <button
             onClick={() => setAdminToolsOpen(!adminToolsOpen)}
@@ -212,17 +226,19 @@ export default function Sidebar() {
       </div>
 
       <div className="p-2 pt-3 space-y-2 shrink-0 border-t border-gray-100">
-        <Link
-          href="/dashboard/clients/new"
-          className={`w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-3 py-2 text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-            isCollapsed ? 'w-10 h-10 p-0' : ''
-          }`}
-          aria-label="Add new client"
-          title={isCollapsed ? 'New Client' : undefined}
-        >
-          <PlusIcon className="w-5 h-5" />
-          {!isCollapsed && 'New Client'}
-        </Link>
+        {!isProspector && (
+          <Link
+            href="/dashboard/clients/new"
+            className={`w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-3 py-2 text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+              isCollapsed ? 'w-10 h-10 p-0' : ''
+            }`}
+            aria-label="Add new client"
+            title={isCollapsed ? 'New Client' : undefined}
+          >
+            <PlusIcon className="w-5 h-5" />
+            {!isCollapsed && 'New Client'}
+          </Link>
+        )}
 
         <div className={isCollapsed ? 'flex justify-center' : ''}>
           <LogoutButton collapsed={isCollapsed} />

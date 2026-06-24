@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeftIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import { isAvailable, listFollowUps } from "@/lib/leadgen-api";
 import FollowUpActions from "./FollowUpActions";
 
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default async function FollowUpsQueue() {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return (
       <div className="px-3 py-4 sm:p-6 max-w-full min-w-0">

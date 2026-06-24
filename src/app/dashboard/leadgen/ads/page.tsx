@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import { getAdsOverview } from "@/lib/googleAdsRead";
 import { prettyEnum, type CampaignAgg, type KeywordAgg } from "@/lib/googleAdsTransform";
 import RefreshAdsButton from "./RefreshAdsButton";
@@ -41,7 +41,7 @@ interface PageProps {
 }
 
 export default async function AdsDashboard({ searchParams }: PageProps) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return (
       <div className="px-3 py-4 sm:p-6 max-w-full min-w-0">

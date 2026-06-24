@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireOwner } from '@/lib/authz';
+import { requireProspecting } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { extractLeadDetails, isThumbtackLeadEvent } from '@/lib/thumbtackWebhook';
 
@@ -29,7 +29,7 @@ function dollars(cents: number | null) {
 }
 
 export default async function ThumbtackLeadsPage() {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) redirect('/login?next=/dashboard/thumbtack');
 
   const supabase = supabaseAdmin();

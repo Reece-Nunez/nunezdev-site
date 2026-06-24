@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import {
   getBusiness,
   type BusinessStatus,
@@ -76,7 +76,7 @@ interface PageProps {
 }
 
 export default async function LeadgenDetail({ params }: PageProps) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return (
       <div className="px-3 py-4 sm:p-6 max-w-full min-w-0">

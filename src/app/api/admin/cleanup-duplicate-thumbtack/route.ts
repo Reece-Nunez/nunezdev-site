@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 
 // One-time cleanup: delete old manual bulk Thumbtack entries
 // that are now replaced by individual per-lead imports
 export async function POST() {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const orgId = guard.orgId!;
   const supabase = await supabaseServer();

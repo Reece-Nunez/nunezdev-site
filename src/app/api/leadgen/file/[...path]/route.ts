@@ -11,7 +11,7 @@
  * filesystem because it's running on the same machine as the pipeline.
  */
 import { NextResponse } from "next/server";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import { LEADGEN_OUTPUT_DIR } from "@/lib/leadgen-paths";
 import { proxyFile } from "@/lib/leadgen-api";
 import path from "node:path";
@@ -36,7 +36,7 @@ interface RouteContext {
 
 export async function GET(_req: Request, ctx: RouteContext) {
   // Owner auth — same gate as the dashboard pages.
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

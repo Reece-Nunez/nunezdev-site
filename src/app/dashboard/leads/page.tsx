@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { requireOwner } from '@/lib/authz';
+import { requireProspecting } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const dynamic = 'force-dynamic';
@@ -49,7 +49,7 @@ export default async function LeadsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) redirect('/login?next=/dashboard/leads');
 
   const { status: statusFilter } = await searchParams;

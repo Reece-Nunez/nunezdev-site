@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 import {
   isAvailable,
   getStats,
@@ -62,7 +62,7 @@ interface PageProps {
 }
 
 export default async function LeadgenIndex({ searchParams }: PageProps) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) {
     return (
       <div className="px-3 py-4 sm:p-6 max-w-full min-w-0">

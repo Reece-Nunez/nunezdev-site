@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { requireOwner } from '@/lib/authz';
+import { requireProspecting } from '@/lib/authz';
 
 // Convert a lead into a client. Creates a fresh row in `clients`, links the
 // lead to it via leads.client_id, and marks the lead as 'converted'. Idempotent:
@@ -10,7 +10,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { id: leadId } = await context.params;

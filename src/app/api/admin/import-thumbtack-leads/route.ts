@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { requireOwner } from "@/lib/authz";
+import { requireProspecting } from "@/lib/authz";
 
 // Thumbtack lead fee data extracted from payment history + lead details
 const THUMBTACK_LEADS = [
@@ -41,7 +41,7 @@ const THUMBTACK_LEADS = [
 ];
 
 export async function POST() {
-  const guard = await requireOwner();
+  const guard = await requireProspecting();
   if (!guard.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const orgId = guard.orgId!;
   const supabase = await supabaseServer();
