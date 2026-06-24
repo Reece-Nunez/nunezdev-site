@@ -61,6 +61,19 @@ export default function Composer({
         toast.error(data.error || "Send failed");
         return;
       }
+      if (data.optInRequested) {
+        // Recipient hasn't opted into texts — we sent a "reply YES" request
+        // instead of the message. Tell the operator to re-send after the YES.
+        toast.success(
+          data.alreadyRequested
+            ? `Already asked ${data.to} to opt in — waiting on their YES.`
+            : `${data.to} hasn't opted into texts yet, so we sent a quick opt-in request. They'll get your message once they reply YES.`,
+          { duration: 8000 },
+        );
+        setBody("");
+        if (data.conversationId) onSent?.(data.conversationId, channel);
+        return;
+      }
       toast.success(isEmail ? "Email sent" : "Text sent");
       // Keep the recipient (likely sending a follow-up); clear the message.
       setSubject("");

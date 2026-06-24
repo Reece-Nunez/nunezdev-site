@@ -18,6 +18,12 @@ import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { sendEmail } from '@/lib/email';
 import { sendSms, normalizePhoneE164, getSmsFromNumber } from '@/lib/sms';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import {
+  requestSmsConsent,
+  lookupSmsConsentByPhone,
+  decideComposerSmsAction,
+} from '@/lib/smsConsent';
 import { getS3Object } from '@/lib/s3';
 import {
   findOrCreateConversation,
@@ -178,6 +184,58 @@ export async function POST(req: Request) {
   const conv = body.conversationId
     ? { id: body.conversationId }
     : await findOrCreateConversation({ channel: 'sms', contactPhone: phone });
+
+  // ── Double opt-in gate ────────────────────────────────────────────────
+  // Operator-initiated texts respect the same consent policy as the invoice
+  // flow — EXCEPT a reply to someone who texted us first is allowed (they
+  // initiated). We detect that via any inbound message on this thread.
+  const supabase = supabaseAdmin();
+  const { count: inboundCount } = await supabase
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('conversation_id', conv.id)
+    .eq('direction', 'inbound');
+  const consent = await lookupSmsConsentByPhone(phone);
+  const action = decideComposerSmsAction({
+    consented: consent.consented,
+    optedOut: consent.optedOut,
+    hasInbound: (inboundCount ?? 0) > 0,
+  });
+
+  if (action === 'block') {
+    return NextResponse.json(
+      {
+        error:
+          'This contact opted out of texts (replied STOP). Reach them another way.',
+        optedOut: true,
+        conversationId: conv.id,
+      },
+      { status: 409 },
+    );
+  }
+
+  if (action === 'request_optin') {
+    // First contact with a non-consented number: send the "reply YES" request
+    // instead of the typed message. Re-send once they opt in.
+    const consentReq = await requestSmsConsent({
+      to: phone,
+      clientName: consent.name,
+      clientId: consent.clientId,
+    });
+    if (!consentReq.ok) {
+      return NextResponse.json(
+        { error: consentReq.error, conversationId: conv.id },
+        { status: consentReq.status },
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      optInRequested: true,
+      alreadyRequested: consentReq.alreadyRequested ?? false,
+      to: consentReq.to,
+      conversationId: conv.id,
+    });
+  }
 
   const result = await sendSms({ to: phone, body: text });
 

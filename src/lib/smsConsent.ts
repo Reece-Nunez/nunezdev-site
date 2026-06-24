@@ -86,3 +86,98 @@ export async function requestSmsConsent(
 
   return { ok: true, to: phoneE164 };
 }
+
+/**
+ * Decide what an operator-initiated SMS (inbox composer / reply) should do,
+ * given the recipient's consent state and whether they've ever texted us.
+ *
+ *   - opted out  → 'block'         (replied STOP; don't message them)
+ *   - consented  → 'send'          (they're opted in)
+ *   - has texted us → 'send'       (conversational reply to a contact who
+ *                                   initiated — allowed even without a formal
+ *                                   opt-in; they reached out to us)
+ *   - otherwise  → 'request_optin' (we're initiating to someone who hasn't
+ *                                   consented → send the "reply YES" request)
+ *
+ * Pure + exported so the rule is unit-tested independently of the route.
+ */
+export type ComposerSmsAction = 'block' | 'send' | 'request_optin';
+
+export function decideComposerSmsAction(state: {
+  consented: boolean;
+  optedOut: boolean;
+  hasInbound: boolean;
+}): ComposerSmsAction {
+  if (state.optedOut) return 'block';
+  if (state.consented) return 'send';
+  if (state.hasInbound) return 'send';
+  return 'request_optin';
+}
+
+export interface SmsConsentLookup {
+  clientId: string | null;
+  name: string | null;
+  consented: boolean;
+  optedOut: boolean;
+  found: boolean;
+}
+
+interface ConsentRow {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  sms_consent: boolean | null;
+  sms_opted_out_at: string | null;
+}
+
+/**
+ * Find a contact's SMS consent state by phone, matching on the normalized
+ * (E.164) form so a client stored as "(503) 710-7584" matches a "+15037107584"
+ * lookup. Clients win over leads. The owner's contact list is small, so loading
+ * it and matching in memory is cheaper and more reliable than format-guessing
+ * a SQL `IN (...)`.
+ */
+export async function lookupSmsConsentByPhone(phone: string): Promise<SmsConsentLookup> {
+  const none: SmsConsentLookup = {
+    clientId: null,
+    name: null,
+    consented: false,
+    optedOut: false,
+    found: false,
+  };
+  const target = normalizePhoneE164(phone);
+  if (!target) return none;
+
+  const supabase = supabaseAdmin();
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, name, phone, sms_consent, sms_opted_out_at');
+  for (const c of (clients ?? []) as unknown as ConsentRow[]) {
+    if (c.phone && normalizePhoneE164(c.phone) === target) {
+      return {
+        clientId: c.id,
+        name: c.name,
+        consented: !!c.sms_consent,
+        optedOut: !!c.sms_opted_out_at,
+        found: true,
+      };
+    }
+  }
+
+  const { data: leads } = await supabase
+    .from('leads')
+    .select('id, name, phone, sms_consent, sms_opted_out_at');
+  for (const l of (leads ?? []) as unknown as ConsentRow[]) {
+    if (l.phone && normalizePhoneE164(l.phone) === target) {
+      return {
+        clientId: null,
+        name: l.name,
+        consented: !!l.sms_consent,
+        optedOut: !!l.sms_opted_out_at,
+        found: true,
+      };
+    }
+  }
+
+  return none;
+}
