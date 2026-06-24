@@ -29,6 +29,40 @@ function extractLinks(html: string, baseUrl: string): string[] {
   return Array.from(links);
 }
 
+/**
+ * Browser-like User-Agent for the link probe. Some hosts (and CDNs/WAFs)
+ * answer a generic bot UA with 403/429 while serving real browsers a 200,
+ * so presenting as a browser cuts down on false "blocked" results.
+ */
+const LINK_CHECK_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+export type LinkVerdict = 'ok' | 'broken' | 'unverified';
+
+/**
+ * Classify a link probe result. `status` is the HTTP status code, or 0 for a
+ * network error / timeout.
+ *
+ * Only hard-dead responses count as broken: 404, 410, and 5xx. Everything
+ * else that isn't a clean success — 401/403/429 (auth / anti-bot / rate
+ * limit), 405 (HEAD not allowed), a resolved 3xx, or a network error/timeout
+ * — is "unverified": we couldn't confirm the link is dead, so we don't alarm
+ * the client over it. Social platforms (Instagram, Facebook) routinely answer
+ * bots with 403/429/301-to-login while serving 200 to real browsers; counting
+ * those as broken produced false positives on client reports.
+ */
+export function classifyLink(status: number): LinkVerdict {
+  if (status === 404 || status === 410 || (status >= 500 && status <= 599)) {
+    return 'broken';
+  }
+  if (status >= 200 && status < 400) {
+    return 'ok';
+  }
+  // 0 (network error/timeout), 401/403/405/429, and any other non-dead code.
+  return 'unverified';
+}
+
 export async function checkSEO(websiteUrl: string): Promise<AutomationSectionResult> {
   // Items: [Search Console, Sitemap, Broken links, Meta titles/desc, OG tags]
   const items = [false, false, false, false, false];
@@ -108,37 +142,36 @@ export async function checkSEO(websiteUrl: string): Promise<AutomationSectionRes
   // Check 3: Broken links (limited to 20 links, 5s timeout each)
   if (html) {
     const links = extractLinks(html, websiteUrl).slice(0, 20);
-    let brokenCount = 0;
-    const brokenUrls: string[] = [];
 
-    const results = await Promise.allSettled(
-      links.map(async (link) => {
+    const verdicts = await Promise.all(
+      links.map(async (link): Promise<LinkVerdict> => {
         try {
           const res = await fetch(link, {
             method: 'HEAD',
             signal: AbortSignal.timeout(5000),
             redirect: 'follow',
+            headers: { 'User-Agent': LINK_CHECK_UA },
           });
-          if (!res.ok && res.status !== 405) {
-            return { broken: true, url: link, status: res.status };
-          }
-          return { broken: false, url: link };
+          return classifyLink(res.status);
         } catch {
-          return { broken: true, url: link, status: 0 };
+          // Network error / timeout — unconfirmed, not necessarily dead.
+          return classifyLink(0);
         }
       })
     );
 
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value.broken) {
-        brokenCount++;
-        brokenUrls.push(r.value.url);
-      }
-    }
+    const brokenCount = verdicts.filter((v) => v === 'broken').length;
+    const unverifiedCount = verdicts.filter((v) => v === 'unverified').length;
 
     if (brokenCount === 0) {
       items[2] = true;
-      notes.push(`Checked ${links.length} links, no broken links found`);
+      // Unverified links (bot-blocked socials, slow hosts) are surfaced for
+      // transparency but never flip the section to "attention".
+      const suffix =
+        unverifiedCount > 0
+          ? ` (${unverifiedCount} could not be verified — likely bot-blocked or slow, not counted as broken)`
+          : '';
+      notes.push(`Checked ${links.length} links, no broken links found${suffix}`);
     } else {
       notes.push(`Found ${brokenCount} broken link${brokenCount > 1 ? 's' : ''} out of ${links.length} checked`);
       if (status === 'healthy') status = 'attention';
