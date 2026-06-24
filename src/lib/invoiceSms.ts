@@ -154,6 +154,25 @@ export async function sendInvoiceSmsWithGuards(
   // -------- Send + log ---------------------------------------------------
   const result = await sendSms({ to: phoneE164, body: message });
   if (!result.ok) {
+    // Record the failure too. Previously only successes were logged, so a
+    // send that failed at Twilio (e.g. A2P 10DLC filtering, bad number,
+    // balance) left NO trace — making "I texted it but they never got it"
+    // impossible to diagnose after the fact. Best-effort insert.
+    await supabase
+      .from('client_activity_log')
+      .insert({
+        invoice_id: input.invoiceId,
+        client_id: input.clientId,
+        activity_type: 'invoice_sms_failed',
+        activity_data: {
+          invoice_number: input.invoiceNumber,
+          to: phoneE164,
+          error: result.error ?? 'unknown',
+        },
+      })
+      .then(({ error: logErr }) => {
+        if (logErr) console.warn('[invoice-sms] failure log failed', logErr);
+      });
     return { ok: false, status: 500, error: result.error || 'Failed to send SMS' };
   }
 
