@@ -1,19 +1,19 @@
-import type { SectionStatus } from '@/lib/pdf-templates/client-report';
+import { blankItems, markItem, type SectionStatus } from './sections';
 import type { AutomationSectionResult } from './types';
 
 export async function checkSecurity(websiteUrl: string): Promise<AutomationSectionResult> {
-  // Items: [npm audit, updated deps, framework security, spam protection, exposed env vars]
-  const items = [false, false, false, false, false];
+  const items = blankItems('security');
   const notes: string[] = [];
+  const recommendations: string[] = [];
   let status: SectionStatus = 'healthy';
 
+  // HTTP security headers
   try {
     const res = await fetch(websiteUrl, {
       signal: AbortSignal.timeout(10000),
       headers: { 'User-Agent': 'NunezDev-ReportBot/1.0' },
     });
 
-    // Check security headers
     const headers = res.headers;
     const securityHeaders: Record<string, boolean> = {
       'x-frame-options': headers.has('x-frame-options'),
@@ -25,18 +25,26 @@ export async function checkSecurity(websiteUrl: string): Promise<AutomationSecti
     const present = Object.entries(securityHeaders).filter(([, v]) => v).map(([k]) => k);
     const missing = Object.entries(securityHeaders).filter(([, v]) => !v).map(([k]) => k);
 
-    if (missing.length > 0) {
-      notes.push(`Missing security headers: ${missing.join(', ')}`);
-      if (missing.length >= 3) status = 'attention';
-    }
-    if (present.length > 0) {
-      notes.push(`Security headers present: ${present.join(', ')}`);
+    if (missing.length === 0) {
+      markItem(items, 'headers', 'pass', `all 4 present`);
+      notes.push('All checked security headers present');
+    } else {
+      // Missing a couple of headers is common and low-risk; missing most of them
+      // is worth flagging.
+      const outcome = missing.length >= 3 ? 'fail' : 'pass';
+      markItem(items, 'headers', outcome, `${present.length}/4 present`);
+      notes.push(`Security headers present: ${present.join(', ') || 'none'}. Missing: ${missing.join(', ')}`);
+      if (missing.length >= 3) {
+        recommendations.push(`Add missing security headers (${missing.join(', ')}) to harden the site.`);
+        status = 'attention';
+      }
     }
   } catch (e: any) {
+    // Could not fetch — leave 'headers' pending rather than claim a pass.
     notes.push(`Could not check security headers: ${e.message}`);
   }
 
-  // Check for exposed .env file
+  // Publicly exposed .env file
   try {
     const envRes = await fetch(`${websiteUrl.replace(/\/$/, '')}/.env`, {
       signal: AbortSignal.timeout(5000),
@@ -45,17 +53,19 @@ export async function checkSecurity(websiteUrl: string): Promise<AutomationSecti
     if (envRes.ok) {
       const text = await envRes.text();
       if (text.includes('=') && text.length < 50000) {
+        markItem(items, 'envExposed', 'fail', '.env is publicly readable');
         notes.push('WARNING: .env file appears to be publicly accessible!');
+        recommendations.push('URGENT: .env file is publicly accessible — block access to dotfiles at the host/CDN immediately.');
         status = 'issue';
       } else {
-        items[4] = true;
+        markItem(items, 'envExposed', 'pass', 'not exposed');
       }
     } else {
-      items[4] = true; // .env not exposed (404 or similar)
+      markItem(items, 'envExposed', 'pass', `not exposed (HTTP ${envRes.status})`);
     }
   } catch {
-    items[4] = true; // Error means it's not accessible
+    markItem(items, 'envExposed', 'pass', 'not exposed');
   }
 
-  return { items, status, notes: notes.join('. ') };
+  return { items, status, notes: notes.join('. '), recommendations };
 }

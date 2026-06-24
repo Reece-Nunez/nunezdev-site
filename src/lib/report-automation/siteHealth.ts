@@ -1,5 +1,5 @@
 import * as tls from 'tls';
-import type { SectionStatus } from '@/lib/pdf-templates/client-report';
+import { blankItems, markItem, type SectionStatus } from './sections';
 import type { AutomationSectionResult } from './types';
 
 function checkSSL(hostname: string): Promise<{ valid: boolean; daysUntilExpiry: number; error?: string }> {
@@ -26,56 +26,64 @@ function checkSSL(hostname: string): Promise<{ valid: boolean; daysUntilExpiry: 
 }
 
 export async function checkSiteHealth(websiteUrl: string): Promise<AutomationSectionResult> {
-  // Items: [site live, pages load, mobile test, desktop test, SSL valid]
-  const items = [false, false, false, false, false];
+  const items = blankItems('siteHealth');
   const notes: string[] = [];
+  const recommendations: string[] = [];
   let status: SectionStatus = 'healthy';
 
-  // Check 1: Site is live + Check 3: Mobile viewport
+  // Live + responsive viewport (a meta tag, not a real device test — labelled honestly)
   try {
     const res = await fetch(websiteUrl, {
       signal: AbortSignal.timeout(10000),
       headers: { 'User-Agent': 'NunezDev-ReportBot/1.0' },
     });
     if (res.ok) {
-      items[0] = true;
+      markItem(items, 'live', 'pass', `HTTP ${res.status}`);
       const html = await res.text();
 
-      // Check for mobile viewport meta tag
       if (/name=["']viewport["']/i.test(html)) {
-        items[2] = true;
+        markItem(items, 'viewport', 'pass', 'viewport meta tag present');
       } else {
+        markItem(items, 'viewport', 'fail', 'no viewport meta tag');
         notes.push('Missing viewport meta tag for mobile responsiveness');
+        recommendations.push('Add a responsive viewport meta tag so the site scales correctly on phones.');
         status = 'attention';
       }
     } else {
+      markItem(items, 'live', 'fail', `HTTP ${res.status}`);
       notes.push(`Site returned HTTP ${res.status}`);
+      recommendations.push(`Homepage returned HTTP ${res.status} — investigate why the site is not serving a successful response.`);
       status = 'issue';
     }
   } catch (e: any) {
+    markItem(items, 'live', 'fail', e.message);
     notes.push(`Site unreachable: ${e.message}`);
+    recommendations.push('Homepage was unreachable during the check — confirm the site and DNS are up.');
     status = 'issue';
   }
 
-  // Check 5: SSL certificate
+  // SSL certificate
   try {
     const hostname = new URL(websiteUrl).hostname;
     const sslResult = await checkSSL(hostname);
     if (sslResult.valid) {
-      items[4] = true;
+      markItem(items, 'ssl', 'pass', `expires in ${sslResult.daysUntilExpiry} days`);
       if (sslResult.daysUntilExpiry < 30) {
         notes.push(`SSL certificate expires in ${sslResult.daysUntilExpiry} days`);
+        recommendations.push(`SSL certificate expires in ${sslResult.daysUntilExpiry} days — ensure auto-renewal is configured.`);
         if (status === 'healthy') status = 'attention';
       } else {
         notes.push(`SSL valid, expires in ${sslResult.daysUntilExpiry} days`);
       }
     } else {
+      markItem(items, 'ssl', 'fail', sslResult.error || 'invalid certificate');
       notes.push(`SSL issue: ${sslResult.error}`);
+      recommendations.push('SSL certificate is invalid or expired — renew it to keep the site trusted and secure.');
       status = 'issue';
     }
   } catch {
-    // Leave SSL unchecked on error
+    // Leave SSL pending on unexpected error rather than claiming a result.
   }
 
-  return { items, status, notes: notes.join('. ') };
+  return { items, status, notes: notes.join('. '), recommendations };
 }

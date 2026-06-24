@@ -1,9 +1,18 @@
-import type { SectionStatus } from '@/lib/pdf-templates/client-report';
+import type { CheckItem, SectionStatus } from './sections';
+
+export type { CheckItem, SectionStatus, ItemKind, ItemOutcome } from './sections';
 
 export interface AutomationSectionResult {
-  items: boolean[];
+  items: CheckItem[];
   status: SectionStatus;
   notes: string;
+  /**
+   * Human-readable, already-actionable recommendations this section wants to
+   * surface (e.g. "Mobile performance score is 54 — optimize images"). The
+   * orchestrator collects these instead of re-deriving them by string-matching
+   * the free-text `notes`, which used to fire false positives.
+   */
+  recommendations?: string[];
 }
 
 export interface PerformanceAutomationResult extends AutomationSectionResult {

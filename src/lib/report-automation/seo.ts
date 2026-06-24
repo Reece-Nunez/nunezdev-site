@@ -1,4 +1,4 @@
-import type { SectionStatus } from '@/lib/pdf-templates/client-report';
+import { blankItems, markItem, type SectionStatus } from './sections';
 import type { AutomationSectionResult } from './types';
 
 function extractMeta(html: string, name: string): string | null {
@@ -64,9 +64,9 @@ export function classifyLink(status: number): LinkVerdict {
 }
 
 export async function checkSEO(websiteUrl: string): Promise<AutomationSectionResult> {
-  // Items: [Search Console, Sitemap, Broken links, Meta titles/desc, OG tags]
-  const items = [false, false, false, false, false];
+  const items = blankItems('seo');
   const notes: string[] = [];
+  const recommendations: string[] = [];
   let status: SectionStatus = 'healthy';
 
   let html = '';
@@ -82,65 +82,69 @@ export async function checkSEO(websiteUrl: string): Promise<AutomationSectionRes
     }
   } catch { /* handled below */ }
 
-  // Check 2: Sitemap
+  // Sitemap
   try {
     const sitemapUrl = `${websiteUrl.replace(/\/$/, '')}/sitemap.xml`;
-    const res = await fetch(sitemapUrl, {
-      signal: AbortSignal.timeout(5000),
-    });
+    const res = await fetch(sitemapUrl, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const text = await res.text();
       if (text.includes('<urlset') || text.includes('<sitemapindex')) {
-        items[1] = true;
         const urlCount = (text.match(/<url>/g) || []).length;
+        markItem(items, 'sitemap', 'pass', `${urlCount} URLs`);
         notes.push(`Sitemap found with ${urlCount} URLs`);
       } else {
+        markItem(items, 'sitemap', 'fail', 'not valid XML');
         notes.push('Sitemap exists but may not be valid XML');
+        recommendations.push('Sitemap.xml exists but is not valid — regenerate it so search engines can parse it.');
         if (status === 'healthy') status = 'attention';
       }
     } else {
+      markItem(items, 'sitemap', 'fail', `not found (HTTP ${res.status})`);
       notes.push('No sitemap.xml found');
+      recommendations.push('Create and submit a sitemap.xml to improve search-engine indexing.');
       if (status === 'healthy') status = 'attention';
     }
   } catch {
+    // Could not reach sitemap endpoint — leave pending.
     notes.push('Could not check sitemap');
   }
 
-  // Check 4: Meta titles and descriptions
+  // Meta titles/descriptions + Open Graph
   if (html) {
     const title = extractTitle(html);
     const description = extractMeta(html, 'description');
 
     if (title && description) {
-      items[3] = true;
+      markItem(items, 'meta', 'pass', `“${title.substring(0, 50)}${title.length > 50 ? '…' : ''}”`);
       notes.push(`Title: "${title.substring(0, 60)}${title.length > 60 ? '...' : ''}"`);
     } else {
       const missing: string[] = [];
       if (!title) missing.push('title');
       if (!description) missing.push('meta description');
+      markItem(items, 'meta', 'fail', `missing ${missing.join(' & ')}`);
       notes.push(`Missing: ${missing.join(', ')}`);
+      recommendations.push(`Add a ${missing.join(' and ')} to the homepage for better search results.`);
       if (status === 'healthy') status = 'attention';
     }
 
-    // Check 5: Open Graph tags
     const ogTitle = extractMeta(html, 'og:title');
     const ogDesc = extractMeta(html, 'og:description');
     const ogImage = extractMeta(html, 'og:image');
 
     if (ogTitle && ogDesc && ogImage) {
-      items[4] = true;
+      markItem(items, 'og', 'pass', 'title, description, image');
     } else {
       const missingOg: string[] = [];
       if (!ogTitle) missingOg.push('og:title');
       if (!ogDesc) missingOg.push('og:description');
       if (!ogImage) missingOg.push('og:image');
+      markItem(items, 'og', 'fail', `missing ${missingOg.join(', ')}`);
       notes.push(`Missing OG tags: ${missingOg.join(', ')}`);
+      recommendations.push('Add Open Graph tags so shared links show a proper title, description, and image.');
       if (status === 'healthy') status = 'attention';
     }
-  }
 
-  // Check 3: Broken links (limited to 20 links, 5s timeout each)
-  if (html) {
+    // Broken links (limited to 20 links, 5s timeout each)
     const links = extractLinks(html, websiteUrl).slice(0, 20);
 
     const verdicts = await Promise.all(
@@ -154,7 +158,6 @@ export async function checkSEO(websiteUrl: string): Promise<AutomationSectionRes
           });
           return classifyLink(res.status);
         } catch {
-          // Network error / timeout — unconfirmed, not necessarily dead.
           return classifyLink(0);
         }
       })
@@ -164,19 +167,23 @@ export async function checkSEO(websiteUrl: string): Promise<AutomationSectionRes
     const unverifiedCount = verdicts.filter((v) => v === 'unverified').length;
 
     if (brokenCount === 0) {
-      items[2] = true;
-      // Unverified links (bot-blocked socials, slow hosts) are surfaced for
-      // transparency but never flip the section to "attention".
       const suffix =
         unverifiedCount > 0
-          ? ` (${unverifiedCount} could not be verified — likely bot-blocked or slow, not counted as broken)`
+          ? ` (${unverifiedCount} could not be verified — likely bot-blocked or slow)`
           : '';
+      markItem(items, 'brokenLinks', 'pass', `${links.length} checked, none broken`);
       notes.push(`Checked ${links.length} links, no broken links found${suffix}`);
     } else {
+      markItem(items, 'brokenLinks', 'fail', `${brokenCount} broken of ${links.length}`);
       notes.push(`Found ${brokenCount} broken link${brokenCount > 1 ? 's' : ''} out of ${links.length} checked`);
+      recommendations.push(`Fix ${brokenCount} broken link${brokenCount > 1 ? 's' : ''} found on the homepage.`);
       if (status === 'healthy') status = 'attention';
     }
+  } else {
+    // No homepage HTML — meta/og/brokenLinks stay pending; flag uncertainty.
+    notes.push('Could not load homepage HTML for meta/link analysis');
+    if (status === 'healthy') status = 'unknown';
   }
 
-  return { items, status, notes: notes.join('. ') };
+  return { items, status, notes: notes.join('. '), recommendations };
 }

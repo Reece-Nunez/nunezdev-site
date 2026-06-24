@@ -1,15 +1,27 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import type { SectionStatus, ItemKind, ItemOutcome } from '@/lib/report-automation/sections';
 
 // NunezDev Brand Colors
 const BRAND_YELLOW = '#ffc312';
 const BRAND_DARK = '#1a1a2e';
 
-export type SectionStatus = 'healthy' | 'attention' | 'issue';
+export type { SectionStatus, ItemKind, ItemOutcome };
 
 export interface ChecklistItem {
   label: string;
+  /** Kept for backward-compat with reports saved before outcome/detail existed. */
   checked: boolean;
+  kind?: ItemKind;
+  outcome?: ItemOutcome;
+  /** Measured value or reason, e.g. "HTTP 200", "expires in 320 days". */
+  detail?: string;
+}
+
+/** Old reports only stored {label, checked}; derive a 3-state outcome from it. */
+function itemOutcome(item: ChecklistItem): ItemOutcome {
+  if (item.outcome) return item.outcome;
+  return item.checked ? 'pass' : 'pending';
 }
 
 export interface ReportSection {
@@ -77,28 +89,68 @@ function formatMonth(iso: string): string {
 function statusIcon(status: SectionStatus): string {
   if (status === 'healthy') return '<span style="color: #10b981; font-size: 16px;">&#10003;</span>';
   if (status === 'attention') return '<span style="color: #f59e0b; font-size: 16px;">&#9888;</span>';
+  if (status === 'unknown') return '<span style="color: #9ca3af; font-size: 16px;">&#9711;</span>';
   return '<span style="color: #ef4444; font-size: 16px;">&#10007;</span>';
 }
 
 function statusColor(status: SectionStatus): string {
   if (status === 'healthy') return '#10b981';
   if (status === 'attention') return '#f59e0b';
+  if (status === 'unknown') return '#9ca3af';
   return '#ef4444';
 }
 
 function statusLabel(status: SectionStatus): string {
   if (status === 'healthy') return 'Healthy';
   if (status === 'attention') return 'Attention';
+  if (status === 'unknown') return 'Not Verified';
   return 'Issue';
 }
 
-function renderChecklist(items: ChecklistItem[]): string {
-  return items.map(item => `
-    <div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px;">
-      <span style="color: ${item.checked ? '#10b981' : '#d1d5db'}; font-size: 14px;">${item.checked ? '&#9745;' : '&#9744;'}</span>
-      <span style="color: ${item.checked ? '#374151' : '#9ca3af'};">${item.label}</span>
+const OUTCOME_STYLE: Record<ItemOutcome, { glyph: string; mark: string; label: string }> = {
+  // mark = colour of the box/glyph; label = colour of the item text
+  pass: { glyph: '&#9745;', mark: '#10b981', label: '#374151' },   // ☑ green
+  fail: { glyph: '&#9746;', mark: '#ef4444', label: '#374151' },   // ☒ red
+  pending: { glyph: '&#9744;', mark: '#d1d5db', label: '#9ca3af' }, // ☐ grey
+};
+
+function renderItem(item: ChecklistItem): string {
+  const outcome = itemOutcome(item);
+  const s = OUTCOME_STYLE[outcome];
+  const detail = item.detail
+    ? `<span style="color: #9ca3af; font-size: 11px;"> — ${item.detail}</span>`
+    : '';
+  return `
+    <div style="display: flex; align-items: baseline; gap: 8px; padding: 4px 0; font-size: 12px;">
+      <span style="color: ${s.mark}; font-size: 14px; flex-shrink: 0;">${s.glyph}</span>
+      <span style="color: ${s.label};">${item.label}${detail}</span>
     </div>
-  `).join('');
+  `;
+}
+
+/**
+ * Render a section's checklist, separating what the system actually measured
+ * (`auto`) from what a person verified (`manual`). Items saved before this
+ * split (no `kind`) are treated as automated so old reports still render.
+ */
+function renderChecklist(items: ChecklistItem[]): string {
+  const auto = items.filter(i => i.kind !== 'manual');
+  const manual = items.filter(i => i.kind === 'manual');
+
+  const grid = (list: ChecklistItem[]) => `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px;">
+      ${list.map(renderItem).join('')}
+    </div>
+  `;
+
+  const groupLabel = (text: string) => `
+    <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #9ca3af; margin: 8px 0 2px;">${text}</div>
+  `;
+
+  let out = '';
+  if (auto.length) out += groupLabel('Automated checks') + grid(auto);
+  if (manual.length) out += groupLabel('Manual verification') + grid(manual);
+  return out;
 }
 
 function renderSection(title: string, section: ReportSection, extraContent?: string): string {
@@ -110,9 +162,7 @@ function renderSection(title: string, section: ReportSection, extraContent?: str
           ${statusIcon(section.status)} ${statusLabel(section.status)}
         </span>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px;">
-        ${renderChecklist(section.items)}
-      </div>
+      ${renderChecklist(section.items)}
       ${extraContent || ''}
       ${section.notes ? `
         <div style="margin-top: 12px; padding: 10px 14px; background: #f9fafb; border-left: 3px solid ${BRAND_YELLOW}; border-radius: 0 6px 6px 0; font-size: 12px; color: #4b5563;">

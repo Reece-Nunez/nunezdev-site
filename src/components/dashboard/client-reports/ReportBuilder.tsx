@@ -2,8 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import useSWR from 'swr';
-import type { SectionStatus, ChecklistItem, ReportSection, PerformanceMetrics, AnalyticsMetrics } from '@/lib/pdf-templates/client-report';
+import type { ChecklistItem, ReportSection, PerformanceMetrics, AnalyticsMetrics } from '@/lib/pdf-templates/client-report';
 import type { AutomationResult } from '@/lib/report-automation/types';
+import { SECTION_DEFS, blankItems, type CheckItem, type SectionKey, type SectionStatus } from '@/lib/report-automation/sections';
 import { useConfirm } from '@/components/ui/Toast';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -15,100 +16,11 @@ interface Client {
   company: string | null;
 }
 
-interface SectionConfig {
-  key: string;
-  title: string;
-  items: string[];
-}
-
-const SECTIONS: SectionConfig[] = [
-  {
-    key: 'siteHealth',
-    title: 'Site Health & Uptime',
-    items: [
-      'Verified site is live and loading correctly',
-      'Checked all pages load without errors',
-      'Tested on mobile (iPhone + Android)',
-      'Tested on desktop (Chrome, Firefox, Edge)',
-      'Checked SSL certificate is valid',
-    ],
-  },
-  {
-    key: 'performance',
-    title: 'Performance',
-    items: [
-      'Ran Google Lighthouse audit (Desktop + Mobile)',
-      'Checked Core Web Vitals (LCP, CLS, INP)',
-      'Verified images are optimized',
-      'Checked page load times across key pages',
-    ],
-  },
-  {
-    key: 'security',
-    title: 'Security & Dependencies',
-    items: [
-      'Ran npm audit for vulnerabilities',
-      'Updated dependencies if patches available',
-      'Reviewed framework for security advisories',
-      'Verified spam protection is functioning on forms',
-      'Checked for exposed environment variables',
-    ],
-  },
-  {
-    key: 'seo',
-    title: 'SEO & Discoverability',
-    items: [
-      'Checked Google Search Console for indexing issues',
-      'Verified sitemap is accessible and up to date',
-      'Checked for broken links (internal + external)',
-      'Reviewed meta titles and descriptions',
-      'Verified Open Graph tags for social sharing',
-    ],
-  },
-  {
-    key: 'forms',
-    title: 'Forms & Lead Generation',
-    items: [
-      'Submitted test inquiry through contact form',
-      'Verified email delivery',
-      'Checked spam filter is working correctly',
-      'Reviewed form submission errors in logs',
-    ],
-  },
-  {
-    key: 'analytics',
-    title: 'Analytics Overview',
-    items: [
-      'Reviewed traffic for the month',
-      'Identified top-performing pages',
-      'Noted any traffic trends or anomalies',
-    ],
-  },
-  {
-    key: 'content',
-    title: 'Content & Gallery',
-    items: [
-      'Verified all portfolio/gallery images are loading',
-      'Checked for outdated content or placeholder text',
-      'Asked client if new projects need to be added',
-    ],
-  },
-  {
-    key: 'hosting',
-    title: 'Hosting & Infrastructure',
-    items: [
-      'Verified builds are deploying successfully',
-      'Checked build logs for warnings or errors',
-      'Reviewed hosting configuration for issues',
-      'Confirmed domain and DNS settings are correct',
-    ],
-  },
-];
-
 const STATUS_OPTIONS: { value: SectionStatus; label: string; color: string }[] = [
   { value: 'healthy', label: 'Healthy', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
   { value: 'attention', label: 'Attention', color: 'text-amber-600 bg-amber-50 border-amber-200' },
   { value: 'issue', label: 'Issue', color: 'text-red-600 bg-red-50 border-red-200' },
+  { value: 'unknown', label: 'Not Verified', color: 'text-gray-600 bg-gray-100 border-gray-200' },
 ];
 
 function getMonthOptions() {
@@ -136,11 +48,12 @@ export default function ReportBuilder({ onReportSaved }: Props) {
   const [reportMonth, setReportMonth] = useState(getMonthOptions()[1]?.value || getMonthOptions()[0]?.value); // default to last month
 
   // Section states
-  const [sectionStates, setSectionStates] = useState<Record<string, { items: boolean[]; notes: string; status: SectionStatus }>>(() => {
-    const initial: Record<string, { items: boolean[]; notes: string; status: SectionStatus }> = {};
-    SECTIONS.forEach(s => {
+  type SectionState = { items: CheckItem[]; notes: string; status: SectionStatus };
+  const [sectionStates, setSectionStates] = useState<Record<string, SectionState>>(() => {
+    const initial: Record<string, SectionState> = {};
+    SECTION_DEFS.forEach(s => {
       initial[s.key] = {
-        items: s.items.map(() => false),
+        items: blankItems(s.key),
         notes: '',
         status: 'healthy',
       };
@@ -181,8 +94,15 @@ export default function ReportBuilder({ onReportSaved }: Props) {
   const toggleItem = useCallback((sectionKey: string, idx: number) => {
     setSectionStates(prev => {
       const section = prev[sectionKey];
-      const newItems = [...section.items];
-      newItems[idx] = !newItems[idx];
+      const newItems = section.items.map((item, i) => {
+        if (i !== idx) return item;
+        // Checked ⇒ pass. Unchecking an auto item means it didn't pass (fail);
+        // unchecking a manual item means it's simply not done yet (pending).
+        const nextOutcome = item.outcome === 'pass'
+          ? (item.kind === 'manual' ? 'pending' : 'fail')
+          : 'pass';
+        return { ...item, outcome: nextOutcome as CheckItem['outcome'] };
+      });
       return { ...prev, [sectionKey]: { ...section, items: newItems } };
     });
   }, []);
@@ -267,12 +187,15 @@ export default function ReportBuilder({ onReportSaved }: Props) {
 
   const buildReportData = () => {
     const sections: Record<string, ReportSection & { metrics?: PerformanceMetrics | AnalyticsMetrics }> = {};
-    SECTIONS.forEach(config => {
+    SECTION_DEFS.forEach(config => {
       const state = sectionStates[config.key];
       const base: ReportSection = {
-        items: config.items.map((label, i): ChecklistItem => ({
-          label,
-          checked: state.items[i],
+        items: state.items.map((item): ChecklistItem => ({
+          label: item.label,
+          checked: item.outcome === 'pass',
+          kind: item.kind,
+          outcome: item.outcome,
+          detail: item.detail,
         })),
         notes: state.notes,
         status: state.status,
@@ -505,9 +428,9 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       </div>
 
       {/* Checklist Sections */}
-      {SECTIONS.map(config => {
+      {SECTION_DEFS.map(config => {
         const state = sectionStates[config.key];
-        const checkedCount = state.items.filter(Boolean).length;
+        const checkedCount = state.items.filter(i => i.outcome === 'pass').length;
 
         return (
           <div key={config.key} className="rounded-2xl border bg-white p-4 sm:p-6">
@@ -515,7 +438,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-gray-900">{config.title}</h2>
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  {checkedCount}/{config.items.length}
+                  {checkedCount}/{state.items.length}
                 </span>
               </div>
               <div className="flex gap-1">
@@ -534,22 +457,34 @@ export default function ReportBuilder({ onReportSaved }: Props) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-              {config.items.map((label, idx) => (
-                <label
-                  key={idx}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={state.items[idx]}
-                    onChange={() => toggleItem(config.key, idx)}
-                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                  />
-                  <span className={`text-sm ${state.items[idx] ? 'text-gray-900' : 'text-gray-600'}`}>
-                    {label}
-                  </span>
-                </label>
-              ))}
+              {state.items.map((item, idx) => {
+                const isPass = item.outcome === 'pass';
+                const isFail = item.outcome === 'fail';
+                return (
+                  <label
+                    key={item.key}
+                    className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isPass}
+                      onChange={() => toggleItem(config.key, idx)}
+                      className="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                    />
+                    <span className="text-sm">
+                      <span className={isPass ? 'text-gray-900' : isFail ? 'text-red-600' : 'text-gray-600'}>
+                        {item.label}
+                      </span>
+                      {item.kind === 'manual' && (
+                        <span className="ml-1.5 text-[10px] uppercase tracking-wide text-gray-400">manual</span>
+                      )}
+                      {item.detail && (
+                        <span className={`block text-xs ${isFail ? 'text-red-500' : 'text-gray-400'}`}>{item.detail}</span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
 
             {/* Performance Metrics */}

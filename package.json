@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit -p .",
-    "test": "node --import tsx --test src/lib/leadgen-paths.test.ts src/app/dashboard/leadgen/utils.test.ts src/lib/inboxThreading.test.ts src/lib/thumbtackWebhook.test.ts src/lib/sms.test.ts src/lib/smsWelcome.test.ts src/lib/smsConsent.test.ts src/lib/inboxContacts.test.ts src/lib/resendWebhook.test.ts src/lib/googleAdsTransform.test.ts src/lib/recurringInvoices.test.ts src/lib/report-automation/seo.test.ts",
+    "test": "node --import tsx --test src/lib/leadgen-paths.test.ts src/app/dashboard/leadgen/utils.test.ts src/lib/inboxThreading.test.ts src/lib/thumbtackWebhook.test.ts src/lib/sms.test.ts src/lib/smsWelcome.test.ts src/lib/smsConsent.test.ts src/lib/inboxContacts.test.ts src/lib/resendWebhook.test.ts src/lib/googleAdsTransform.test.ts src/lib/recurringInvoices.test.ts src/lib/report-automation/seo.test.ts src/lib/report-automation/analytics.test.ts src/lib/report-automation/index.test.ts src/lib/integrations/discover.test.ts",
     "build:css": "tailwindcss -i ./src/app/globals.css -o ./src/app/output.css --watch",
     "prepare": "husky"
   },

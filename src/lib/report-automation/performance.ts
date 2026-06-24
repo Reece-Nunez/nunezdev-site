@@ -1,4 +1,4 @@
-import type { SectionStatus } from '@/lib/pdf-templates/client-report';
+import { blankItems, markItem, type SectionStatus } from './sections';
 import type { PerformanceAutomationResult } from './types';
 
 const PSI_API = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
@@ -32,15 +32,12 @@ async function runPSI(url: string, strategy: 'desktop' | 'mobile'): Promise<PSIM
     const perfScore = lighthouse.categories?.performance?.score;
     const audits = lighthouse.audits || {};
 
-    // LCP in seconds
     const lcpMs = audits['largest-contentful-paint']?.numericValue;
     const lcp = lcpMs != null ? `${(lcpMs / 1000).toFixed(1)}s` : '-';
 
-    // CLS (unitless)
     const clsVal = audits['cumulative-layout-shift']?.numericValue;
     const cls = clsVal != null ? clsVal.toFixed(3) : '-';
 
-    // INP in ms
     const inpMs = audits['interaction-to-next-paint']?.numericValue
       ?? audits['experimental-interaction-to-next-paint']?.numericValue;
     const inp = inpMs != null ? `${Math.round(inpMs)}ms` : '-';
@@ -57,9 +54,9 @@ async function runPSI(url: string, strategy: 'desktop' | 'mobile'): Promise<PSIM
 }
 
 export async function checkPerformance(websiteUrl: string): Promise<PerformanceAutomationResult> {
-  // Items: [Lighthouse audit, Core Web Vitals, Images optimized, Page load times]
-  const items = [false, false, false, false];
+  const items = blankItems('performance');
   const notes: string[] = [];
+  const recommendations: string[] = [];
   let status: SectionStatus = 'healthy';
 
   const [desktop, mobile] = await Promise.allSettled([
@@ -76,13 +73,21 @@ export async function checkPerformance(websiteUrl: string): Promise<PerformanceA
   };
 
   if (desktopMetrics || mobileMetrics) {
-    items[0] = true; // Lighthouse audit ran
+    markItem(
+      items,
+      'lighthouse',
+      'pass',
+      `Desktop ${desktopMetrics?.score || 'N/A'} / Mobile ${mobileMetrics?.score || 'N/A'}`,
+    );
 
-    // Check if we got CWV values
     const hasCWV = (desktopMetrics?.lcp !== '-' || mobileMetrics?.lcp !== '-');
-    if (hasCWV) items[1] = true;
+    if (hasCWV) {
+      const cwvDetail = `LCP ${mobileMetrics?.lcp ?? desktopMetrics?.lcp}`;
+      markItem(items, 'cwv', 'pass', cwvDetail);
+    } else {
+      markItem(items, 'cwv', 'fail', 'no field/lab CWV data');
+    }
 
-    // Determine status from scores
     const dScore = desktopMetrics ? parseInt(desktopMetrics.score) : NaN;
     const mScore = mobileMetrics ? parseInt(mobileMetrics.score) : NaN;
     const minScore = Math.min(
@@ -100,9 +105,18 @@ export async function checkPerformance(websiteUrl: string): Promise<PerformanceA
       status = 'issue';
       notes.push(`Low performance scores: Desktop ${desktopMetrics?.score || 'N/A'}, Mobile ${mobileMetrics?.score || 'N/A'}`);
     }
+
+    if (!isNaN(mScore) && mScore < 70) {
+      recommendations.push(`Mobile performance score is ${mScore} — optimize images, reduce JavaScript, and improve server response times.`);
+    }
+    if (!isNaN(dScore) && dScore < 70) {
+      recommendations.push(`Desktop performance score is ${dScore} — run a full Lighthouse audit to find specific wins.`);
+    }
   } else {
+    // PSI unavailable — auto items stay pending; surface the uncertainty.
     notes.push('PageSpeed Insights API unavailable — run Lighthouse manually');
+    status = 'unknown';
   }
 
-  return { items, status, notes: notes.join('. '), perfMetrics };
+  return { items, status, notes: notes.join('. '), recommendations, perfMetrics };
 }

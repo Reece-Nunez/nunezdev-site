@@ -1,4 +1,4 @@
-import type { SectionStatus } from '@/lib/pdf-templates/client-report';
+import { blankItems, markItem, type SectionStatus } from './sections';
 import type { AutomationSectionResult } from './types';
 
 function extractImageSrcs(html: string, baseUrl: string): string[] {
@@ -22,9 +22,9 @@ function extractImageSrcs(html: string, baseUrl: string): string[] {
 }
 
 export async function checkContent(websiteUrl: string): Promise<AutomationSectionResult> {
-  // Items: [gallery images loading, outdated content, ask client about projects]
-  const items = [false, false, false];
+  const items = blankItems('content');
   const notes: string[] = [];
+  const recommendations: string[] = [];
   let status: SectionStatus = 'healthy';
 
   try {
@@ -35,12 +35,13 @@ export async function checkContent(websiteUrl: string): Promise<AutomationSectio
 
     if (!res.ok) {
       notes.push('Could not fetch homepage to check content');
-      return { items, status: 'attention', notes: notes.join('. ') };
+      // Leave auto items pending — we genuinely could not verify them.
+      return { items, status: 'unknown', notes: notes.join('. '), recommendations };
     }
 
     const html = await res.text();
 
-    // Check 1: Image loading
+    // Images loading
     const imageSrcs = extractImageSrcs(html, websiteUrl).slice(0, 30);
     if (imageSrcs.length > 0) {
       let brokenImages = 0;
@@ -61,18 +62,20 @@ export async function checkContent(websiteUrl: string): Promise<AutomationSectio
       }
 
       if (brokenImages === 0) {
-        items[0] = true;
+        markItem(items, 'images', 'pass', `${imageSrcs.length} loading`);
         notes.push(`All ${imageSrcs.length} images loading correctly`);
       } else {
+        markItem(items, 'images', 'fail', `${brokenImages} of ${imageSrcs.length} broken`);
         notes.push(`${brokenImages} broken image${brokenImages > 1 ? 's' : ''} found out of ${imageSrcs.length}`);
+        recommendations.push('Fix broken images on the homepage so all visual content loads.');
         status = 'attention';
       }
     } else {
+      markItem(items, 'images', 'pass', 'no homepage images');
       notes.push('No images found on homepage');
-      items[0] = true;
     }
 
-    // Check 2: Placeholder / outdated content
+    // Placeholder / outdated content
     const placeholderPatterns = [
       /lorem ipsum/i,
       /placeholder text/i,
@@ -90,15 +93,18 @@ export async function checkContent(websiteUrl: string): Promise<AutomationSectio
     }
 
     if (foundPlaceholders.length === 0) {
-      items[1] = true;
+      markItem(items, 'placeholder', 'pass', 'none detected');
       notes.push('No placeholder or outdated content detected');
     } else {
+      markItem(items, 'placeholder', 'fail', foundPlaceholders.join(', '));
       notes.push(`Potential placeholder content found: ${foundPlaceholders.join(', ')}`);
+      recommendations.push('Review and replace placeholder/“coming soon” content found on the site.');
       if (status === 'healthy') status = 'attention';
     }
   } catch (e: any) {
     notes.push(`Could not check content: ${e.message}`);
+    return { items, status: 'unknown', notes: notes.join('. '), recommendations };
   }
 
-  return { items, status, notes: notes.join('. ') };
+  return { items, status, notes: notes.join('. '), recommendations };
 }
