@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
-import { sendSms } from '@/lib/sms';
+import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 
 export const runtime = 'nodejs';
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
   // failure must not 500 the toggle.
   if (consent && updated?.phone) {
     try {
-      const smsResult = await sendSms({
+      const smsResult = await sendTrackedSms({
         to: updated.phone,
         body: buildWelcomeSms({ name: updated.name }),
       });

@@ -736,7 +736,8 @@ export type InAppNotificationType =
   | 'payment_overdue'
   | 'contract_signed'
   | 'proposal_accepted'
-  | 'file_uploaded';
+  | 'file_uploaded'
+  | 'sms_received';
 
 interface CreateNotificationData {
   orgId: string;
@@ -769,6 +770,73 @@ export async function createNotification(data: CreateNotificationData) {
     }
   } catch (error) {
     console.error('[notifications] Error creating in-app notification:', error);
+  }
+}
+
+/**
+ * Notify the owner that a client texted the business Twilio number: an email
+ * (so it reaches the phone/inbox) plus an in-app bell notification (so the
+ * dashboard reflects it). Best-effort — never throws into the webhook.
+ *
+ * orgId is used for the in-app notification; when the texter isn't a known
+ * client we fall back to the primary org so the bell still lights up.
+ */
+export async function notifyInboundSms(params: {
+  fromE164: string;
+  body: string;
+  contactName?: string | null;
+  orgId?: string | null;
+}): Promise<void> {
+  const who = params.contactName?.trim() || params.fromE164;
+  const preview = params.body.trim() || '(no text)';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
+  const inboxLink = `${baseUrl}/dashboard/inbox`;
+
+  // Email — reaches the owner wherever they are.
+  if (resend) {
+    try {
+      await resend.emails.send({
+        from: 'NunezDev Inbox <notifications@nunezdev.com>',
+        to: ['reece@nunezdev.com'],
+        replyTo: 'reece@nunezdev.com',
+        subject: `New text from ${who}`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 560px; margin: 0 auto;">
+            <h2 style="color: #5b7c99; margin-bottom: 4px;">New text message</h2>
+            <p style="color: #64748b; margin-top: 0; font-size: 14px;">From <strong>${escapeHtml(who)}</strong> (${escapeHtml(params.fromE164)})</p>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0; white-space: pre-wrap; color: #1e293b;">${escapeHtml(preview)}</div>
+            <a href="${inboxLink}" style="display: inline-block; background: #5b7c99; color: #ffffff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Open Inbox &rarr;</a>
+          </div>
+        `,
+      });
+    } catch (error) {
+      console.error('[notifications] inbound SMS email failed:', error);
+    }
+  }
+
+  // In-app bell notification. Resolve an org so the bell badge updates.
+  try {
+    let orgId = params.orgId ?? null;
+    if (!orgId) {
+      const supabase = supabaseAdmin();
+      const { data } = await supabase
+        .from('organizations')
+        .select('id')
+        .order('created_at', { ascending: true })
+        .limit(1);
+      orgId = data?.[0]?.id ?? null;
+    }
+    if (orgId) {
+      await createNotification({
+        orgId,
+        type: 'sms_received',
+        title: `New text from ${who}`,
+        body: preview.length > 140 ? `${preview.slice(0, 140)}…` : preview,
+        link: '/dashboard/inbox',
+      });
+    }
+  } catch (error) {
+    console.error('[notifications] inbound SMS in-app notification failed:', error);
   }
 }
 

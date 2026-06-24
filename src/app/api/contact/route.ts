@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadNurtureService } from '@/lib/leadNurturing';
 import { verifyTurnstile } from '@/lib/turnstile';
-import { sendSms } from '@/lib/sms';
+import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { Resend } from 'resend';
 
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
     // actually worked. Best-effort: never block or fail the submission.
     if (smsConsent && phone) {
       try {
-        const smsResult = await sendSms({
+        const smsResult = await sendTrackedSms({
           to: phone,
           body: buildWelcomeSms({ name }),
         });

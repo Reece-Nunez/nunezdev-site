@@ -20,8 +20,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
-import { findOrCreateConversation, recordMessage } from '@/lib/inbox';
+import { findOrCreateConversation, recordMessage, resolveContact } from '@/lib/inbox';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
+import { notifyInboundSms } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 
@@ -59,6 +60,22 @@ export async function POST(request: NextRequest) {
     return twimlResponse(emptyTwiml());
   }
 
+  const toNumber = verdict.params.To || '';
+
+  // Thread EVERY inbound message into the inbox and ping the owner, BEFORE
+  // keyword routing — so the dashboard is a complete two-way history and you
+  // get an email + bell notification whenever a client texts, keyword or not.
+  // recordMessage is idempotent on the Twilio MessageSid, so a webhook retry
+  // won't double-thread.
+  await recordInboundSms(from, toNumber, body, verdict.params.MessageSid);
+  const contact = await resolveContact({ phone: from });
+  await notifyInboundSms({
+    fromE164: from,
+    body,
+    contactName: contact.contactName,
+    orgId: contact.orgId,
+  });
+
   if (STOP_KEYWORDS.has(firstWord)) {
     await markOptedOut(from, body);
     // Twilio sends the platform-mandated confirmation message
@@ -70,24 +87,23 @@ export async function POST(request: NextRequest) {
   if (START_KEYWORDS.has(firstWord)) {
     // A YES/START reply is an affirmative opt-in. Grant fresh consent (not
     // just reverse a prior STOP) so the double-opt-in loop completes, then
-    // reply with the friendly "you're in" confirmation.
+    // reply with the friendly "you're in" confirmation — mirrored into the
+    // inbox thread so both sides of the conversation are visible.
     const matchedName = await grantConsent(from);
-    return twimlResponse(messageTwiml(buildWelcomeSms({ name: matchedName })));
+    const reply = buildWelcomeSms({ name: matchedName });
+    await recordOutboundReply(from, toNumber, reply);
+    return twimlResponse(messageTwiml(reply));
   }
 
   if (HELP_KEYWORDS.has(firstWord)) {
-    return twimlResponse(
-      messageTwiml(
-        "NunezDev here! 👋 We text invoices, quotes & project updates. Reply STOP to opt out anytime. Questions? Email reece@nunezdev.com. Msg & data rates may apply.",
-      ),
-    );
+    const reply =
+      "NunezDev here! 👋 We text invoices, quotes & project updates. Reply STOP to opt out anytime. Questions? Email reece@nunezdev.com. Msg & data rates may apply.";
+    await recordOutboundReply(from, toNumber, reply);
+    return twimlResponse(messageTwiml(reply));
   }
 
-  // Any other inbound message — a real conversational reply. Thread it into
-  // the inbox AND keep the client_activity_log audit entry. Don't auto-reply.
-  // (STOP/START/HELP are deliberately NOT threaded — they're handled by the
-  // opt-out flow above, not operator conversation.)
-  await recordInboundSms(from, verdict.params.To || '', body, verdict.params.MessageSid);
+  // Any other inbound message — a real conversational reply. Already threaded
+  // + notified above; keep the client_activity_log audit entry too.
   await logInbound(from, body);
   return twimlResponse(emptyTwiml());
 }
@@ -122,6 +138,37 @@ async function recordInboundSms(
     });
   } catch (err) {
     console.error('[sms-incoming] inbox record failed:', err);
+  }
+}
+
+/**
+ * Record an auto-reply (YES confirmation, HELP info) as an outbound message on
+ * the same SMS thread, so the inbox shows both sides of the exchange. The TwiML
+ * reply is what the client actually receives — this mirror is best-effort and
+ * must never break the webhook response.
+ *
+ * clientNumber = the client's phone (inbound `From`); the thread is keyed on it.
+ * ourNumber    = our Twilio number (inbound `To`); the reply's from-address.
+ */
+async function recordOutboundReply(
+  clientNumber: string,
+  ourNumber: string,
+  body: string,
+): Promise<void> {
+  try {
+    const conv = await findOrCreateConversation({ channel: 'sms', contactPhone: clientNumber });
+    await recordMessage({
+      conversationId: conv.id,
+      direction: 'outbound',
+      channel: 'sms',
+      fromAddress: ourNumber || 'system',
+      toAddress: clientNumber,
+      bodyText: body,
+      provider: 'twilio',
+      status: 'sent',
+    });
+  } catch (err) {
+    console.error('[sms-incoming] outbound reply record failed:', err);
   }
 }
 

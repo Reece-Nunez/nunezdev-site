@@ -22,6 +22,7 @@ const TYPE_ICONS: Record<string, string> = {
   contract_signed: '✍️',
   proposal_accepted: '✅',
   file_uploaded: '📁',
+  sms_received: '💬',
 };
 
 function timeAgo(dateStr: string): string {

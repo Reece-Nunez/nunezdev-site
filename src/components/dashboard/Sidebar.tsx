@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -65,7 +65,35 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [adminToolsOpen, setAdminToolsOpen] = useState(false);
+  const [inboxUnread, setInboxUnread] = useState(0);
   const isActive = (href: string) => pathname === href;
+
+  // Poll the unread-inbox count for the nav badge. Mirrors NotificationBell:
+  // 60s interval + refetch on tab focus. `pathname` is a dep so navigating
+  // (e.g. opening the inbox, which marks threads read) re-fetches promptly.
+  const fetchInboxUnread = useCallback(async () => {
+    try {
+      const res = await fetch('/api/inbox/unread-count');
+      if (!res.ok) return;
+      const data = await res.json();
+      setInboxUnread(data.count || 0);
+    } catch {
+      // Silently fail — a badge is not worth surfacing an error for.
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInboxUnread();
+    const interval = setInterval(fetchInboxUnread, 60000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchInboxUnread();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [fetchInboxUnread, pathname]);
 
   return (
     <aside className={`${isCollapsed ? 'w-16' : 'w-56'} shrink-0 border-r bg-white h-screen sticky top-0 transition-all duration-300 flex flex-col`}>
@@ -109,6 +137,8 @@ export default function Sidebar() {
       <nav className="p-2 space-y-1">
         {items.map((it) => {
           const Icon = it.icon;
+          const badge = it.href === '/dashboard/inbox' ? inboxUnread : 0;
+          const badgeText = badge > 9 ? '9+' : String(badge);
           return (
             <Link
               key={it.href}
@@ -123,9 +153,21 @@ export default function Sidebar() {
               }
               title={isCollapsed ? it.label : undefined}
             >
-              <Icon className={`w-5 h-5 shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
-              {!isCollapsed && (
-                <span className="truncate">{it.label}</span>
+              <span className={`relative shrink-0 ${isCollapsed ? '' : 'mr-3'}`}>
+                <Icon className="w-5 h-5" />
+                {/* Collapsed: compact count bubble on the icon corner. */}
+                {isCollapsed && badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold text-white bg-red-500 rounded-full">
+                    {badgeText}
+                  </span>
+                )}
+              </span>
+              {!isCollapsed && <span className="truncate">{it.label}</span>}
+              {/* Expanded: count pill pushed to the right edge. */}
+              {!isCollapsed && badge > 0 && (
+                <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                  {badgeText}
+                </span>
               )}
             </Link>
           );

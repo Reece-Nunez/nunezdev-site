@@ -19,7 +19,8 @@
  * "skipped: no_consent" the same as "sent ok" for control flow.
  */
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { sendSms, normalizePhoneE164 } from '@/lib/sms';
+import { normalizePhoneE164 } from '@/lib/sms';
+import { sendTrackedSms } from '@/lib/smsOutbox';
 
 /** Reminder cadence types we support. Currently only due-today. */
 export type InvoiceReminderType = 'payment_due' | 'payment_overdue';
@@ -178,8 +179,8 @@ export async function sendInvoiceReminderSms(
     return { ok: false, reason: 'already_sent_today' };
   }
 
-  // 5. Send.
-  const result = await sendSms({ to: e164, body: input.body });
+  // 5. Send. sendTrackedSms also mirrors the reminder into the inbox thread.
+  const result = await sendTrackedSms({ to: e164, body: input.body });
   if (!result.ok) {
     await logSkip(input, 'twilio_error', result.error);
     return { ok: false, reason: 'twilio_error', detail: result.error };

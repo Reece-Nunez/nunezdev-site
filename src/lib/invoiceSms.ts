@@ -11,7 +11,8 @@
  * SMS is triggered from.
  */
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { sendSms, normalizePhoneE164 } from '@/lib/sms';
+import { normalizePhoneE164 } from '@/lib/sms';
+import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildInvoiceShareMessage } from '@/lib/invoiceShareMessage';
 
 export type SendInvoiceSmsResult =
@@ -152,7 +153,8 @@ export async function sendInvoiceSmsWithGuards(
   }
 
   // -------- Send + log ---------------------------------------------------
-  const result = await sendSms({ to: phoneE164, body: message });
+  // sendTrackedSms also mirrors the invoice text into the inbox thread.
+  const result = await sendTrackedSms({ to: phoneE164, body: message });
   if (!result.ok) {
     // Record the failure too. Previously only successes were logged, so a
     // send that failed at Twilio (e.g. A2P 10DLC filtering, bad number,

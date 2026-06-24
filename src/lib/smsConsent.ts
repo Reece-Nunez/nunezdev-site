@@ -10,7 +10,8 @@
  * anything else later) gets the same copy, idempotency, and audit logging.
  */
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { sendSms, normalizePhoneE164 } from '@/lib/sms';
+import { normalizePhoneE164 } from '@/lib/sms';
+import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildOptInRequestSms } from '@/lib/smsWelcome';
 
 export type RequestSmsConsentResult =
@@ -61,7 +62,7 @@ export async function requestSmsConsent(
     }
   }
 
-  const result = await sendSms({
+  const result = await sendTrackedSms({
     to: phoneE164,
     body: buildOptInRequestSms({ name: input.clientName }),
   });
