@@ -17,6 +17,7 @@ import { trackEvent } from "@/lib/gtag";
 
 const PROJECT_TYPES = [
   "Marketing website",
+  "Online store / e-commerce",
   "Custom web app / dashboard",
   "Client portal or CRM",
   "Automation / API integration",
@@ -24,13 +25,34 @@ const PROJECT_TYPES = [
   "Not sure yet",
 ];
 
+// The label that triggers the e-commerce discovery questions. Kept as a
+// constant so the conditional render and the option list can't drift apart.
+const ECOMMERCE_TYPE = "Online store / e-commerce";
+
+// Budget brackets reflect what NunezDev actually charges. The old
+// "Under $1,000" option was removed — real builds start at ~$1,200 — so the
+// form stops anchoring leads on a price point we don't offer.
 const BUDGET_RANGES = [
-  "Under $1,000",
-  "$1,000 – $3,000",
-  "$3,000 – $7,000",
-  "$7,000 – $15,000",
-  "$15,000+",
+  "$1,200 – $2,500",
+  "$2,500 – $5,000",
+  "$5,000 – $10,000",
+  "$10,000+",
   "Need help scoping",
+];
+
+// E-commerce discovery options. Catalog size and platform are the two
+// biggest drivers of an online-store quote, so we ask them up front.
+const ECOMMERCE_PRODUCT_COUNTS = [
+  "Under 25 products",
+  "25 – 100 products",
+  "100+ products",
+  "Not sure yet",
+];
+
+const ECOMMERCE_PLATFORMS = [
+  "Shopify",
+  "Custom build",
+  "Not sure — recommend one",
 ];
 
 const TIMELINES = [
@@ -52,6 +74,10 @@ export default function LeadForm({
   const router = useRouter();
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Controlled so the e-commerce discovery questions can appear inline when
+  // the visitor picks an online store.
+  const [projectType, setProjectType] = useState("");
+  const isEcommerce = projectType === ECOMMERCE_TYPE;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -62,15 +88,35 @@ export default function LeadForm({
     setErrorMessage(null);
 
     const formData = new FormData(form);
+    const selectedProjectType = String(formData.get("projectType") || "");
+
+    // For online-store leads, the catalog-size and platform answers are the
+    // most useful qualifiers. There's no structured column for them, so we
+    // append them to the message — this guarantees they surface on the lead
+    // record and the notification email without a schema change.
+    const baseMessage = String(formData.get("message") || "").trim();
+    let message = baseMessage;
+    if (selectedProjectType === ECOMMERCE_TYPE) {
+      const products = String(formData.get("ecommerceProducts") || "");
+      const platform = String(formData.get("ecommercePlatform") || "");
+      const ecommerceLines = [
+        products ? `Catalog size: ${products}` : null,
+        platform ? `Platform preference: ${platform}` : null,
+      ].filter(Boolean);
+      if (ecommerceLines.length) {
+        message = `${baseMessage}\n\n— E-commerce details —\n${ecommerceLines.join("\n")}`;
+      }
+    }
+
     const payload = {
       name: String(formData.get("name") || "").trim(),
       email: String(formData.get("email") || "").trim(),
       phone: String(formData.get("phone") || "").trim(),
       company: String(formData.get("company") || "").trim(),
-      projectType: String(formData.get("projectType") || ""),
+      projectType: selectedProjectType,
       budget: String(formData.get("budget") || ""),
       timeline: String(formData.get("timeline") || ""),
-      message: String(formData.get("message") || "").trim(),
+      message,
       // CTIA / TCPA require marketing consent to be collected separately
       // from transactional / service consent. Two independent flags.
       smsConsent: formData.get("smsConsent") === "on",
@@ -80,7 +126,9 @@ export default function LeadForm({
       subject: `Lead from ${source}`,
     };
 
-    if (!payload.name || !payload.email || !payload.message) {
+    // Validate the user's own text, not the e-commerce-enriched message, so
+    // the appended details can never satisfy the "message required" check.
+    if (!payload.name || !payload.email || !baseMessage) {
       setStatus("error");
       setErrorMessage("Name, email, and a short message are required.");
       return;
@@ -220,7 +268,13 @@ export default function LeadForm({
           <label htmlFor="lead-project-type" className={labelCls}>
             What do you need?
           </label>
-          <select id="lead-project-type" name="projectType" className={inputCls} defaultValue="">
+          <select
+            id="lead-project-type"
+            name="projectType"
+            className={inputCls}
+            value={projectType}
+            onChange={(e) => setProjectType(e.target.value)}
+          >
             <option value="" disabled>
               Select a project type
             </option>
@@ -247,6 +301,72 @@ export default function LeadForm({
           </select>
         </div>
       </div>
+
+      {/* E-commerce discovery — only shown for online-store leads. Catalog
+          size and platform drive the quote, and the helper note resets the
+          "$1,000 store" expectation that real e-commerce builds never meet. */}
+      <AnimatePresence initial={false}>
+        {isEcommerce && (
+          <motion.div
+            key="ecommerce-fields"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-yellow/5 border border-yellow/20 rounded-lg p-4 space-y-4">
+              <p className="text-yellow/90 text-xs leading-relaxed">
+                <strong className="text-yellow">A couple quick store questions.</strong>{" "}
+                Most e-commerce builds start around <strong>$4,000</strong> and
+                scale with catalog size and features.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="lead-ecom-products" className={labelCls}>
+                    How many products?
+                  </label>
+                  <select
+                    id="lead-ecom-products"
+                    name="ecommerceProducts"
+                    className={inputCls}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Select a range
+                    </option>
+                    {ECOMMERCE_PRODUCT_COUNTS.map((c) => (
+                      <option key={c} value={c} className="bg-gray-900">
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="lead-ecom-platform" className={labelCls}>
+                    Platform preference
+                  </label>
+                  <select
+                    id="lead-ecom-platform"
+                    name="ecommercePlatform"
+                    className={inputCls}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Select a platform
+                    </option>
+                    {ECOMMERCE_PLATFORMS.map((p) => (
+                      <option key={p} value={p} className="bg-gray-900">
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div>
         <label htmlFor="lead-timeline" className={labelCls}>

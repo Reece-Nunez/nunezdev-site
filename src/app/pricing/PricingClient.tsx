@@ -6,10 +6,9 @@ import { Check, Sparkles, Zap, Building2, ShoppingCart, Rocket, Wrench, Server, 
 
 const categories = [
   { id: "websites", label: "Websites", icon: Sparkles },
-  { id: "addons", label: "Add-ons", icon: Wrench },
-  { id: "hosting", label: "Hosting", icon: Server },
-  { id: "maintenance", label: "Maintenance", icon: Shield },
   { id: "applications", label: "Web Apps", icon: Code2 },
+  { id: "care", label: "Care Plans", icon: Shield },
+  { id: "addons", label: "Add-ons", icon: Wrench },
 ];
 
 const pricingData = {
@@ -19,7 +18,7 @@ const pricingData = {
     plans: [
       {
         tier: "Starter",
-        price: "$1,500",
+        price: "$1,200",
         priceMax: "$2,500",
         icon: Zap,
         description: "Perfect for personal brands and small projects",
@@ -56,8 +55,8 @@ const pricingData = {
       },
       {
         tier: "E-Commerce",
-        price: "$3,500",
-        priceMax: "$5,500",
+        price: "$4,000",
+        priceMax: "+",
         icon: ShoppingCart,
         description: "Full-featured online stores that sell",
         features: [
@@ -146,90 +145,37 @@ const pricingData = {
       },
     ],
   },
-  hosting: {
-    title: "Hosting Plans",
-    subtitle: "Fast, secure hosting on Vercel and AWS, built for the sites I ship",
+  care: {
+    title: "Care Plans",
+    subtitle: "Hosting and upkeep bundled into one monthly plan — so your site stays fast, secure, and current after launch",
     plans: [
       {
-        tier: "Starter",
-        price: "$29",
+        tier: "Essential",
+        price: "$49",
         priceMax: "/mo",
         icon: Server,
-        description: "For simple static or branding sites",
+        description: "Keep your site online, secure, and backed up",
         features: [
           "CDN-backed hosting (Vercel / AWS)",
           "SSL certificate and HTTPS",
           "Uptime monitoring and alerts",
           "Monthly automated backups",
+          "Security patches and dependency updates",
           "99.9% uptime SLA",
         ],
         accent: "from-slate-500 to-zinc-500",
         popular: false,
       },
       {
-        tier: "Business",
-        price: "$49",
-        priceMax: "/mo",
-        icon: Building2,
-        description: "For dynamic sites with CMS, forms, or analytics",
-        features: [
-          "Everything in Starter",
-          "Daily automated backups",
-          "DNS management and configuration",
-          "Domain renewal reminders",
-          "CDN cache optimization",
-          "Google Analytics integration",
-        ],
-        accent: "from-yellow-400 to-orange-500",
-        popular: true,
-      },
-      {
-        tier: "Enterprise",
-        price: "$79",
-        priceMax: "/mo",
-        icon: Rocket,
-        description: "For full-stack apps with databases and integrations",
-        features: [
-          "Everything in Business",
-          "Database hosting (Supabase / AWS RDS)",
-          "Auto-scaling infrastructure",
-          "Staging environment setup",
-          "Priority incident response (4-hr SLA)",
-        ],
-        accent: "from-violet-500 to-purple-500",
-        popular: false,
-      },
-    ],
-  },
-  maintenance: {
-    title: "Maintenance Plans",
-    subtitle: "Ongoing developer time to keep your site evolving after launch",
-    plans: [
-      {
-        tier: "Essential",
-        price: "$99",
-        priceMax: "/mo",
-        icon: Wrench,
-        description: "Essential upkeep for sites that need to stay current",
-        features: [
-          "1 hour/month developer time",
-          "Security patches and dependency updates",
-          "Monthly site health report",
-          "Uptime monitoring review",
-        ],
-        accent: "from-slate-500 to-zinc-500",
-        popular: false,
-      },
-      {
         tier: "Growth",
-        price: "$249",
+        price: "$199",
         priceMax: "/mo",
         icon: Zap,
-        description: "Active support for sites that need regular improvements",
+        description: "Active support for sites that keep evolving",
         features: [
           "Everything in Essential",
-          "4 hours/month developer or content time",
-          "Weekly backup verification",
+          "3 hours/month developer or content time",
+          "Daily automated backups",
           "Performance and Core Web Vitals monitoring",
           "SEO health monitoring",
           "CMS and plugin updates",
@@ -245,9 +191,9 @@ const pricingData = {
         description: "Full-service partnership for growth-focused businesses",
         features: [
           "Everything in Growth",
-          "10 hours/month developer or content time",
-          "A/B testing setup and analysis",
-          "Conversion tracking and optimization",
+          "8 hours/month developer or content time",
+          "Staging environment for safe changes",
+          "A/B testing and conversion tracking",
           "Dedicated Slack or email support channel",
           "Monthly strategy call",
         ],
