@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { runAllAutomation } from "@/lib/report-automation";
+import { discoverIntegrations } from "@/lib/integrations/discover";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
   // Fetch client with automation fields
   const { data: client, error } = await supabase
     .from("clients")
-    .select("id, name, website_url, ga4_property_id, vercel_project_id")
+    .select("id, name, website_url, ga4_property_id, vercel_project_id, gsc_site_url")
     .eq("id", client_id)
     .eq("org_id", orgId)
     .single();
@@ -56,17 +57,50 @@ export async function POST(req: Request) {
     );
   }
 
+  // Auto-resolve any missing integration IDs from the website URL so the user
+  // never has to look them up by hand. Discovered values are persisted back to
+  // the client so later runs are instant, and never overwrite a value already
+  // set manually.
+  let ga4PropertyId = client.ga4_property_id;
+  let vercelProjectId = client.vercel_project_id;
+  let gscSiteUrl = client.gsc_site_url;
+  if (!ga4PropertyId || !vercelProjectId || !gscSiteUrl) {
+    try {
+      const discovered = await discoverIntegrations(client.website_url);
+      const persist: Record<string, string> = {};
+      if (!ga4PropertyId && discovered.ga4.value) {
+        ga4PropertyId = discovered.ga4.value;
+        persist.ga4_property_id = discovered.ga4.value;
+      }
+      if (!vercelProjectId && discovered.vercel.value) {
+        vercelProjectId = discovered.vercel.value;
+        persist.vercel_project_id = discovered.vercel.value;
+      }
+      if (!gscSiteUrl && discovered.gsc.value) {
+        gscSiteUrl = discovered.gsc.value;
+        persist.gsc_site_url = discovered.gsc.value;
+      }
+      if (Object.keys(persist).length > 0) {
+        await supabase.from("clients").update(persist).eq("id", client_id).eq("org_id", orgId);
+      }
+    } catch (e: any) {
+      console.error("[automate] Integration auto-detect failed:", e.message);
+    }
+  }
+
   console.log("[automate] Client automation fields:", {
     website_url: client.website_url,
-    ga4_property_id: client.ga4_property_id,
-    vercel_project_id: client.vercel_project_id,
+    ga4_property_id: ga4PropertyId,
+    vercel_project_id: vercelProjectId,
+    gsc_site_url: gscSiteUrl,
   });
 
   try {
     const result = await runAllAutomation({
       websiteUrl: client.website_url,
-      ga4PropertyId: client.ga4_property_id,
-      vercelProjectId: client.vercel_project_id,
+      ga4PropertyId,
+      vercelProjectId,
+      gscSiteUrl,
       reportMonth: report_month,
       orgId,
       supabase,

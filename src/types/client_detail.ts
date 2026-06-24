@@ -11,6 +11,7 @@ export type Client = {
   website_url: string | null;
   ga4_property_id: string | null;
   vercel_project_id: string | null;
+  gsc_site_url: string | null;
 };
 
 export type ClientOverview = Client & {

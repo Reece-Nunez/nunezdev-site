@@ -11,6 +11,7 @@ export type ClientOverview = {
   website_url: string | null;
   ga4_property_id: string | null;
   vercel_project_id: string | null;
+  gsc_site_url: string | null;
   total_invoiced_cents: number;
   total_paid_cents: number;
   balance_due_cents: number;

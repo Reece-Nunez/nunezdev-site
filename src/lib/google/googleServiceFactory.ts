@@ -8,6 +8,8 @@ type GoogleApiClient = {
   sheets: any;
   tasks: any;
   analyticsdata: any;
+  analyticsadmin: any;
+  searchconsole: any;
   gmail: any;
 };
 
@@ -51,6 +53,22 @@ const SERVICE_CONFIGS: Record<ServiceName, ServiceConfig> = {
     version: 'v1beta',
     scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
   },
+  // GA4 Admin API — used to auto-discover a client's property by matching its
+  // data-stream URL to the client's website. analytics.readonly already covers
+  // the Admin API's read methods, so no new delegation scope is required.
+  analyticsadmin: {
+    version: 'v1beta',
+    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
+  },
+  // Search Console — uses DIRECT service-account access (not domain-wide
+  // delegation): the SA must be added as a user on each client's Search Console
+  // property. webmasters.readonly therefore rides on the non-delegated JWT and
+  // is deliberately kept OUT of getAllScopes() (the delegated Workspace JWT) so
+  // existing Calendar/Drive/Gmail auth is unaffected.
+  searchconsole: {
+    version: 'v1',
+    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
+  },
   // gmail.readonly powers leadgen reply detection (cron/leadgen-reply-sync).
   // Read-only — we only search for prospect replies, never send from here.
   // NOTE: this scope must be authorized for the service account in the Google
@@ -62,13 +80,34 @@ const SERVICE_CONFIGS: Record<ServiceName, ServiceConfig> = {
   },
 };
 
-// Get all scopes needed for domain-wide delegation
+// Services authenticated via DIRECT service-account access (their own JWT),
+// NOT domain-wide delegation. Their scopes must NOT leak into the delegated
+// Workspace JWT — an unauthorized scope there fails authorize() for ALL
+// Workspace APIs.
+const NON_DELEGATED_SERVICES: ReadonlySet<ServiceName> = new Set([
+  'analyticsdata',
+  'analyticsadmin',
+  'searchconsole',
+]);
+
+// Scopes for the delegated (impersonation) Workspace JWT — excludes the
+// direct-access services above.
 export function getAllScopes(): string[] {
   const allScopes = new Set<string>();
-  Object.values(SERVICE_CONFIGS).forEach((config) => {
+  (Object.entries(SERVICE_CONFIGS) as [ServiceName, ServiceConfig][]).forEach(([name, config]) => {
+    if (NON_DELEGATED_SERVICES.has(name)) return;
     config.scopes.forEach((scope) => allScopes.add(scope));
   });
   return Array.from(allScopes);
+}
+
+// Scopes for the non-delegated (direct service-account) JWT.
+function getNonDelegatedScopes(): string[] {
+  const scopes = new Set<string>();
+  NON_DELEGATED_SERVICES.forEach((name) => {
+    SERVICE_CONFIGS[name].scopes.forEach((scope) => scopes.add(scope));
+  });
+  return Array.from(scopes);
 }
 
 class GoogleServiceFactory {
@@ -116,14 +155,15 @@ class GoogleServiceFactory {
       const analyticsAuth = new google.auth.JWT({
         email: credentials.client_email,
         key: credentials.private_key,
-        scopes: SERVICE_CONFIGS.analyticsdata.scopes,
+        // Covers GA4 Data + Admin and Search Console (all direct-access APIs).
+        scopes: getNonDelegatedScopes(),
       });
 
       await analyticsAuth.authorize();
       this.analyticsAuthClient = analyticsAuth;
-      console.log('Google Analytics auth initialized successfully');
+      console.log('Google direct-access (Analytics + Search Console) auth initialized successfully');
     } catch (error: any) {
-      console.error('Failed to initialize Analytics auth:', error.message);
+      console.error('Failed to initialize direct-access auth:', error.message);
     }
 
     // 2. Create Workspace auth client WITH domain-wide delegation (impersonation)
@@ -156,8 +196,9 @@ class GoogleServiceFactory {
         return null;
       }
 
-      // Use the non-delegated auth client for Analytics Data API
-      const authForService = serviceName === 'analyticsdata' ? this.analyticsAuthClient : this.authClient;
+      // Direct-access services (Analytics Data/Admin, Search Console) use the
+      // non-delegated JWT; everything else uses domain-wide delegation.
+      const authForService = NON_DELEGATED_SERVICES.has(serviceName) ? this.analyticsAuthClient : this.authClient;
       if (!authForService) {
         console.error(`No auth client available for ${serviceName}`);
         return null;
@@ -204,6 +245,14 @@ class GoogleServiceFactory {
 
   async getAnalyticsDataClient() {
     return this.getClient('analyticsdata');
+  }
+
+  async getAnalyticsAdminClient() {
+    return this.getClient('analyticsadmin');
+  }
+
+  async getSearchConsoleClient() {
+    return this.getClient('searchconsole');
   }
 
   async getGmailClient() {
