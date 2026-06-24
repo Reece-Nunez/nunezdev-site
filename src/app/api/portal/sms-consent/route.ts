@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { getPortalSessionFromCookie } from '@/lib/portalAuth';
+import { sendSms } from '@/lib/sms';
+import { buildWelcomeSms } from '@/lib/smsWelcome';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -79,10 +81,12 @@ export async function POST(request: NextRequest) {
         sms_opted_out_at: new Date().toISOString(),
       };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('clients')
     .update(update)
-    .eq('id', session.clientId);
+    .eq('id', session.clientId)
+    .select('name, phone')
+    .single();
 
   if (error) {
     console.error('[portal/sms-consent] update failed:', error);
@@ -94,6 +98,23 @@ export async function POST(request: NextRequest) {
     activity_type: consent ? 'sms_opt_in' : 'sms_opt_out',
     activity_data: { source: 'portal_toggle' },
   });
+
+  // Send the one-time opt-in confirmation text when re-opting in (and we have
+  // a number on file). Best-effort — consent is already persisted, so an SMS
+  // failure must not 500 the toggle.
+  if (consent && updated?.phone) {
+    try {
+      const smsResult = await sendSms({
+        to: updated.phone,
+        body: buildWelcomeSms({ name: updated.name }),
+      });
+      if (!smsResult.ok) {
+        console.warn('[portal/sms-consent] welcome SMS not sent:', smsResult.error);
+      }
+    } catch (smsError) {
+      console.warn('[portal/sms-consent] welcome SMS threw:', smsError);
+    }
+  }
 
   return NextResponse.json({ ok: true, consent });
 }

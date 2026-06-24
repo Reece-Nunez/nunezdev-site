@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadNurtureService } from '@/lib/leadNurturing';
 import { verifyTurnstile } from '@/lib/turnstile';
+import { sendSms } from '@/lib/sms';
+import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -192,6 +194,25 @@ export async function POST(request: NextRequest) {
     } catch (emailError: any) {
       console.error('Email error:', emailError);
       // Continue even if emails fail
+    }
+
+    // One-time A2P 10DLC opt-in confirmation. Only fires when the visitor
+    // both supplied a phone AND actively checked the service-SMS box (the
+    // route already 400s on a phone without consent). Carriers expect this
+    // confirmation right after opt-in — and it tells the lead the opt-in
+    // actually worked. Best-effort: never block or fail the submission.
+    if (smsConsent && phone) {
+      try {
+        const smsResult = await sendSms({
+          to: phone,
+          body: buildWelcomeSms({ name }),
+        });
+        if (!smsResult.ok) {
+          console.warn('[contact] welcome SMS not sent:', smsResult.error);
+        }
+      } catch (smsError) {
+        console.warn('[contact] welcome SMS threw:', smsError);
+      }
     }
 
     return NextResponse.json(
