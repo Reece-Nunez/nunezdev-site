@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import type { BusinessSummary } from "@/lib/leadgen-db";
 import BusinessesTable from "./BusinessesTable";
-import { bulkRunStage } from "./actions";
+import { bulkRunStage, bulkJobProgress } from "./actions";
 import {
   filterSortProspects,
   PROSPECT_SORTS,
@@ -41,6 +41,61 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [isPending, startTransition] = useTransition();
+
+  // Live progress of an in-flight bulk run (research/build/outreach over many
+  // leads). Jobs drain one at a time on the pipeline's single worker, so a big
+  // run takes a while — this lets the operator watch it move instead of waiting
+  // blind.
+  const [bulkRun, setBulkRun] = useState<{
+    stage: Stage;
+    total: number;
+    jobIds: string[];
+    done: number;
+    failed: number;
+    startedAt: number;
+  } | null>(null);
+  const pollRef = useRef(0);
+
+  // 1s ticker so the elapsed/ETA readout updates smoothly between polls.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!bulkRun) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [bulkRun]);
+
+  // Poll the batch-progress endpoint until every job is terminal. Keyed on the
+  // jobIds array identity, which only changes when a NEW run starts.
+  useEffect(() => {
+    if (!bulkRun) return;
+    const myPoll = ++pollRef.current;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      if (pollRef.current !== myPoll) return;
+      const p = await bulkJobProgress(bulkRun.jobIds);
+      if (pollRef.current !== myPoll) return;
+      if (p.ok) {
+        const done = p.completed + p.failed;
+        setBulkRun((cur) => (cur ? { ...cur, done, failed: p.failed } : cur));
+        if (done >= bulkRun.total) {
+          toast.success(
+            `${bulkRun.stage} finished — ${p.completed} done` +
+              (p.failed ? `, ${p.failed} failed` : ""),
+          );
+          router.refresh();
+          setBulkRun(null);
+          return;
+        }
+      }
+      timer = setTimeout(tick, 3000);
+    };
+    timer = setTimeout(tick, 1500);
+    return () => {
+      pollRef.current++;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkRun?.jobIds]);
 
   const cities = useMemo(() => {
     const s = new Set<string>();
@@ -72,16 +127,31 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   function dispatchBulk(stage: Stage, ids: number[]) {
     startTransition(async () => {
       const r = await bulkRunStage(stage, ids);
-      if (r.ok) {
-        toast.success(
-          `Enqueued ${stage} for ${r.enqueued} lead${r.enqueued === 1 ? "" : "s"}` +
-            (r.failed ? ` (${r.failed} failed)` : ""),
-        );
-        setSelected(new Set());
-        router.refresh();
-      } else {
+      if (!r.ok) {
         toast.error(r.message);
+        return;
       }
+      setSelected(new Set());
+      if (r.jobIds.length === 0) {
+        toast.error(
+          `Couldn't enqueue any ${stage} jobs` + (r.failed ? ` (${r.failed} failed)` : ""),
+        );
+        return;
+      }
+      toast.success(
+        `Started ${stage} on ${r.enqueued} lead${r.enqueued === 1 ? "" : "s"}` +
+          (r.failed ? ` (${r.failed} failed to enqueue)` : ""),
+      );
+      // Hand off to the progress bar — it polls until every job is terminal,
+      // then refreshes the list.
+      setBulkRun({
+        stage,
+        total: r.jobIds.length,
+        jobIds: r.jobIds,
+        done: 0,
+        failed: 0,
+        startedAt: Date.now(),
+      });
     });
   }
 
@@ -189,6 +259,40 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
           </button>
         )}
       </div>
+
+      {/* ── Live bulk-run progress (sticky while a run is in flight) ── */}
+      {bulkRun && (() => {
+        const pct = bulkRun.total ? Math.round((bulkRun.done / bulkRun.total) * 100) : 0;
+        const elapsedSec = Math.max(0, Math.floor((Date.now() - bulkRun.startedAt) / 1000));
+        const secPerJob = bulkRun.done > 0 ? elapsedSec / bulkRun.done : 0;
+        const etaSec = secPerJob > 0 ? Math.round(secPerJob * (bulkRun.total - bulkRun.done)) : null;
+        const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+        return (
+          <div className="sticky top-2 z-30 rounded-xl border border-blue-300 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-900">
+                Running {bulkRun.stage} · {bulkRun.done}/{bulkRun.total} done
+                {bulkRun.failed > 0 && (
+                  <span className="text-red-600"> · {bulkRun.failed} failed</span>
+                )}
+              </span>
+              <span className="text-xs text-gray-500 tabular-nums">
+                {pct}% · {fmt(elapsedSec)} elapsed
+                {etaSec != null && etaSec > 0 ? ` · ~${fmt(etaSec)} left` : ""}
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full bg-blue-600 transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-gray-400">
+              Jobs run one at a time — you can leave this page; the run keeps going.
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── Bulk action bar (sticky top while leads are selected) ──── */}
       {selected.size > 0 && (

@@ -203,6 +203,25 @@ export async function triggerStageOnApi(
   });
 }
 
+/** Aggregate status counts for a batch of job ids — powers the bulk-run
+ *  progress bar so the dashboard polls one endpoint instead of N. */
+export interface JobProgress {
+  total: number;
+  matched: number;
+  queued: number;
+  running: number;
+  completed: number;
+  failed: number;
+}
+
+export async function getJobsProgressFromApi(ids: string[]): Promise<JobProgress> {
+  return apiFetch<JobProgress>(`/jobs/progress`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+}
+
 /**
  * Options for a prospect run. `zip` is always the search center. With no
  * `query` it's the 20-category sweep (`max` = per-category cap). With a

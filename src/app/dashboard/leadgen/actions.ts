@@ -21,6 +21,7 @@ import { requireProspecting } from "@/lib/authz";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   triggerStageOnApi,
+  getJobsProgressFromApi,
   triggerProspectOnApi,
   getJobFromApi,
   getBusiness,
@@ -524,7 +525,10 @@ const BULK_CONCURRENCY = 20;
 export async function bulkRunStage(
   stage: Stage,
   businessIds: number[],
-): Promise<{ ok: true; enqueued: number; failed: number } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; enqueued: number; failed: number; jobIds: string[] }
+  | { ok: false; message: string }
+> {
   const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!["research", "build", "outreach"].includes(stage)) {
@@ -536,18 +540,45 @@ export async function bulkRunStage(
     return { ok: false, message: `that's too many at once — keep it under ${BULK_MAX}` };
   }
 
-  let enqueued = 0;
   let failed = 0;
+  const jobIds: string[] = [];
   for (let i = 0; i < ids.length; i += BULK_CONCURRENCY) {
     const batch = ids.slice(i, i + BULK_CONCURRENCY);
     const results = await Promise.allSettled(batch.map((id) => triggerStageOnApi(stage, id)));
-    const ok = results.filter((r) => r.status === "fulfilled").length;
-    enqueued += ok;
-    failed += results.length - ok;
+    for (const r of results) {
+      if (r.status === "fulfilled") jobIds.push(r.value.id);
+      else failed += 1;
+    }
   }
 
   revalidatePath("/dashboard/leadgen");
-  return { ok: true, enqueued, failed };
+  // jobIds drive the dashboard's live progress bar (see bulkJobProgress).
+  return { ok: true, enqueued: jobIds.length, failed, jobIds };
+}
+
+/**
+ * Aggregate status of a bulk run's jobs for the progress bar. The dashboard
+ * polls this every few seconds with the jobIds bulkRunStage returned.
+ */
+export async function bulkJobProgress(
+  jobIds: string[],
+): Promise<
+  | { ok: true; total: number; matched: number; queued: number; running: number; completed: number; failed: number }
+  | { ok: false; message: string }
+> {
+  const guard = await requireProspecting();
+  if (!guard.ok) return { ok: false, message: "Unauthorized" };
+  const ids = (jobIds ?? []).filter((id) => typeof id === "string" && id.length > 0);
+  if (ids.length === 0) return { ok: false, message: "no jobs to track" };
+  try {
+    const p = await getJobsProgressFromApi(ids);
+    return { ok: true, ...p };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "progress check failed",
+    };
+  }
 }
 
 
