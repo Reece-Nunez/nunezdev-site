@@ -503,13 +503,23 @@ export async function snoozeFollowUp(
 
 // ── Bulk stage actions (Phase 2 M11) ─────────────────────────────
 
-const BULK_MAX = 100;
+// Upper guard against a truly runaway request (the whole table is only a few
+// hundred leads). Not a UX limit — the operator can select hundreds and we
+// enqueue them all; this just bounds a pathological payload.
+const BULK_MAX = 1000;
+// How many enqueue calls we fire at once. The pipeline job worker drains the
+// queue sequentially regardless, so this only bounds *concurrent HTTP* to the
+// API — keeping us from opening hundreds of sockets at once when the operator
+// bulk-researches the whole list. The batches run back-to-back, so a 400-lead
+// selection still enqueues in ~20 sequential rounds of 20.
+const BULK_CONCURRENCY = 20;
 
 /**
  * Enqueue a pipeline stage (research/build/outreach) for many businesses at
- * once. Each is an independent job — we fan out with allSettled and report how
- * many enqueued vs. failed. Capped at BULK_MAX so a runaway selection can't
- * flood the queue.
+ * once. Each is an independent job. We process the selection in bounded-
+ * concurrency batches (BULK_CONCURRENCY at a time) so the operator can bulk-run
+ * hundreds of leads without flooding the API with simultaneous requests, then
+ * report how many enqueued vs. failed across all batches.
  */
 export async function bulkRunStage(
   stage: Stage,
@@ -523,12 +533,18 @@ export async function bulkRunStage(
   const ids = (businessIds ?? []).filter((id) => Number.isInteger(id) && id > 0);
   if (ids.length === 0) return { ok: false, message: "no leads selected" };
   if (ids.length > BULK_MAX) {
-    return { ok: false, message: `select at most ${BULK_MAX} leads at a time` };
+    return { ok: false, message: `that's too many at once — keep it under ${BULK_MAX}` };
   }
 
-  const results = await Promise.allSettled(ids.map((id) => triggerStageOnApi(stage, id)));
-  const enqueued = results.filter((r) => r.status === "fulfilled").length;
-  const failed = results.length - enqueued;
+  let enqueued = 0;
+  let failed = 0;
+  for (let i = 0; i < ids.length; i += BULK_CONCURRENCY) {
+    const batch = ids.slice(i, i + BULK_CONCURRENCY);
+    const results = await Promise.allSettled(batch.map((id) => triggerStageOnApi(stage, id)));
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    enqueued += ok;
+    failed += results.length - ok;
+  }
 
   revalidatePath("/dashboard/leadgen");
   return { ok: true, enqueued, failed };

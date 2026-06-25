@@ -69,8 +69,7 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
     });
   }
 
-  function runBulk(stage: Stage) {
-    const ids = [...selected];
+  function dispatchBulk(stage: Stage, ids: number[]) {
     startTransition(async () => {
       const r = await bulkRunStage(stage, ids);
       if (r.ok) {
@@ -84,6 +83,52 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         toast.error(r.message);
       }
     });
+  }
+
+  // research + build call Claude per lead, so a large bulk run costs real
+  // money — confirm those before firing. outreach only drafts (no send), and
+  // small batches run one-click to keep the common flow fast.
+  const CONFIRM_THRESHOLD = 100;
+
+  function runBulk(stage: Stage) {
+    const ids = [...selected];
+    const costly = stage === "research" || stage === "build";
+    if (costly && ids.length > CONFIRM_THRESHOLD) {
+      toast(
+        (t) => (
+          <div className="text-sm">
+            <div className="font-medium text-gray-900">
+              Run {stage} on {ids.length} leads?
+            </div>
+            <div className="mt-0.5 text-gray-600">
+              This enqueues {ids.length} Claude jobs and will use credits.
+            </div>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  dispatchBulk(stage, ids);
+                }}
+                className="px-3 py-1 rounded-md text-xs font-semibold bg-gray-900 text-white hover:bg-gray-800"
+              >
+                Run {ids.length}
+              </button>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: Infinity },
+      );
+      return;
+    }
+    dispatchBulk(stage, ids);
   }
 
   return (
