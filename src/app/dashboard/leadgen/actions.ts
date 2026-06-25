@@ -22,6 +22,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   triggerStageOnApi,
   getJobsProgressFromApi,
+  cancelJobsOnApi,
   triggerProspectOnApi,
   getJobFromApi,
   getBusiness,
@@ -555,6 +556,26 @@ export async function bulkRunStage(
   revalidatePath("/dashboard/leadgen");
   // jobIds drive the dashboard's live progress bar (see bulkJobProgress).
   return { ok: true, enqueued: jobIds.length, failed, jobIds };
+}
+
+/**
+ * Stop an in-flight bulk run: cancel its still-pending jobs so the worker
+ * skips them. Returns how many were cancelled.
+ */
+export async function cancelBulkRun(
+  jobIds: string[],
+): Promise<{ ok: true; cancelled: number } | { ok: false; message: string }> {
+  const guard = await requireProspecting();
+  if (!guard.ok) return { ok: false, message: "Unauthorized" };
+  const ids = (jobIds ?? []).filter((id) => typeof id === "string" && id.length > 0);
+  if (ids.length === 0) return { ok: false, message: "nothing to stop" };
+  try {
+    const r = await cancelJobsOnApi(ids);
+    revalidatePath("/dashboard/leadgen");
+    return { ok: true, cancelled: r.cancelled };
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : "stop failed" };
+  }
 }
 
 /**

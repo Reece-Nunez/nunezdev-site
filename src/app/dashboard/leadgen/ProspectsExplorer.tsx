@@ -12,7 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import type { BusinessSummary } from "@/lib/leadgen-db";
 import BusinessesTable from "./BusinessesTable";
-import { bulkRunStage, bulkJobProgress } from "./actions";
+import { bulkRunStage, bulkJobProgress, cancelBulkRun } from "./actions";
 import {
   filterSortProspects,
   PROSPECT_SORTS,
@@ -155,6 +155,26 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
     });
   }
 
+  function stopBulkRun() {
+    const run = bulkRun;
+    if (!run) return;
+    // Hide the bar + stop polling immediately (the effect cleanup bumps
+    // pollRef), then cancel the pending jobs server-side so the worker skips
+    // them. The job currently mid-flight finishes on its own.
+    setBulkRun(null);
+    startTransition(async () => {
+      const r = await cancelBulkRun(run.jobIds);
+      if (r.ok) {
+        toast.success(
+          `Stopped — cancelled ${r.cancelled} pending job${r.cancelled === 1 ? "" : "s"}`,
+        );
+      } else {
+        toast.error(r.message);
+      }
+      router.refresh();
+    });
+  }
+
   // research + build call Claude per lead, so a large bulk run costs real
   // money — confirm those before firing. outreach only drafts (no send), and
   // small batches run one-click to keep the common flow fast.
@@ -276,10 +296,20 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
                   <span className="text-red-600"> · {bulkRun.failed} failed</span>
                 )}
               </span>
-              <span className="text-xs text-gray-500 tabular-nums">
-                {pct}% · {fmt(elapsedSec)} elapsed
-                {etaSec != null && etaSec > 0 ? ` · ~${fmt(etaSec)} left` : ""}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 tabular-nums">
+                  {pct}% · {fmt(elapsedSec)} elapsed
+                  {etaSec != null && etaSec > 0 ? ` · ~${fmt(etaSec)} left` : ""}
+                </span>
+                <button
+                  type="button"
+                  onClick={stopBulkRun}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                >
+                  <XMarkIcon className="w-3.5 h-3.5" />
+                  Stop
+                </button>
+              </div>
             </div>
             <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
               <div

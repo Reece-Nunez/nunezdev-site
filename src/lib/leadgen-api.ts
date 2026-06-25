@@ -222,6 +222,16 @@ export async function getJobsProgressFromApi(ids: string[]): Promise<JobProgress
   });
 }
 
+/** Cancel a bulk run's still-pending jobs (Stop button). Returns how many
+ *  were cancelled (already-finished jobs are left alone). */
+export async function cancelJobsOnApi(ids: string[]): Promise<{ cancelled: number }> {
+  return apiFetch<{ cancelled: number }>(`/jobs/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+}
+
 /**
  * Options for a prospect run. `zip` is always the search center. With no
  * `query` it's the 20-category sweep (`max` = per-category cap). With a
