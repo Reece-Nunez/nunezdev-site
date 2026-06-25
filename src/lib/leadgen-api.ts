@@ -204,15 +204,33 @@ export async function triggerStageOnApi(
 }
 
 /**
- * Enqueue a prospect run for a zip code. Different shape from
- * triggerStageOnApi because prospect doesn't bind to a business —
- * it creates them.
+ * Options for a prospect run. `zip` is always the search center. With no
+ * `query` it's the 20-category sweep (`max` = per-category cap). With a
+ * `query` it's a single free-text Places search (keyword or business name),
+ * and the radius/rating/website filters apply.
  */
-export async function triggerProspectOnApi(
-  zip: string,
-  maxPerCategory: number,
-): Promise<JobRecord> {
-  const qs = new URLSearchParams({ zip, max: String(maxPerCategory) });
+export interface ProspectOptions {
+  zip: string;
+  max?: number;
+  query?: string;
+  radiusMiles?: number;
+  minRating?: number;
+  maxRating?: number;
+  onlyNoWebsite?: boolean;
+}
+
+/**
+ * Enqueue a prospect run. Different shape from triggerStageOnApi because
+ * prospect doesn't bind to a business — it creates them.
+ */
+export async function triggerProspectOnApi(opts: ProspectOptions): Promise<JobRecord> {
+  const qs = new URLSearchParams({ zip: opts.zip });
+  if (opts.max != null) qs.set("max", String(opts.max));
+  if (opts.query) qs.set("query", opts.query);
+  if (opts.radiusMiles != null) qs.set("radius_miles", String(opts.radiusMiles));
+  if (opts.minRating != null) qs.set("min_rating", String(opts.minRating));
+  if (opts.maxRating != null) qs.set("max_rating", String(opts.maxRating));
+  if (opts.onlyNoWebsite) qs.set("only_no_website", "true");
   return apiFetch<JobRecord>(`/stages/prospect?${qs}`, { method: "POST" });
 }
 

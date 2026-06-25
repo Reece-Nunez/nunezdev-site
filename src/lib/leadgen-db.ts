@@ -88,6 +88,11 @@ export interface BusinessRow {
   email_source: string | null;
   phone_type: string | null;
   sms_capable: boolean | null;
+  // Archive flag (pipeline migration 015). Low-opportunity leads (AI score < 7)
+  // are auto-archived by research and hidden from the default list.
+  archived: boolean;
+  archived_at: string | null;
+  archived_reason: string | null;
 }
 
 export interface ResearchRow {

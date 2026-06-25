@@ -136,7 +136,7 @@ export async function triggerProspect(
     return { ok: false, message: "Max must be 1-50" };
   }
   try {
-    const job = await triggerProspectOnApi(zip, max);
+    const job = await triggerProspectOnApi({ zip, max });
     return {
       ok: true,
       jobId: job.id,
@@ -146,6 +146,55 @@ export async function triggerProspect(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "prospect enqueue failed";
+    return { ok: false, message };
+  }
+}
+
+/**
+ * Free-text prospect search: find a business type outside the 20 hard-coded
+ * categories ("tattoo parlor") or a specific business by name
+ * ("Joe's Auto, Stillwater"). `zip` is the search center; the optional
+ * radius/rating/website filters narrow the results. Enqueues the same
+ * prospect job as triggerProspect, just with a query.
+ */
+export async function triggerProspectSearch(opts: {
+  zip: string;
+  query: string;
+  max?: number;
+  radiusMiles?: number;
+  minRating?: number;
+  onlyNoWebsite?: boolean;
+}): Promise<TriggerResult> {
+  const guard = await requireProspecting();
+  if (!guard.ok) return { ok: false, message: "Unauthorized" };
+  if (!/^\d{5}$/.test(opts.zip)) {
+    return { ok: false, message: "Zip must be 5 digits" };
+  }
+  const query = opts.query.trim();
+  if (query.length < 2) {
+    return { ok: false, message: "Enter at least 2 characters to search" };
+  }
+  if (opts.max != null && (!Number.isInteger(opts.max) || opts.max < 1 || opts.max > 50)) {
+    return { ok: false, message: "Max must be 1-50" };
+  }
+  try {
+    const job = await triggerProspectOnApi({
+      zip: opts.zip,
+      query,
+      max: opts.max,
+      radiusMiles: opts.radiusMiles,
+      minRating: opts.minRating,
+      onlyNoWebsite: opts.onlyNoWebsite,
+    });
+    return {
+      ok: true,
+      jobId: job.id,
+      status: job.status,
+      message: `searching "${query}" enqueued`,
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "search enqueue failed";
     return { ok: false, message };
   }
 }
