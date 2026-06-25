@@ -508,12 +508,13 @@ export async function snoozeFollowUp(
 // hundred leads). Not a UX limit — the operator can select hundreds and we
 // enqueue them all; this just bounds a pathological payload.
 const BULK_MAX = 1000;
-// How many enqueue calls we fire at once. The pipeline job worker drains the
-// queue sequentially regardless, so this only bounds *concurrent HTTP* to the
-// API — keeping us from opening hundreds of sockets at once when the operator
-// bulk-researches the whole list. The batches run back-to-back, so a 400-lead
-// selection still enqueues in ~20 sequential rounds of 20.
-const BULK_CONCURRENCY = 20;
+// How many enqueue calls we fire at once. Kept LOW because each
+// POST /stages/research opens ~2 fresh Supabase connections on the pipeline
+// (no pooling yet), so a wide fan-out storms the DB connection limit and
+// produces psycopg ConnectionTimeout errors. 4 concurrent → ~8 connects in
+// flight, well within limits. Batches run back-to-back, so a 200-lead
+// selection still enqueues in ~50 quick rounds.
+const BULK_CONCURRENCY = 4;
 
 /**
  * Enqueue a pipeline stage (research/build/outreach) for many businesses at
