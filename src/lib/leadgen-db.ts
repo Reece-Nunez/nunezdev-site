@@ -78,6 +78,16 @@ export interface BusinessRow {
   state: string | null;
   created_at: string;
   updated_at: string;
+  // Mass-outreach Phase A+B (pipeline migration 014). Surfaced by the API's
+  // BusinessSummary model so the dashboard can show why an email is missing
+  // and whether a number is textable before spending an SMS.
+  //   email_source — scraped_home | scraped_contact | hunter_api |
+  //                  no_website | blocked | none_found | null (not researched)
+  //   phone_type   — Twilio line type: mobile | landline | voip | … | null
+  //   sms_capable  — true (textable) | false (landline) | null (unknown)
+  email_source: string | null;
+  phone_type: string | null;
+  sms_capable: boolean | null;
 }
 
 export interface ResearchRow {

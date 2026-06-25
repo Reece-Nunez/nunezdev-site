@@ -208,11 +208,17 @@ export default async function LeadgenDetail({ params }: PageProps) {
           )}
           {detail.phone && (
             <Field icon={PhoneIcon} label="Phone">
-              <a className="text-blue-700 hover:underline" href={`tel:${detail.phone}`}>{detail.phone}</a>
+              <div className="flex flex-wrap items-center gap-2">
+                <a className="text-blue-700 hover:underline" href={`tel:${detail.phone}`}>{detail.phone}</a>
+                <SmsCapabilityBadge phoneType={detail.phone_type} smsCapable={detail.sms_capable} />
+              </div>
             </Field>
           )}
           <Field icon={EnvelopeIcon} label="Email">
-            <EditEmailField businessId={detail.id} email={detail.email} />
+            <div className="flex flex-wrap items-center gap-2">
+              <EditEmailField businessId={detail.id} email={detail.email} />
+              <EmailSourceBadge source={detail.email_source} hasEmail={!!detail.email} />
+            </div>
           </Field>
           {detail.website && (
             <Field icon={GlobeAltIcon} label="Website">
@@ -477,6 +483,66 @@ function Field({
       <div className="text-gray-800">{children}</div>
     </div>
   );
+}
+
+const PILL = "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border";
+
+// Can this number receive an SMS? Drives the operator's decision to text vs
+// call. Source: Twilio Lookup line type stored at prospect time (migration 014).
+function SmsCapabilityBadge({
+  phoneType,
+  smsCapable,
+}: {
+  phoneType: string | null;
+  smsCapable: boolean | null;
+}) {
+  if (smsCapable === true) {
+    return (
+      <span className={`${PILL} bg-green-100 text-green-800 border-green-300`}>
+        {phoneType === "landline" ? "Textable" : `${phoneType ?? "Mobile"} · textable`}
+      </span>
+    );
+  }
+  if (smsCapable === false) {
+    return (
+      <span className={`${PILL} bg-gray-100 text-gray-600 border-gray-200`}>
+        {phoneType ?? "Landline"} · no SMS
+      </span>
+    );
+  }
+  // null — never looked up, lookup failed, or an ambiguous line type.
+  return (
+    <span className={`${PILL} bg-amber-50 text-amber-700 border-amber-200`}>
+      SMS capability unknown
+    </span>
+  );
+}
+
+// Where the email came from — or why none was found. Lets the operator trust a
+// scraped address, know a Hunter hit cost a credit, or chase a missing one.
+const EMAIL_SOURCE_META: Record<string, { label: string; cls: string }> = {
+  scraped_home:    { label: "Found on site",      cls: "bg-green-100 text-green-800 border-green-300" },
+  scraped_contact: { label: "Found on contact page", cls: "bg-green-100 text-green-800 border-green-300" },
+  hunter_api:      { label: "Found via Hunter",   cls: "bg-blue-100 text-blue-800 border-blue-300" },
+  no_website:      { label: "No website to scrape", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+  blocked:         { label: "Site blocked our check", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  none_found:      { label: "No email found",     cls: "bg-amber-50 text-amber-700 border-amber-200" },
+};
+
+function EmailSourceBadge({
+  source,
+  hasEmail,
+}: {
+  source: string | null;
+  hasEmail: boolean;
+}) {
+  // A manually-entered email has no provenance label — say nothing rather
+  // than mislabel it.
+  if (!source) return null;
+  if (hasEmail && source.startsWith("scraped")) return null; // self-evident; don't clutter
+  const meta = EMAIL_SOURCE_META[source];
+  if (!meta) return null;
+  return <span className={`${PILL} ${meta.cls}`}>{meta.label}</span>;
 }
 
 // Per-event presentation for the engagement timeline. Positive signals
