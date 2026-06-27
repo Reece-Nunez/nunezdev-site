@@ -123,6 +123,12 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
       return next;
     });
   }
+  // Quick-select the first N of the current (filtered + sorted) list. Default
+  // sort is AI score high→low, so "Top 100" = the 100 strongest leads — the
+  // batch size the pipeline is happy with. Replaces the current selection.
+  function selectTopN(n: number) {
+    setSelected(new Set(results.slice(0, n).map((b) => b.id)));
+  }
 
   function dispatchBulk(stage: Stage, ids: number[]) {
     startTransition(async () => {
@@ -264,20 +270,54 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         </select>
       </div>
 
-      <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
         <span>
           Showing {results.length} of {businesses.length}
           {results.length !== businesses.length ? " (filtered)" : ""}
         </span>
-        {(search || email !== "all" || website !== "all" || city !== "all") && (
-          <button
-            type="button"
-            onClick={() => { setSearch(""); setEmail("all"); setWebsite("all"); setCity("all"); }}
-            className="text-gray-600 hover:text-gray-900 underline-offset-2 hover:underline"
-          >
-            Clear filters
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {results.length > 0 && (
+            <>
+              <span className="text-gray-400">Quick select:</span>
+              {[25, 50, 100].filter((n) => n < results.length).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => selectTopN(n)}
+                  className="px-2 py-0.5 rounded-md border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50"
+                >
+                  Top {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => selectTopN(results.length)}
+                className="px-2 py-0.5 rounded-md border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50"
+              >
+                All {results.length}
+              </button>
+              {selected.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="px-2 py-0.5 rounded-md text-gray-500 hover:text-gray-900"
+                >
+                  Clear
+                </button>
+              )}
+              <span className="text-gray-300">·</span>
+            </>
+          )}
+          {(search || email !== "all" || website !== "all" || city !== "all") && (
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setEmail("all"); setWebsite("all"); setCity("all"); }}
+              className="text-gray-600 hover:text-gray-900 underline-offset-2 hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Live bulk-run progress (sticky while a run is in flight) ── */}
