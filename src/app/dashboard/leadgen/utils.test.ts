@@ -22,6 +22,8 @@ function biz(p: Partial<BusinessSummary>): BusinessSummary {
     category: null, place_id: null, rating: null, review_count: null,
     status: "new", opportunity_score: 0, source: null, city: null, state: null,
     created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+    email_source: null, phone_type: null, sms_capable: null,
+    archived: false, archived_at: null, archived_reason: null,
     ai_score: null, website_score: null, ...p,
   };
 }
