@@ -165,6 +165,38 @@ export function extractLeadDetails(payload: unknown): ThumbtackLeadDetails {
   };
 }
 
+// ── Lead-pipeline mapping (Phase D: webhook -> leads) ────────────────────
+
+/** The leads-table columns we set from a Thumbtack lead event. */
+export interface ThumbtackLeadInsert {
+  name: string | null;
+  phone: string | null;
+  project_type: string | null;
+  message: string | null;
+  source: 'thumbtack';
+  lead_source: 'Thumbtack';
+  status: 'new';
+  thumbtack_negotiation_id: string | null;
+}
+
+/**
+ * Map a parsed lead event onto the leads-table shape. Pure: phone is passed
+ * through verbatim (the DB layer normalizes to E.164), status is always 'new'
+ * for a fresh capture, and source marks it as Thumbtack-originated for ROI.
+ */
+export function buildThumbtackLeadInsert(details: ThumbtackLeadDetails): ThumbtackLeadInsert {
+  return {
+    name: details.customerName,
+    phone: details.customerPhone,
+    project_type: details.category,
+    message: details.description,
+    source: 'thumbtack',
+    lead_source: 'Thumbtack',
+    status: 'new',
+    thumbtack_negotiation_id: details.negotiationID,
+  };
+}
+
 // ── Message extraction (Phase C: webhook -> inbox) ───────────────────────
 
 export interface ThumbtackMessage {

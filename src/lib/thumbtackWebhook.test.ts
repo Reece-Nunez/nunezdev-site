@@ -17,6 +17,7 @@ import {
   isThumbtackLeadEvent,
   isThumbtackMessageEvent,
   extractThumbtackMessage,
+  buildThumbtackLeadInsert,
 } from './thumbtackWebhook';
 
 const SECRET = 'dbc179b2d0bdccbcb502db060647becc50db99c1607c3429f3fe77b7a9498d6a';
@@ -223,5 +224,29 @@ describe('extractThumbtackMessage', () => {
     assert.equal(m.negotiationID, null);
     assert.equal(m.text, null);
     assert.equal(m.direction, 'outbound');
+  });
+});
+
+describe('buildThumbtackLeadInsert', () => {
+  it('maps a real lead event onto the leads-table shape', () => {
+    const row = buildThumbtackLeadInsert(extractLeadDetails(REAL_LEAD_EVENT));
+    assert.deepEqual(row, {
+      name: 'Test Customer',
+      phone: '1234567890', // raw — DB layer normalizes to E.164
+      project_type: 'Full Service Lawn Care',
+      message: 'Need Full Service Lawn Care',
+      source: 'thumbtack',
+      lead_source: 'Thumbtack',
+      status: 'new',
+      thumbtack_negotiation_id: '582419362774474767',
+    });
+  });
+
+  it('always marks the lead as source=thumbtack / status=new even on a sparse event', () => {
+    const row = buildThumbtackLeadInsert(extractLeadDetails({}));
+    assert.equal(row.source, 'thumbtack');
+    assert.equal(row.status, 'new');
+    assert.equal(row.name, null);
+    assert.equal(row.thumbtack_negotiation_id, null);
   });
 });

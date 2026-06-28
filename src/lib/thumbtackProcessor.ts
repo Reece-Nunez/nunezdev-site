@@ -15,10 +15,13 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   parseThumbtackEvent,
   extractLeadDetails,
+  extractThumbtackMessage,
+  buildThumbtackLeadInsert,
   isThumbtackLeadEvent,
   isThumbtackMessageEvent,
 } from '@/lib/thumbtackWebhook';
 import { threadThumbtackMessage } from '@/lib/thumbtackInbox';
+import { normalizePhoneE164 } from '@/lib/sms';
 
 export type ProcessStatus =
   | 'expense_created'
@@ -105,7 +108,22 @@ export async function processThumbtackEvent(eventRow: {
   if (isThumbtackMessageEvent(eventType)) {
     // Phase C: thread the message into the inbox (keyed on negotiationID).
     result = await threadThumbtackMessage(eventRow.payload);
+    // Phase D: keep the lead pipeline in sync. Best-effort — a lead-table
+    // failure must not fail the event (the message is already threaded).
+    try {
+      await touchLeadFromMessage(supabase, eventRow.payload);
+    } catch (e) {
+      console.error('[thumbtack] lead touch from message failed:', e);
+    }
   } else if (isThumbtackLeadEvent(eventType)) {
+    // Phase D: capture the lead BEFORE the expense, and independently of it —
+    // a lead with no price still belongs in the pipeline (this is the fix for
+    // Thumbtack leads only ever becoming an expense, never a tracked lead).
+    try {
+      await upsertLeadFromThumbtack(supabase, eventRow.payload);
+    } catch (e) {
+      console.error('[thumbtack] lead capture failed:', e);
+    }
     result = await createLeadExpense(supabase, eventRow.payload);
   } else {
     result = { status: 'skipped_not_lead', detail: eventType ?? 'unknown' };
@@ -118,6 +136,74 @@ export async function processThumbtackEvent(eventRow: {
       .eq('id', eventRow.id);
   }
   return result;
+}
+
+/**
+ * Upsert a leads row from a Thumbtack lead event, keyed on the negotiation id
+ * so a redelivery updates rather than duplicates. We fill in contact details we
+ * may have just learned but never downgrade an existing lead's status (it may
+ * have advanced to contacted/qualified since first capture).
+ */
+async function upsertLeadFromThumbtack(supabase: SupabaseAdmin, payload: unknown): Promise<void> {
+  const details = extractLeadDetails(payload);
+  if (!details.negotiationID) return; // no idempotent key -> skip rather than risk dupes
+
+  const fields = buildThumbtackLeadInsert(details);
+  const phone = fields.phone ? normalizePhoneE164(fields.phone) ?? fields.phone : null;
+  const now = new Date().toISOString();
+
+  const { data: existing } = await supabase
+    .from('leads')
+    .select('id, name, phone, project_type, message')
+    .eq('thumbtack_negotiation_id', details.negotiationID)
+    .limit(1);
+
+  if (existing?.[0]) {
+    const row = existing[0] as Record<string, unknown>;
+    const patch: Record<string, unknown> = { last_contact: now };
+    if (!row.name && fields.name) patch.name = fields.name;
+    if (!row.phone && phone) patch.phone = phone;
+    if (!row.project_type && fields.project_type) patch.project_type = fields.project_type;
+    if (!row.message && fields.message) patch.message = fields.message;
+    await supabase.from('leads').update(patch).eq('id', row.id as string);
+    return;
+  }
+
+  await supabase.from('leads').insert({ ...fields, phone, last_contact: now });
+}
+
+/**
+ * A Thumbtack message arrived. Make sure a lead exists for its negotiation and
+ * bump last_contact. Messages carry no phone, so a message-first lead is a stub
+ * until (if ever) a NegotiationCreated event fills in the contact details.
+ */
+async function touchLeadFromMessage(supabase: SupabaseAdmin, payload: unknown): Promise<void> {
+  const msg = extractThumbtackMessage(payload);
+  if (!msg.negotiationID) return;
+
+  const now = new Date().toISOString();
+  const { data: existing } = await supabase
+    .from('leads')
+    .select('id, name')
+    .eq('thumbtack_negotiation_id', msg.negotiationID)
+    .limit(1);
+
+  if (existing?.[0]) {
+    const row = existing[0] as Record<string, unknown>;
+    const patch: Record<string, unknown> = { last_contact: now };
+    if (!row.name && msg.customerName) patch.name = msg.customerName;
+    await supabase.from('leads').update(patch).eq('id', row.id as string);
+    return;
+  }
+
+  await supabase.from('leads').insert({
+    name: msg.customerName,
+    source: 'thumbtack',
+    lead_source: 'Thumbtack',
+    status: 'new',
+    thumbtack_negotiation_id: msg.negotiationID,
+    last_contact: now,
+  });
 }
 
 async function createLeadExpense(
