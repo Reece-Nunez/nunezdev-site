@@ -211,7 +211,7 @@ export class LeadNurtureService {
           },
           {
             delay_days: 7,
-            subject: "Case study: How we helped [similar business] grow 40%",
+            subject: "A quick example of what a focused website can do",
             template: 'lead_case_study'
           },
           {
@@ -257,8 +257,21 @@ export class LeadNurtureService {
 
     if (!scheduledEmails) return;
 
+    // Don't blast emails that are way overdue. If the cron was off for a while
+    // (or is first enabled against an old queue), a 3-week-late "welcome" email
+    // is worse than none. Anything more than 3 days past its slot is skipped.
+    const staleCutoff = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
     for (const scheduledEmail of scheduledEmails) {
       try {
+        if (scheduledEmail.scheduled_for < staleCutoff) {
+          await this.supabase
+            .from('scheduled_emails')
+            .update({ status: 'failed', error_message: 'skipped: scheduled too far in the past' })
+            .eq('id', scheduledEmail.id);
+          continue;
+        }
+
         await this.sendScheduledEmail(scheduledEmail);
 
         // Mark as sent
@@ -342,6 +355,34 @@ export class LeadNurtureService {
           <p>If you have any questions in the meantime, just reply to this email.</p>
           <p>Looking forward to working together!</p>
           <p>Reece</p>
+        </div>
+      `,
+      lead_case_study: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Hi ${lead.name},</h2>
+          <p>Quick one. A lot of the businesses I work with come to me with a site that looks fine but does not bring in any actual leads.</p>
+          <p>One recent client was getting plenty of visitors but almost no calls. We rebuilt the site around one clear action, cleaned up how it loads on phones, and set up local SEO so the right people could find it. Within a couple of months the calls and form submissions went up noticeably.</p>
+          <p>Nothing flashy. Just a site built to do a job. If you want, I can take a look at yours and tell you honestly what I would change.</p>
+          <p><a href="https://www.nunezdev.com/contact">Reach out here</a> or just reply to this email.</p>
+          <p>Reece</p>
+        </div>
+      `,
+      lead_call_to_action: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Hi ${lead.name},</h2>
+          <p>I wanted to check back in. If your project is still on your mind, I would love to help you get it moving.</p>
+          <p>No pressure and no hard sell. We can hop on a quick call, you tell me what you are after, and I will give you honest thoughts plus a rough scope and price. If it is a fit, great. If not, you will still walk away with a clearer plan.</p>
+          <p><a href="https://www.nunezdev.com/contact">Grab a time here</a> or reply and tell me what you are working on.</p>
+          <p>Reece<br>NunezDev</p>
+        </div>
+      `,
+      proposal_ready: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Hi ${lead.name},</h2>
+          <p>Your proposal is ready. I put together a scope and pricing based on what we talked about, with clear phases so you know exactly what you are getting and when.</p>
+          <p>Take a look when you have a minute. If anything looks off or you want to adjust the scope, just reply and we will sort it out.</p>
+          <p><a href="https://www.nunezdev.com/contact">Questions? Reach me here</a> or reply to this email.</p>
+          <p>Reece<br>NunezDev</p>
         </div>
       `
     };

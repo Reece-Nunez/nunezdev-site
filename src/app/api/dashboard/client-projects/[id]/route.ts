@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { generatePresignedDownloadUrl, checkFileExists } from '@/lib/s3';
+import { sendEmail } from '@/lib/email';
+import { carePlanEmailHtml } from '@/lib/clientOutreach';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -146,7 +148,7 @@ export async function PUT(
     // Verify project exists and belongs to org
     const { data: existing, error: fetchError } = await supabase
       .from('client_projects')
-      .select('id')
+      .select('id, status, client_id')
       .eq('id', id)
       .eq('org_id', guard.orgId)
       .single();
@@ -170,6 +172,28 @@ export async function PUT(
     if (updateError) {
       console.error('Error updating project:', updateError);
       return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
+    }
+
+    // On the transition into "completed", pitch the care plan once. Best-effort:
+    // an email failure must not fail the status update. Fires only on the
+    // transition (was not already completed), so re-saving won't re-send.
+    if (status === 'completed' && existing.status !== 'completed' && existing.client_id) {
+      try {
+        const { data: client } = await supabase
+          .from('clients')
+          .select('name, email')
+          .eq('id', existing.client_id)
+          .single();
+        if (client?.email) {
+          await sendEmail({
+            to: client.email,
+            subject: 'Keeping your site running: care plan options',
+            html: carePlanEmailHtml(client.name),
+          });
+        }
+      } catch (e) {
+        console.error('[client-projects] care-plan email on completion failed:', e);
+      }
     }
 
     return NextResponse.json({ success: true, project });

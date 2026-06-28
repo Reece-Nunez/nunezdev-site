@@ -13,6 +13,10 @@
       "schedule": "0 16 * * *"
     },
     {
+      "path": "/api/cron/process-email-sequences",
+      "schedule": "0 17 * * *"
+    },
+    {
       "path": "/api/cron/leadgen-reply-sync",
       "schedule": "0 * * * *"
     },

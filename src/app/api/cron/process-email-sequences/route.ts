@@ -32,22 +32,27 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Allow GET for testing
+// Vercel Cron invokes via GET with Authorization: Bearer ${CRON_SECRET}. Auth
+// is required here too so the endpoint can't be triggered by anyone hitting it.
 export async function GET(request: NextRequest) {
   try {
-    console.log('Test processing scheduled emails...');
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     await leadNurtureService.processScheduledEmails();
 
     return NextResponse.json({
       success: true,
-      message: 'Test run completed - email sequences processed'
+      message: 'Email sequences processed successfully'
     });
 
   } catch (error) {
-    console.error('Error in test run:', error);
+    console.error('Error processing email sequences:', error);
     return NextResponse.json(
-      { error: 'Test run failed' },
+      { error: 'Failed to process email sequences' },
       { status: 500 }
     );
   }

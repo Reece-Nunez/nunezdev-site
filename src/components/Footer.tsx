@@ -8,6 +8,7 @@ import {
   ADDRESS,
   EMAIL,
   GOOGLE_BUSINESS_URL,
+  GOOGLE_REVIEW_URL,
   PHONE_DISPLAY,
   PHONE_TEL,
 } from "@/lib/contact";
@@ -143,6 +144,16 @@ export default function Footer() {
                 </a>
               ))}
             </div>
+
+            <a
+              href={GOOGLE_REVIEW_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-5 text-sm text-white/60 hover:text-yellow transition-colors"
+            >
+              <FaGoogle className="w-3.5 h-3.5" />
+              Worked with us? Leave a Google review
+            </a>
           </div>
 
           {/* Right — Essentials only, single flat list */}
