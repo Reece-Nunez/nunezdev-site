@@ -22,6 +22,10 @@ export const ADDRESS = {
 export const GOOGLE_BUSINESS_URL =
   "https://www.google.com/search?q=NunezDev+Ponca+City+OK";
 
+// Direct "write a review" link for the Google Business Profile. Opens the review
+// dialog straight away — used by the client review-request outreach.
+export const GOOGLE_REVIEW_URL = "https://g.page/r/CUpKOuKc5-8FEAI/review";
+
 // Aggregate review snapshot — keep in sync with /src/data/testimonials.ts.
 // Surfaced in JSON-LD (AggregateRating) and the homepage social-proof strip.
 export const REVIEW_SUMMARY = {

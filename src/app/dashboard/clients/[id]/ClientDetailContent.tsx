@@ -9,6 +9,7 @@ import ClientTasks from '@/components/client-detail/ClientTasks';
 import { ClientInvoices } from '@/components/client-detail/Related';
 import AddPayment from '@/components/client-detail/AddPayment';
 import SubscriptionsPanel from '@/components/client-detail/SubscriptionsPanel';
+import ClientOutreach from '@/components/client-detail/ClientOutreach';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { useToast } from '@/components/ui/Toast';
 
@@ -104,6 +105,8 @@ export default function ClientDetailContent({ clientId }: { clientId: string }) 
       </section>
 
       <SubscriptionsPanel clientId={clientId} />
+
+      <ClientOutreach clientId={clientId} />
 
       <ClientNotes clientId={clientId} />
 
