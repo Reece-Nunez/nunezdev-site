@@ -63,7 +63,53 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
   const [savingNotes, setSavingNotes] = useState(false);
   const [converting, setConverting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [drafting, setDrafting] = useState(false);
+  const [sendingSms, setSendingSms] = useState(false);
   const [, startTransition] = useTransition();
+
+  async function draftReply() {
+    setDrafting(true);
+    const toastId = toast.loading('Drafting reply...');
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/draft-reply`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to draft');
+      setDraft(data.draft);
+      toast.success('Draft ready. Review before sending.', { id: toastId });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Draft failed', { id: toastId });
+    } finally {
+      setDrafting(false);
+    }
+  }
+
+  async function sendSms() {
+    if (!draft.trim()) return;
+    setSendingSms(true);
+    const toastId = toast.loading('Sending SMS...');
+    try {
+      const res = await fetch(`/api/leads/${lead.id}/sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: draft }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      toast.success('Text sent', { id: toastId });
+      setLead({
+        ...lead,
+        status: lead.status === 'new' ? 'contacted' : lead.status,
+        last_contact: new Date().toISOString(),
+      });
+      setDraft('');
+      startTransition(() => router.refresh());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Send failed', { id: toastId });
+    } finally {
+      setSendingSms(false);
+    }
+  }
 
   async function updateStatus(newStatus: string) {
     const prev = lead.status;
@@ -306,6 +352,42 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
                 </p>
               </div>
             )}
+          </section>
+
+          {/* AI reply — draft in Reece's voice, review, one-tap send via SMS */}
+          <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                Reply
+              </h2>
+              <button
+                onClick={draftReply}
+                disabled={drafting}
+                className="text-xs px-3 py-1 rounded-md bg-emerald-600 text-white disabled:opacity-50 hover:bg-emerald-700 transition-colors"
+              >
+                {drafting ? 'Drafting...' : 'Draft with AI'}
+              </button>
+            </div>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={4}
+              placeholder="Write a reply, or tap Draft with AI to generate one in your voice. Review before sending."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-gray-400">
+                {draft.length} chars{lead.phone ? '' : ' · no phone on file'}
+              </span>
+              <button
+                onClick={sendSms}
+                disabled={sendingSms || !draft.trim() || !lead.phone}
+                title={lead.phone ? 'Send via SMS' : 'No phone number on file'}
+                className="text-sm px-4 py-1.5 rounded-lg bg-gray-900 text-white disabled:opacity-50 hover:bg-gray-700 transition-colors"
+              >
+                {sendingSms ? 'Sending...' : 'Send via SMS'}
+              </button>
+            </div>
           </section>
 
           {/* Internal notes */}
