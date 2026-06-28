@@ -28,6 +28,66 @@ function dollars(cents: number | null) {
   return cents == null ? null : `$${(cents / 100).toFixed(2)}`;
 }
 
+type SupabaseAdmin = ReturnType<typeof supabaseAdmin>;
+
+interface ThumbtackRoi {
+  spendCents: number;
+  leadCount: number; // leads tracked in the pipeline (source=thumbtack)
+  clientCount: number; // distinct clients attributable to Thumbtack
+  incomeCents: number;
+  roi: number | null; // income / spend; null when there's no spend yet
+}
+
+/**
+ * What is Thumbtack actually worth? Spend is the sum of logged lead fees;
+ * income is collected payments from clients we can attribute to Thumbtack —
+ * either a Thumbtack-sourced lead that converted, or a Thumbtack lead-fee
+ * expense already linked to a client. Best-effort: a failed query degrades to 0.
+ */
+async function computeThumbtackRoi(supabase: SupabaseAdmin): Promise<ThumbtackRoi> {
+  const [{ data: expenses }, { data: leads }] = await Promise.all([
+    supabase.from('expenses').select('amount_cents, client_id').eq('vendor', 'Thumbtack'),
+    supabase.from('leads').select('client_id, status').eq('source', 'thumbtack'),
+  ]);
+
+  const spendCents = (expenses ?? []).reduce((s, e) => s + (e.amount_cents ?? 0), 0);
+  const leadCount = (leads ?? []).length;
+
+  // Clients attributable to Thumbtack (from converted leads + linked lead-fee expenses).
+  const clientIds = Array.from(
+    new Set(
+      [
+        ...(leads ?? []).map((l) => l.client_id),
+        ...(expenses ?? []).map((e) => e.client_id),
+      ].filter((id): id is string => !!id),
+    ),
+  );
+
+  let incomeCents = 0;
+  if (clientIds.length > 0) {
+    const { data: invoices } = await supabase
+      .from('invoices')
+      .select('id')
+      .in('client_id', clientIds);
+    const invoiceIds = (invoices ?? []).map((i) => i.id as string);
+    if (invoiceIds.length > 0) {
+      const { data: payments } = await supabase
+        .from('invoice_payments')
+        .select('amount_cents')
+        .in('invoice_id', invoiceIds);
+      incomeCents = (payments ?? []).reduce((s, p) => s + (p.amount_cents ?? 0), 0);
+    }
+  }
+
+  return {
+    spendCents,
+    leadCount,
+    clientCount: clientIds.length,
+    incomeCents,
+    roi: spendCents > 0 ? incomeCents / spendCents : null,
+  };
+}
+
 export default async function ThumbtackLeadsPage() {
   const guard = await requireProspecting();
   if (!guard.ok) redirect('/login?next=/dashboard/thumbtack');
@@ -45,7 +105,7 @@ export default async function ThumbtackLeadsPage() {
     .filter((e) => isThumbtackLeadEvent(e.event_type))
     .map((e) => ({ row: e, lead: extractLeadDetails(e.payload) }));
 
-  const totalCents = leads.reduce((sum, l) => sum + (l.lead.leadPriceCents ?? 0), 0);
+  const roi = await computeThumbtackRoi(supabase);
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
@@ -60,13 +120,32 @@ export default async function ThumbtackLeadsPage() {
             (Thumbtack / lead&nbsp;fees) — no manual entry.
           </p>
         </div>
-        {leads.length > 0 && (
-          <div className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-right">
-            <div className="text-xs text-gray-500 uppercase tracking-wider">Lead spend (shown)</div>
-            <div className="text-lg font-semibold text-gray-900">{dollars(totalCents)}</div>
-          </div>
-        )}
       </header>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-gray-500 uppercase tracking-wider">Lead spend</div>
+          <div className="text-lg font-semibold text-gray-900">{dollars(roi.spendCents)}</div>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-gray-500 uppercase tracking-wider">Revenue</div>
+          <div className="text-lg font-semibold text-gray-900">{dollars(roi.incomeCents)}</div>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-gray-500 uppercase tracking-wider">ROI</div>
+          <div className="text-lg font-semibold text-gray-900">
+            {roi.roi == null ? '—' : `${roi.roi.toFixed(1)}x`}
+          </div>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-gray-500 uppercase tracking-wider">Leads</div>
+          <div className="text-lg font-semibold text-gray-900">{roi.leadCount}</div>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
+          <div className="text-xs text-gray-500 uppercase tracking-wider">Clients won</div>
+          <div className="text-lg font-semibold text-gray-900">{roi.clientCount}</div>
+        </div>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
