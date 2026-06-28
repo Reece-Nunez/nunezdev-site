@@ -32,22 +32,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Allow GET for testing
+// Vercel Cron invokes via GET and includes Authorization: Bearer ${CRON_SECRET}.
+// Auth is required here too — without it, anyone hitting the URL could trigger a
+// run (previously this GET was unauthenticated).
 export async function GET(request: NextRequest) {
   try {
-    console.log('Test processing invoice follow-ups...');
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     await invoiceFollowupService.processOverdueInvoices();
 
     return NextResponse.json({
       success: true,
-      message: 'Test run completed - invoice follow-ups processed'
+      message: 'Invoice follow-ups processed successfully'
     });
 
   } catch (error: any) {
-    console.error('Error in test run:', error);
+    console.error('Error processing invoice follow-ups:', error);
     return NextResponse.json(
-      { error: 'Test run failed' },
+      { error: 'Failed to process invoice follow-ups' },
       { status: 500 }
     );
   }

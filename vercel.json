@@ -9,6 +9,10 @@
       "schedule": "0 15 * * *"
     },
     {
+      "path": "/api/cron/process-invoice-followups",
+      "schedule": "0 16 * * *"
+    },
+    {
       "path": "/api/cron/leadgen-reply-sync",
       "schedule": "0 * * * *"
     },

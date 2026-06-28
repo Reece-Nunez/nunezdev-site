@@ -29,6 +29,13 @@ interface FollowUpRule {
   subject: string;
   template: string;
   urgency: 'gentle' | 'firm' | 'final';
+  /**
+   * Whether the daily cron may send this tier automatically. Gentle/firm
+   * nudges auto-send; the heavy "final notice" and "account hold" tiers are
+   * left to a human (sendManualFollowup) so a relationship is never nuked by a
+   * cron, and so we never auto-send legally-sensitive language.
+   */
+  auto: boolean;
 }
 
 export class InvoiceFollowupService {
@@ -39,25 +46,29 @@ export class InvoiceFollowupService {
       days_after_due: 1,
       subject: 'Friendly reminder: Invoice [INVOICE_NUMBER] is past due',
       template: 'gentle_reminder',
-      urgency: 'gentle'
+      urgency: 'gentle',
+      auto: true
     },
     {
       days_after_due: 7,
       subject: 'Second notice: Invoice [INVOICE_NUMBER] - Payment required',
       template: 'second_notice',
-      urgency: 'firm'
+      urgency: 'firm',
+      auto: true
     },
     {
       days_after_due: 14,
       subject: 'Final notice: Invoice [INVOICE_NUMBER] - Immediate action required',
       template: 'final_notice',
-      urgency: 'final'
+      urgency: 'final',
+      auto: false // human-reviewed only
     },
     {
       days_after_due: 30,
-      subject: 'Account hold: Invoice [INVOICE_NUMBER] - Service suspension notice',
+      subject: 'Account hold: Invoice [INVOICE_NUMBER] - Service pause notice',
       template: 'account_hold',
-      urgency: 'final'
+      urgency: 'final',
+      auto: false // human-reviewed only
     }
   ];
 
@@ -117,11 +128,14 @@ export class InvoiceFollowupService {
         return;
       }
 
-      // Find applicable follow-up rules
-      const applicableRules = this.followUpRules.filter(rule => daysOverdue >= rule.days_after_due);
+      // Find applicable follow-up rules. The cron only auto-sends gentle/firm;
+      // final/hold tiers are reserved for a human (sendManualFollowup).
+      const applicableRules = this.followUpRules.filter(
+        rule => rule.auto && daysOverdue >= rule.days_after_due
+      );
 
       if (applicableRules.length === 0) {
-        return; // Not overdue enough yet
+        return; // Not overdue enough yet, or only manual tiers apply now
       }
 
       // Get the most recent applicable rule
@@ -283,14 +297,11 @@ export class InvoiceFollowupService {
             ${data.paymentUrl ? `<a href="${data.paymentUrl}" style="display: inline-block; background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Pay Immediately</a>` : ''}
           </div>
 
-          <p>If payment is not received within 48 hours, we may need to:</p>
-          <ul>
-            <li>Suspend active services</li>
-            <li>Turn the account over to collections</li>
-            <li>Report the delinquency to credit agencies</li>
-          </ul>
+          <p>If payment is not received within 48 hours, I may need to pause active
+          work and hosting on your project until the balance is cleared.</p>
 
-          <p>Please contact me immediately at reece@nunezdev.com to resolve this matter.</p>
+          <p>Please contact me at reece@nunezdev.com so we can resolve this. If
+          cash flow is the issue, I'm happy to set up a payment plan.</p>
           <p>Sincerely,<br>Reece Nunez<br>NunezDev</p>
         </div>
       `,
