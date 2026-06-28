@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { calculateDocumentTotals } from "@/lib/documentTotals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-interface ProposalLineItem {
-  description: string;
-  quantity: number;
-  rate_cents: number;
-  amount_cents: number;
-}
 
 async function requireAuthedOrgId() {
   const supabase = await supabaseServer();
@@ -26,24 +20,6 @@ async function requireAuthedOrgId() {
   if (!orgId) return { ok: false as const, status: 403 as const, json: { error: "No org" } };
 
   return { ok: true as const, supabase, orgId, user };
-}
-
-function calculateTotals(line_items: ProposalLineItem[], discount_type?: string, discount_value?: number) {
-  const subtotal_cents = line_items.reduce((sum, item) => sum + item.amount_cents, 0);
-
-  let discount_cents = 0;
-  if (discount_value && discount_value > 0) {
-    if (discount_type === 'percentage') {
-      discount_cents = Math.round(subtotal_cents * (discount_value / 100));
-    } else if (discount_type === 'fixed') {
-      discount_cents = Math.round(discount_value * 100);
-    }
-  }
-
-  const tax_cents = 0;
-  const amount_cents = subtotal_cents + tax_cents - discount_cents;
-
-  return { subtotal_cents, tax_cents, discount_cents, amount_cents };
 }
 
 // GET /api/proposals/[id] - Get single proposal
@@ -106,11 +82,8 @@ export async function PATCH(
     // If line_items changed, recalculate totals
     const updateData: Record<string, unknown> = { ...body };
     if (body.line_items) {
-      const { subtotal_cents, tax_cents, discount_cents, amount_cents } = calculateTotals(
-        body.line_items,
-        body.discount_type,
-        body.discount_value
-      );
+      const { subtotal_cents, tax_cents, discount_cents, total_cents: amount_cents } =
+        calculateDocumentTotals(body.line_items, body.discount_type, body.discount_value);
       updateData.subtotal_cents = subtotal_cents;
       updateData.tax_cents = tax_cents;
       updateData.discount_cents = discount_cents;

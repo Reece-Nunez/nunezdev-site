@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseServer } from "@/lib/supabaseServer";
-import type { CreateInvoiceData, InvoiceLineItem } from "@/types/invoice";
+import type { CreateInvoiceData } from "@/types/invoice";
+import { calculateDocumentTotals } from "@/lib/documentTotals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,24 +22,6 @@ async function requireAuthedOrgId() {
   if (!orgId) return { ok: false as const, status: 403 as const, json: { error: "No org" as const } };
 
   return { ok: true as const, supabase, orgId, user };
-}
-
-function calculateInvoiceTotals(line_items: InvoiceLineItem[], discount_type?: string, discount_value?: number) {
-  const subtotal_cents = line_items.reduce((sum, item) => sum + item.amount_cents, 0);
-  
-  let discount_cents = 0;
-  if (discount_value && discount_value > 0) {
-    if (discount_type === 'percentage') {
-      discount_cents = Math.round(subtotal_cents * (discount_value / 100));
-    } else if (discount_type === 'fixed') {
-      discount_cents = Math.round(discount_value * 100);
-    }
-  }
-  
-  const tax_cents = 0; // TODO: Implement tax calculation based on client location
-  const total_cents = subtotal_cents + tax_cents - discount_cents;
-  
-  return { subtotal_cents, tax_cents, discount_cents, total_cents };
 }
 
 function getPaymentTermsDays(terms: string): number {
@@ -133,9 +116,9 @@ export async function POST(req: Request) {
       item.amount_cents = Math.round(item.quantity * item.rate_cents);
     }
 
-    const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
-      invoiceData.line_items, 
-      invoiceData.discount_type, 
+    const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateDocumentTotals(
+      invoiceData.line_items,
+      invoiceData.discount_type,
       invoiceData.discount_value
     );
 

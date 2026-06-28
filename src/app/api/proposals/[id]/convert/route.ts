@@ -72,7 +72,7 @@ export async function POST(
 
     // Calculate due date based on payment terms
     const issued_at = new Date().toISOString();
-    let due_at = new Date();
+    const due_at = new Date();
     const termsDays = proposal.payment_terms ? parseInt(proposal.payment_terms) || 30 : 30;
     due_at.setDate(due_at.getDate() + termsDays);
 
@@ -95,6 +95,7 @@ export async function POST(
         status: 'draft',
         issued_at,
         due_at: due_at.toISOString(),
+        source_proposal_id: proposal.id, // back-link: trace this invoice to its proposal
         payment_terms: proposal.payment_terms,
         payment_schedule: proposal.payment_schedule,
         project_overview: proposal.project_overview,
@@ -118,14 +119,42 @@ export async function POST(
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    // Update proposal with conversion info
-    await supabase
+    // Mark the proposal converted. Only happens after the invoice insert
+    // succeeded, so a failure here can't leave a "converted" proposal with no
+    // invoice — at worst it stays accepted and can be retried (the invoice that
+    // was created carries source_proposal_id, so a retry is detectable).
+    const { error: markError } = await supabase
       .from("proposals")
       .update({
         converted_to_invoice_id: invoice.id,
         converted_at: new Date().toISOString()
       })
       .eq("id", id);
+
+    if (markError) {
+      console.error("Error marking proposal converted:", markError);
+    }
+
+    // Record the conversion on the client's activity timeline. Best-effort:
+    // the invoice already exists, so a logging failure must not fail the request.
+    const { error: logError } = await supabase
+      .from("client_activity_log")
+      .insert({
+        invoice_id: invoice.id,
+        client_id: proposal.client_id,
+        activity_type: 'proposal_converted',
+        activity_data: {
+          proposal_id: id,
+          proposal_number: proposal.proposal_number,
+          invoice_number: invoice.invoice_number,
+          amount_cents: proposal.amount_cents,
+          converted_at: new Date().toISOString(),
+        },
+      });
+
+    if (logError) {
+      console.error("Error logging proposal conversion:", logError);
+    }
 
     return NextResponse.json({
       success: true,

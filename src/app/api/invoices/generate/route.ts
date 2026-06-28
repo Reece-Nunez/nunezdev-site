@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { requireOwner } from "@/lib/authz";
+import {
+  Anthropic,
+  getAnthropicClient,
+  AI_MODEL,
+  extractJsonObject,
+  MissingAnthropicKeyError,
+} from "@/lib/ai/anthropic";
 
 export const runtime = "nodejs";
 
@@ -67,15 +73,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Check for API key
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "Anthropic API key not configured. Add ANTHROPIC_API_KEY to your environment." },
-      { status: 500 }
-    );
-  }
-
   try {
     const body = await req.json();
     const { prompt } = body;
@@ -94,10 +91,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = getAnthropicClient();
 
     const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: AI_MODEL,
       max_tokens: 2048,
       messages: [
         {
@@ -114,17 +111,9 @@ export async function POST(req: NextRequest) {
       throw new Error("No text response from AI");
     }
 
-    // Parse JSON from response
-    let generatedData: GeneratedInvoiceData;
-    try {
-      // Try to extract JSON from the response (handle potential markdown code blocks)
-      let jsonText = textContent.text.trim();
-      const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        jsonText = jsonMatch[1].trim();
-      }
-      generatedData = JSON.parse(jsonText);
-    } catch {
+    // Parse JSON from response (tolerates code fences and stray preamble)
+    const generatedData = extractJsonObject<GeneratedInvoiceData>(textContent.text);
+    if (!generatedData) {
       console.error("[AI Generate] Failed to parse JSON:", textContent.text);
       return NextResponse.json(
         { error: "Failed to parse AI response. Please try again." },
@@ -182,6 +171,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
+    if (error instanceof MissingAnthropicKeyError) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
     console.error("[AI Generate] Error:", error);
 
     // Handle rate limiting

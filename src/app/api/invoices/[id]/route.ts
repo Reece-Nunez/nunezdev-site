@@ -1,35 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
+import { calculateDocumentTotals } from "@/lib/documentTotals";
 import Stripe from "stripe";
 
 type Ctx = { params: Promise<{ id: string }> };
-
-interface LineItem {
-  title?: string;
-  description?: string;
-  quantity: number;
-  rate_cents: number;
-  amount_cents: number;
-}
-
-function calculateInvoiceTotals(line_items: LineItem[], discount_type?: string, discount_value?: number) {
-  const subtotal_cents = line_items.reduce((sum, item) => sum + item.amount_cents, 0);
-
-  let discount_cents = 0;
-  if (discount_value && discount_value > 0) {
-    if (discount_type === 'percentage') {
-      discount_cents = Math.round(subtotal_cents * (discount_value / 100));
-    } else if (discount_type === 'fixed') {
-      discount_cents = Math.round(discount_value * 100);
-    }
-  }
-
-  const tax_cents = 0;
-  const total_cents = subtotal_cents + tax_cents - discount_cents;
-
-  return { subtotal_cents, tax_cents, discount_cents, total_cents };
-}
 
 // Calculate installment amounts based on plan type
 function calculateInstallmentAmounts(totalCents: number, planType: string, installmentCount: number): number[] {
@@ -218,7 +193,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     // Line items - recalculate totals if provided
     if (body.line_items !== undefined) {
       updatePayload.line_items = body.line_items;
-      const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
+      const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateDocumentTotals(
         body.line_items,
         body.discount_type ?? invoice.discount_type,
         body.discount_value ?? invoice.discount_value
@@ -239,7 +214,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       // Recalculate totals if we have line items
       if (body.line_items || invoice.line_items) {
         const items = body.line_items || invoice.line_items;
-        const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateInvoiceTotals(
+        const { subtotal_cents, tax_cents, discount_cents, total_cents } = calculateDocumentTotals(
           items,
           body.discount_type ?? invoice.discount_type,
           body.discount_value
