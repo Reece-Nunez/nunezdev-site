@@ -22,6 +22,10 @@ import {
 
 type TriState = "all" | "has" | "none";
 
+// Filters persist across navigation (e.g. opening a prospect detail page and
+// hitting back) via sessionStorage — scoped to the tab, cleared when it closes.
+const FILTERS_KEY = "leadgen:prospect-filters";
+
 const SELECT_CLS =
   "px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400";
 
@@ -38,6 +42,9 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   const [website, setWebsite] = useState<TriState>("all");
   const [city, setCity] = useState("all");
   const [sort, setSort] = useState<ProspectSort>("ai_desc");
+  // Gates persistence until after the one-time restore so the initial mount
+  // doesn't overwrite stored filters with the defaults above.
+  const [hydrated, setHydrated] = useState(false);
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [isPending, startTransition] = useTransition();
@@ -96,6 +103,40 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkRun?.jobIds]);
+
+  // Restore persisted filters once on mount. Done in an effect (not lazy state
+  // init) so the server-rendered and first client render match — no hydration
+  // mismatch. setHydrated then unlocks the persist effect below.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(FILTERS_KEY);
+      if (raw) {
+        const f = JSON.parse(raw);
+        if (typeof f.search === "string") setSearch(f.search);
+        if (f.email === "all" || f.email === "has" || f.email === "none") setEmail(f.email);
+        if (f.website === "all" || f.website === "has" || f.website === "none") setWebsite(f.website);
+        if (typeof f.city === "string") setCity(f.city);
+        if (PROSPECT_SORTS.some((s) => s.value === f.sort)) setSort(f.sort);
+      }
+    } catch {
+      // Corrupt/blocked storage — fall back to defaults.
+    }
+    setHydrated(true);
+  }, []);
+
+  // Persist filters on change (after restore). Keyed on `hydrated` so the first
+  // post-restore render is what writes — never the pre-restore default render.
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      sessionStorage.setItem(
+        FILTERS_KEY,
+        JSON.stringify({ search, email, website, city, sort }),
+      );
+    } catch {
+      // Storage full/blocked — non-fatal, filters just won't persist.
+    }
+  }, [hydrated, search, email, website, city, sort]);
 
   const cities = useMemo(() => {
     const s = new Set<string>();
