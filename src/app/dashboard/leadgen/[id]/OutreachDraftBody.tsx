@@ -131,16 +131,18 @@ export default function OutreachDraftBody({
         </div>
       )}
 
-      {/* Inline screenshot preview (email only, not editable) */}
+      {/* Mockup screenshot preview. Email inlines it in the body; SMS attaches
+          it as MMS media on text 1. Shown so the operator can confirm the
+          mockup before sending. */}
       {screenshotUrl && (
         <div className="space-y-1.5">
           <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-            Inline preview
+            {isEmail ? "Inline preview" : "Attached to text 1 (MMS) + link"}
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={screenshotUrl}
-            alt="Mockup screenshot the prospect will see inline"
+            alt={isEmail ? "Mockup screenshot the prospect will see inline" : "Mockup screenshot attached to the text"}
             className="w-full max-w-[620px] rounded-lg border border-gray-200 shadow-sm"
           />
         </div>

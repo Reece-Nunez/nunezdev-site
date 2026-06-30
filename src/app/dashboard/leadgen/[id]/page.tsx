@@ -371,7 +371,10 @@ export default async function LeadgenDetail({ params }: PageProps) {
                   smsConsentBasis={detail.sms_consent?.basis ?? null}
                   smsOptedOut={detail.sms_opted_out}
                   screenshotUrl={
-                    channel === "email"
+                    // Email inlines it; SMS attaches it as MMS media on text 1.
+                    // Show it on both draft cards so the operator can confirm
+                    // the mockup before sending. (phone script has no preview.)
+                    channel === "email" || channel === "sms"
                       ? detail.proposal?.screenshot_url ?? null
                       : null
                   }
