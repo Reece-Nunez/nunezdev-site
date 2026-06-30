@@ -6,7 +6,9 @@
  * primitive — it has no opinion about consent or quiet hours. This
  * module wraps it with all the rules we promised Twilio and the carriers:
  *
- *   1. Client must have phone + sms_consent=true + sms_opted_out_at=null
+ *   1. Client must have phone + sms_opted_out_at=null (not opted out).
+ *      Affirmative consent is no longer required (owner policy) — but STOP
+ *      opt-out is still honored, here and at the carrier level.
  *   2. Org-level sms_enabled for the notification_type must be true
  *   3. Send only during quiet-hour-safe windows (9am–8pm Central, Mon–Sat)
  *   4. No duplicate sends for the same (invoice_id, reminder_type) in
@@ -16,7 +18,7 @@
  *
  * The function never throws — it returns a structured result the caller
  * can summarize. Skipping is normal and expected; the cron should treat
- * "skipped: no_consent" the same as "sent ok" for control flow.
+ * "skipped: opted_out" the same as "sent ok" for control flow.
  */
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { normalizePhoneE164 } from '@/lib/sms';
@@ -138,10 +140,8 @@ export async function sendInvoiceReminderSms(
     return { ok: false, reason: 'client_not_found', detail: clientErr?.message };
   }
 
-  if (!client.sms_consent) {
-    await logSkip(input, 'no_consent');
-    return { ok: false, reason: 'no_consent' };
-  }
+  // Consent gate removed (owner policy) — reminders go to clients directly.
+  // Opt-out (STOP), quiet hours, org toggle, and dedupe below still apply.
   if (client.sms_opted_out_at) {
     await logSkip(input, 'opted_out', client.sms_opted_out_at);
     return { ok: false, reason: 'opted_out' };

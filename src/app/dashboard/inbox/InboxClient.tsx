@@ -305,19 +305,6 @@ function Thread({
         toast.error(data.error || "Send failed");
         return;
       }
-      if (data.optInRequested) {
-        // Non-consented recipient — sent a "reply YES" opt-in request instead.
-        toast.success(
-          data.alreadyRequested
-            ? `Already asked ${data.to} to opt in — waiting on their YES.`
-            : `They haven't opted into texts yet, so we sent a quick opt-in request. Your message will go through once they reply YES.`,
-          { duration: 8000 },
-        );
-        setReply("");
-        setAttachments([]);
-        onSent();
-        return;
-      }
       setReply("");
       setAttachments([]);
       onSent();

@@ -88,20 +88,19 @@ export async function requestSmsConsent(
 }
 
 /**
- * Decide what an operator-initiated SMS (inbox composer / reply) should do,
- * given the recipient's consent state and whether they've ever texted us.
+ * Decide what an operator-initiated SMS (inbox composer / reply) should do.
  *
- *   - opted out  → 'block'         (replied STOP; don't message them)
- *   - consented  → 'send'          (they're opted in)
- *   - has texted us → 'send'       (conversational reply to a contact who
- *                                   initiated — allowed even without a formal
- *                                   opt-in; they reached out to us)
- *   - otherwise  → 'request_optin' (we're initiating to someone who hasn't
- *                                   consented → send the "reply YES" request)
+ * Policy (owner decision): the owner texts their own clients directly, so we
+ * no longer require an affirmative opt-in before sending. The ONLY hard stop
+ * is an explicit opt-out — honoring STOP is mandatory under carrier/CTIA rules
+ * regardless of consent. Quiet hours are still enforced at the send layer.
+ *
+ *   - opted out → 'block'  (replied STOP; never message them again)
+ *   - otherwise → 'send'
  *
  * Pure + exported so the rule is unit-tested independently of the route.
  */
-export type ComposerSmsAction = 'block' | 'send' | 'request_optin';
+export type ComposerSmsAction = 'block' | 'send';
 
 export function decideComposerSmsAction(state: {
   consented: boolean;
@@ -109,9 +108,7 @@ export function decideComposerSmsAction(state: {
   hasInbound: boolean;
 }): ComposerSmsAction {
   if (state.optedOut) return 'block';
-  if (state.consented) return 'send';
-  if (state.hasInbound) return 'send';
-  return 'request_optin';
+  return 'send';
 }
 
 export interface SmsConsentLookup {

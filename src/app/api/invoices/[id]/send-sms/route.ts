@@ -15,7 +15,6 @@ import { NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { sendInvoiceSmsWithGuards } from '@/lib/invoiceSms';
-import { requestSmsConsent } from '@/lib/smsConsent';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,11 +66,10 @@ export async function POST(req: Request, context: Ctx) {
     ? (clientRaw[0] ?? null)
     : (clientRaw ?? null);
 
-  // Target phone: explicit `to` overrides the client's stored number.
-  const targetPhone = (body.to ?? client?.phone ?? '').trim();
-
-  // --- Double opt-in gate (TCPA / A2P 10DLC) -----------------------------
-  // We never text an invoice to someone who hasn't agreed to texts.
+  // --- Opt-out gate ------------------------------------------------------
+  // Consent gate removed (owner policy): the owner texts clients directly,
+  // no "reply YES" opt-in required. We still refuse anyone who replied STOP —
+  // honoring opt-out is mandatory under carrier/CTIA rules.
   if (client?.sms_opted_out_at) {
     return NextResponse.json(
       {
@@ -80,25 +78,6 @@ export async function POST(req: Request, context: Ctx) {
       },
       { status: 409 }
     );
-  }
-  if (!client?.sms_consent) {
-    // First contact: send the friendly "reply YES" request instead of the
-    // invoice. Once they reply YES, consent is granted and a re-send goes
-    // through. Surfaced to the operator so they know what happened.
-    const consentReq = await requestSmsConsent({
-      to: targetPhone,
-      clientName: client?.name ?? null,
-      clientId: client?.id ?? null,
-    });
-    if (!consentReq.ok) {
-      return NextResponse.json({ error: consentReq.error }, { status: consentReq.status });
-    }
-    return NextResponse.json({
-      ok: true,
-      optInRequested: true,
-      alreadyRequested: consentReq.alreadyRequested ?? false,
-      to: consentReq.to,
-    });
   }
 
   const result = await sendInvoiceSmsWithGuards({

@@ -20,7 +20,6 @@ import { sendEmail } from '@/lib/email';
 import { sendSms, normalizePhoneE164, getSmsFromNumber } from '@/lib/sms';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
-  requestSmsConsent,
   lookupSmsConsentByPhone,
   decideComposerSmsAction,
 } from '@/lib/smsConsent';
@@ -185,10 +184,9 @@ export async function POST(req: Request) {
     ? { id: body.conversationId }
     : await findOrCreateConversation({ channel: 'sms', contactPhone: phone });
 
-  // ── Double opt-in gate ────────────────────────────────────────────────
-  // Operator-initiated texts respect the same consent policy as the invoice
-  // flow — EXCEPT a reply to someone who texted us first is allowed (they
-  // initiated). We detect that via any inbound message on this thread.
+  // ── Opt-out gate ──────────────────────────────────────────────────────
+  // Consent gate removed (owner policy): the owner texts clients directly.
+  // We still block anyone who replied STOP — honoring opt-out is mandatory.
   const supabase = supabaseAdmin();
   const { count: inboundCount } = await supabase
     .from('messages')
@@ -212,29 +210,6 @@ export async function POST(req: Request) {
       },
       { status: 409 },
     );
-  }
-
-  if (action === 'request_optin') {
-    // First contact with a non-consented number: send the "reply YES" request
-    // instead of the typed message. Re-send once they opt in.
-    const consentReq = await requestSmsConsent({
-      to: phone,
-      clientName: consent.name,
-      clientId: consent.clientId,
-    });
-    if (!consentReq.ok) {
-      return NextResponse.json(
-        { error: consentReq.error, conversationId: conv.id },
-        { status: consentReq.status },
-      );
-    }
-    return NextResponse.json({
-      ok: true,
-      optInRequested: true,
-      alreadyRequested: consentReq.alreadyRequested ?? false,
-      to: consentReq.to,
-      conversationId: conv.id,
-    });
   }
 
   const result = await sendSms({ to: phone, body: text });

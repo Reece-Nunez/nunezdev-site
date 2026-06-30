@@ -3,7 +3,6 @@ import { supabaseServer } from "@/lib/supabaseServer";
 import { requireOwner } from "@/lib/authz";
 import { sendInvoiceEmail } from "@/lib/email";
 import { sendInvoiceSmsWithGuards } from "@/lib/invoiceSms";
-import { requestSmsConsent } from "@/lib/smsConsent";
 import { isTwilioConfigured, normalizePhoneE164 } from "@/lib/sms";
 import { currency } from "@/lib/ui";
 import Stripe from "stripe";
@@ -429,10 +428,9 @@ export async function POST(req: NextRequest) {
 
       const deliveryResults: {
         email?: 'sent' | 'failed';
-        sms?: 'sent' | 'failed' | 'opt_in_requested';
+        sms?: 'sent' | 'failed';
         smsError?: string;
         emailError?: string;
-        smsOptInTo?: string;
       } = {};
 
       if (needsEmail) {
@@ -456,30 +454,14 @@ export async function POST(req: NextRequest) {
       }
 
       if (needsSms) {
-        // Same double-opt-in gate as the per-invoice "Send via Text" button:
-        // never text an invoice to someone who hasn't agreed to texts.
+        // Same opt-out gate as the per-invoice "Send via Text" button:
+        // consent gate removed (owner policy), but never text someone who
+        // replied STOP.
         if (client.sms_opted_out_at) {
           // Only reachable for 'both' (sms-only opted-out bailed in pre-flight).
           // Email already went out above — just skip the text.
           deliveryResults.sms = 'failed';
           deliveryResults.smsError = 'client opted out of texts (replied STOP)';
-        } else if (!client.sms_consent) {
-          // First contact: send the friendly "reply YES" request instead of
-          // the invoice. They opt in, then a re-send delivers the link.
-          const consentReq = await requestSmsConsent({
-            to: sms_to ?? client.phone ?? null,
-            clientName: client.name,
-            clientId: client.id,
-          });
-          if (consentReq.ok) {
-            deliveryResults.sms = 'opt_in_requested';
-            deliveryResults.smsOptInTo = consentReq.to;
-            console.log(`Combined invoice opt-in request sent to ${consentReq.to}`);
-          } else {
-            deliveryResults.sms = 'failed';
-            deliveryResults.smsError = consentReq.error;
-            console.error("Combined invoice opt-in request failed:", consentReq.error);
-          }
         } else {
           const smsResult = await sendInvoiceSmsWithGuards({
             invoiceId: newInvoice.id,
@@ -511,10 +493,9 @@ export async function POST(req: NextRequest) {
     const deliveryResults = (newInvoice as Record<string, unknown>).delivery_results as
       | {
           email?: 'sent' | 'failed';
-          sms?: 'sent' | 'failed' | 'opt_in_requested';
+          sms?: 'sent' | 'failed';
           smsError?: string;
           emailError?: string;
-          smsOptInTo?: string;
         }
       | undefined;
 
@@ -537,22 +518,12 @@ export async function POST(req: NextRequest) {
       if (deliveryResults?.sms === 'sent') sent.push('texted');
       if (deliveryResults?.sms === 'failed') failed.push(`text (${deliveryResults.smsError || 'unknown error'})`);
 
-      // Opt-in pending is neither success nor failure — the client hasn't
-      // consented, so we texted a "reply YES" request instead of the invoice.
-      // Call it out explicitly so the operator knows to re-send after the YES.
-      const optInNote =
-        deliveryResults?.sms === 'opt_in_requested'
-          ? ` ${deliveryResults.smsOptInTo ?? 'The client'} hasn't opted into texts yet, so we sent an opt-in request — re-send the text once they reply YES.`
-          : '';
-
       if (sent.length && !failed.length) {
-        message = `Combined ${invoices.length} invoices — ${sent.join(' and ')}.${optInNote}`;
+        message = `Combined ${invoices.length} invoices — ${sent.join(' and ')}.`;
       } else if (sent.length && failed.length) {
-        message = `Combined ${invoices.length} invoices. Successfully ${sent.join(' and ')}, but failed to send via ${failed.join(' and ')}.${optInNote}`;
+        message = `Combined ${invoices.length} invoices. Successfully ${sent.join(' and ')}, but failed to send via ${failed.join(' and ')}.`;
       } else if (failed.length) {
-        message = `Combined ${invoices.length} invoices but delivery failed: ${failed.join(', ')}. You can resend manually from the invoice detail page.${optInNote}`;
-      } else if (optInNote) {
-        message = `Combined ${invoices.length} invoices into ${newInvoiceNumber}.${optInNote}`;
+        message = `Combined ${invoices.length} invoices but delivery failed: ${failed.join(', ')}. You can resend manually from the invoice detail page.`;
       } else {
         message = `Combined ${invoices.length} invoices into ${newInvoiceNumber}.`;
       }

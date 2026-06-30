@@ -34,10 +34,12 @@ describe("decideComposerSmsAction", () => {
     );
   });
 
-  it("requests opt-in for a cold text to a non-consented number", () => {
+  it("sends a cold text to a non-consented number (consent gate removed)", () => {
+    // Owner policy: affirmative opt-in is no longer required. The only hard
+    // stop is an explicit opt-out (covered by the 'block' case above).
     assert.equal(
       decideComposerSmsAction({ optedOut: false, consented: false, hasInbound: false }),
-      "request_optin",
+      "send",
     );
   });
 });
