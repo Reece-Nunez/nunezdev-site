@@ -19,6 +19,21 @@ module.exports = {
         blue: "#5b7c99",
         offwhite: "#fff8f1",
       },
+      // Semantic design tokens (values in src/app/globals.css :root). Use as
+      // bg-ds-surface, text-ds-muted, border-ds-border, etc. The `<alpha-value>`
+      // wiring makes opacity modifiers (bg-ds-surface/50) work.
+      ds: {
+        bg: "rgb(var(--ds-bg) / <alpha-value>)",
+        surface: "rgb(var(--ds-surface) / <alpha-value>)",
+        "surface-2": "rgb(var(--ds-surface-2) / <alpha-value>)",
+        border: "rgb(var(--ds-border) / <alpha-value>)",
+        text: "rgb(var(--ds-text) / <alpha-value>)",
+        muted: "rgb(var(--ds-text-muted) / <alpha-value>)",
+        subtle: "rgb(var(--ds-text-subtle) / <alpha-value>)",
+        accent: "rgb(var(--ds-accent) / <alpha-value>)",
+        "accent-ink": "rgb(var(--ds-accent-ink) / <alpha-value>)",
+        danger: "rgb(var(--ds-danger) / <alpha-value>)",
+      },
     },
   },
 },

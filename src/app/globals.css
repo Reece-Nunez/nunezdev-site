@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens ─────────────────────────────────────────────────────────
+   Semantic surface/border/text/accent tokens so components stop hardcoding
+   raw Tailwind grays. Values are space-separated RGB channels so Tailwind's
+   `/opacity` modifiers work (see tailwind.config `ds` colors → `bg-ds-surface`,
+   `text-ds-muted`, `border-ds-border`, …). Adopt incrementally; brand.* stays
+   the source of truth for the yellow/black brand accent. */
+:root {
+  --ds-bg: 243 244 246;          /* page background — gray-100 */
+  --ds-surface: 255 255 255;     /* cards / panels — white */
+  --ds-surface-2: 249 250 251;   /* subtle raised / hover — gray-50 */
+  --ds-border: 229 231 235;      /* hairlines — gray-200 */
+  --ds-text: 17 24 39;           /* primary text — gray-900 */
+  --ds-text-muted: 107 114 128;  /* secondary text — gray-500 */
+  --ds-text-subtle: 156 163 175; /* tertiary text — gray-400 */
+  --ds-accent: 255 195 18;       /* brand yellow */
+  --ds-accent-ink: 17 17 17;     /* text on the accent — brand black */
+  --ds-danger: 220 38 38;        /* destructive — red-600 */
+}
+
 body {
   font-family: var(--font-space-grotesk), sans-serif;
 }

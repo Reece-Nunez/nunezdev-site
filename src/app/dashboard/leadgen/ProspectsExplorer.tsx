@@ -12,6 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 import type { BusinessSummary } from "@/lib/leadgen-db";
 import BusinessesTable from "./BusinessesTable";
+import { Button } from "@/components/ui/Button";
 import { bulkRunStage, bulkJobProgress, cancelBulkRun } from "./actions";
 import {
   filterSortProspects,
@@ -419,9 +420,9 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         <div className="sticky top-2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-gray-300 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
           <span className="text-sm font-medium text-gray-900">{selected.size} selected</span>
           <span className="text-gray-300">·</span>
-          <BulkButton onClick={() => runBulk("research")} disabled={isPending} icon={BeakerIcon}>Research</BulkButton>
-          <BulkButton onClick={() => runBulk("build")} disabled={isPending} icon={DocumentCheckIcon}>Build</BulkButton>
-          <BulkButton onClick={() => runBulk("outreach")} disabled={isPending} icon={PaperAirplaneIcon}>Outreach</BulkButton>
+          <Button variant="secondary" onClick={() => runBulk("research")} disabled={isPending} leftIcon={<BeakerIcon className="w-4 h-4" />}>Research</Button>
+          <Button variant="secondary" onClick={() => runBulk("build")} disabled={isPending} leftIcon={<DocumentCheckIcon className="w-4 h-4" />}>Build</Button>
+          <Button variant="secondary" onClick={() => runBulk("outreach")} disabled={isPending} leftIcon={<PaperAirplaneIcon className="w-4 h-4" />}>Outreach</Button>
           <button
             type="button"
             onClick={() => setSelected(new Set())}
@@ -450,26 +451,3 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   );
 }
 
-function BulkButton({
-  onClick,
-  disabled,
-  icon: Icon,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  icon: React.ComponentType<{ className?: string }>;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      <Icon className="w-4 h-4" />
-      {children}
-    </button>
-  );
-}
