@@ -604,12 +604,8 @@ function OutreachBlock({
     phone: PhoneArrowUpRightIcon,
   };
   const Icon = Icons[item.channel];
-  const statusBadge =
-    item.status === "sent"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : item.status === "failed"
-      ? "bg-red-50 text-red-700 border-red-200"
-      : "bg-gray-100 text-gray-700 border-gray-200";
+  const statusTone =
+    item.status === "sent" ? "success" : item.status === "failed" ? "danger" : "neutral";
 
   // Send affordance per channel. Email goes through Resend with the inline
   // screenshot. SMS goes through Twilio behind the consent gate (see
@@ -641,9 +637,7 @@ function OutreachBlock({
               optedOut={smsOptedOut}
             />
           )}
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${statusBadge}`}>
-            {item.status}
-          </span>
+          <Badge tone={statusTone}>{item.status}</Badge>
         </div>
       </div>
       <div className="p-3.5">
