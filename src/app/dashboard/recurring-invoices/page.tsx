@@ -5,6 +5,7 @@ import useSWR, { mutate } from 'swr';
 import Link from 'next/link';
 import { currency, prettyDate } from '@/lib/ui';
 import { useToast, useConfirm } from '@/components/ui/Toast';
+import { Badge, type BadgeTone } from '@/components/ui/Badge';
 
 interface RecurringInvoice {
   id: string;
@@ -151,14 +152,14 @@ export default function RecurringInvoicesPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusStyles = {
-      active: 'bg-green-100 text-green-800',
-      paused: 'bg-yellow-100 text-yellow-800',
-      cancelled: 'bg-red-100 text-red-800',
-      completed: 'bg-gray-100 text-gray-800'
+  const getStatusTone = (status: string): BadgeTone => {
+    const tones: Record<string, BadgeTone> = {
+      active: 'success',
+      paused: 'warning',
+      cancelled: 'danger',
+      completed: 'muted',
     };
-    return statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800';
+    return tones[status] ?? 'neutral';
   };
 
   const getFrequencyText = (frequency: string) => {
@@ -329,9 +330,7 @@ export default function RecurringInvoicesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(recurringInvoice.status)}`}>
-                        {recurringInvoice.status}
-                      </span>
+                      <Badge tone={getStatusTone(recurringInvoice.status)}>{recurringInvoice.status}</Badge>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm">
@@ -1083,20 +1082,20 @@ function LogStatusIcon({ status, eventType }: { status: string; eventType: strin
 }
 
 function LogEventBadge({ eventType }: { eventType: string }) {
-  const styles: Record<string, string> = {
-    processing_started: 'bg-blue-100 text-blue-800',
-    processing_completed: 'bg-blue-100 text-blue-800',
-    invoice_created: 'bg-green-100 text-green-800',
-    email_sent: 'bg-green-100 text-green-800',
-    email_failed: 'bg-red-100 text-red-800',
-    stripe_link_created: 'bg-purple-100 text-purple-800',
-    stripe_link_failed: 'bg-red-100 text-red-800',
-    payment_received: 'bg-emerald-100 text-emerald-800',
-    payment_failed: 'bg-red-100 text-red-800',
-    invoice_opened: 'bg-indigo-100 text-indigo-800',
-    skipped: 'bg-yellow-100 text-yellow-800',
-    completed: 'bg-gray-100 text-gray-800',
-    error: 'bg-red-100 text-red-800',
+  const tones: Record<string, BadgeTone> = {
+    processing_started: 'info',
+    processing_completed: 'info',
+    invoice_created: 'success',
+    email_sent: 'success',
+    email_failed: 'danger',
+    stripe_link_created: 'purple',
+    stripe_link_failed: 'danger',
+    payment_received: 'success',
+    payment_failed: 'danger',
+    invoice_opened: 'info',
+    skipped: 'warning',
+    completed: 'muted',
+    error: 'danger',
   };
 
   const labels: Record<string, string> = {
@@ -1115,9 +1114,5 @@ function LogEventBadge({ eventType }: { eventType: string }) {
     error: 'Error',
   };
 
-  return (
-    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${styles[eventType] || 'bg-gray-100 text-gray-800'}`}>
-      {labels[eventType] || eventType}
-    </span>
-  );
+  return <Badge tone={tones[eventType] ?? 'neutral'}>{labels[eventType] || eventType}</Badge>;
 }

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireProspecting } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { Badge } from '@/components/ui/Badge';
 import { extractLeadDetails, isThumbtackLeadEvent } from '@/lib/thumbtackWebhook';
 
 export const dynamic = 'force-dynamic';
@@ -190,19 +191,13 @@ export default async function ThumbtackLeadsPage() {
                       {dollars(lead.leadPriceCents) ?? <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="inline-flex text-xs px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
-                        {lead.status || 'lead'}
-                      </span>
+                      <Badge tone="info">{lead.status || 'lead'}</Badge>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       {row.processed ? (
-                        <span className="inline-flex text-xs px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">
-                          In expenses
-                        </span>
+                        <Badge tone="success">In expenses</Badge>
                       ) : (
-                        <span className="inline-flex text-xs px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
-                          Pending
-                        </span>
+                        <Badge tone="warning">Pending</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
