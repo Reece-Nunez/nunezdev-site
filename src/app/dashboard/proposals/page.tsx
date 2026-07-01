@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useToast, useConfirm } from '@/components/ui/Toast';
+import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { currency } from '@/lib/ui';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
@@ -23,13 +24,13 @@ interface Proposal {
   clients?: { id: string; name?: string; email?: string; company?: string } | null;
 }
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-700',
-  sent: 'bg-blue-100 text-blue-700',
-  viewed: 'bg-purple-100 text-purple-700',
-  accepted: 'bg-emerald-100 text-emerald-700',
-  rejected: 'bg-red-100 text-red-700',
-  expired: 'bg-amber-100 text-amber-700'
+const statusTone: Record<string, BadgeTone> = {
+  draft: 'neutral',
+  sent: 'info',
+  viewed: 'purple',
+  accepted: 'success',
+  rejected: 'danger',
+  expired: 'warning'
 };
 
 const statusLabels: Record<string, string> = {
@@ -207,9 +208,7 @@ export default function ProposalsPage() {
                         </td>
                         <td className="px-4 py-3 font-semibold text-sm">{currency(p.amount_cents)}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColors[p.status]}`}>
-                            {statusLabels[p.status]}
-                          </span>
+                          <Badge tone={statusTone[p.status] ?? 'neutral'}>{statusLabels[p.status]}</Badge>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500">
                           {p.valid_until ? new Date(p.valid_until).toLocaleDateString() : '-'}
@@ -276,9 +275,7 @@ export default function ProposalsPage() {
                         <div className="font-medium text-sm">{p.proposal_number}</div>
                         <div className="text-xs text-gray-500">{p.title}</div>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[p.status]}`}>
-                        {statusLabels[p.status]}
-                      </span>
+                      <Badge tone={statusTone[p.status] ?? 'neutral'}>{statusLabels[p.status]}</Badge>
                     </div>
                     <div className="flex items-center justify-between text-sm mb-3">
                       <span className="text-gray-600">{p.clients?.name || 'Unknown'}</span>

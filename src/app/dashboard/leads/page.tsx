@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireProspecting } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { Badge, type BadgeTone } from '@/components/ui/Badge';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -26,13 +27,13 @@ const STATUS_FILTERS = ['active', 'new', 'contacted', 'qualified', 'converted', 
 // Hides 'converted' (already a client) and 'lost' (preserved for analytics but noise day-to-day).
 const ACTIVE_STATUSES = ['new', 'contacted', 'nurturing', 'qualified'] as const;
 
-const STATUS_STYLES: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-700 border-blue-200',
-  contacted: 'bg-amber-50 text-amber-700 border-amber-200',
-  nurturing: 'bg-purple-50 text-purple-700 border-purple-200',
-  qualified: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  converted: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  lost: 'bg-gray-100 text-gray-600 border-gray-200',
+const STATUS_TONE: Record<string, BadgeTone> = {
+  new: 'info',
+  contacted: 'warning',
+  nurturing: 'purple',
+  qualified: 'success',
+  converted: 'success',
+  lost: 'muted',
 };
 
 function formatDate(iso: string) {
@@ -179,13 +180,7 @@ export default async function LeadsPage({
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex text-xs px-2 py-0.5 rounded-full border ${
-                          STATUS_STYLES[lead.status] || 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {lead.status}
-                      </span>
+                      <Badge tone={STATUS_TONE[lead.status] ?? 'neutral'}>{lead.status}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
                       {lead.project_type || <span className="text-gray-400">—</span>}

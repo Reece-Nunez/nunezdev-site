@@ -6,16 +6,17 @@
 import Link from "next/link";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import type { BusinessStatus, BusinessSummary } from "@/lib/leadgen-db";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { aiScoreClass } from "./utils";
 
-const STATUS_STYLES: Record<BusinessStatus, string> = {
-  new:             "bg-blue-50 text-blue-700 border-blue-200",
-  researched:      "bg-purple-50 text-purple-700 border-purple-200",
-  proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-  contacted:       "bg-gray-100 text-gray-700 border-gray-200",
-  replied:         "bg-orange-50 text-orange-700 border-orange-200",
-  converted:       "bg-green-100 text-green-800 border-green-300",
-  not_interested:  "bg-red-50 text-red-700 border-red-200",
+const STATUS_TONE: Record<BusinessStatus, BadgeTone> = {
+  new:             "info",
+  researched:      "purple",
+  proposal_built:  "success",
+  contacted:       "neutral",
+  replied:         "warning",
+  converted:       "success",
+  not_interested:  "danger",
 };
 
 const STATUS_LABELS: Record<BusinessStatus, string> = {
@@ -128,11 +129,7 @@ export default function BusinessesTable({
                   )}
                 </td>
                 <td className="px-3 py-3 text-center">
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${STATUS_STYLES[b.status]}`}
-                  >
-                    {STATUS_LABELS[b.status]}
-                  </span>
+                  <Badge tone={STATUS_TONE[b.status]}>{STATUS_LABELS[b.status]}</Badge>
                 </td>
                 <td className="px-2 py-3">
                   <Link
