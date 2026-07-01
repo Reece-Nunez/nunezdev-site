@@ -33,25 +33,56 @@ import {
   MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 
-const items = [
-  { href: '/dashboard', label: 'Overview', icon: HomeIcon },
-  { href: '/dashboard/inbox', label: 'Inbox', icon: ChatBubbleLeftRightIcon },
-  { href: '/dashboard/leads', label: 'Leads', icon: UserPlusIcon },
-  { href: '/dashboard/thumbtack', label: 'Thumbtack Leads', icon: BoltIcon },
-  { href: '/dashboard/leadgen', label: 'Prospecting', icon: MagnifyingGlassIcon },
-  { href: '/dashboard/leadgen/ads', label: 'Google Ads', icon: MegaphoneIcon },
-  { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
-  { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
-  { href: '/dashboard/invoices', label: 'Invoices', icon: DocumentTextIcon },
-  { href: '/dashboard/proposals', label: 'Proposals', icon: DocumentCheckIcon },
-  { href: '/dashboard/time', label: 'Time Tracking', icon: ClockIcon },
-  { href: '/dashboard/expenses', label: 'Expenses', icon: BanknotesIcon },
-  { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices', icon: ArrowPathIcon },
-  { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
-  { href: '/dashboard/tax-documents', label: 'Tax Documents', icon: DocumentArrowDownIcon },
-  { href: '/dashboard/client-reports', label: 'Client Reports', icon: DocumentChartBarIcon },
-  { href: '/dashboard/client-portal', label: 'Client Portal', icon: CloudArrowUpIcon },
-  { href: '/dashboard/settings', label: 'Business Profile', icon: Cog6ToothIcon },
+type NavItem = { href: string; label: string; icon: typeof HomeIcon };
+
+// Nav grouped into labeled sections so 18 flat items don't read as one long
+// undifferentiated scan. Order within a section follows the workflow (e.g.
+// proposal → invoice → payment). The prospector role is filtered per-section
+// below; empty sections are dropped.
+const navSections: { label: string | null; items: NavItem[] }[] = [
+  {
+    label: null,
+    items: [
+      { href: '/dashboard', label: 'Overview', icon: HomeIcon },
+      { href: '/dashboard/inbox', label: 'Inbox', icon: ChatBubbleLeftRightIcon },
+    ],
+  },
+  {
+    label: 'Sales pipeline',
+    items: [
+      { href: '/dashboard/leads', label: 'Leads', icon: UserPlusIcon },
+      { href: '/dashboard/thumbtack', label: 'Thumbtack Leads', icon: BoltIcon },
+      { href: '/dashboard/leadgen', label: 'Prospecting', icon: MagnifyingGlassIcon },
+      { href: '/dashboard/leadgen/ads', label: 'Google Ads', icon: MegaphoneIcon },
+      { href: '/dashboard/proposals', label: 'Proposals', icon: DocumentCheckIcon },
+    ],
+  },
+  {
+    label: 'Clients',
+    items: [
+      { href: '/dashboard/clients', label: 'Clients', icon: UsersIcon },
+      { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
+      { href: '/dashboard/client-portal', label: 'Client Portal', icon: CloudArrowUpIcon },
+      { href: '/dashboard/client-reports', label: 'Client Reports', icon: DocumentChartBarIcon },
+    ],
+  },
+  {
+    label: 'Billing & finance',
+    items: [
+      { href: '/dashboard/invoices', label: 'Invoices', icon: DocumentTextIcon },
+      { href: '/dashboard/recurring-invoices', label: 'Recurring Invoices', icon: ArrowPathIcon },
+      { href: '/dashboard/payments', label: 'Payments', icon: CreditCardIcon },
+      { href: '/dashboard/expenses', label: 'Expenses', icon: BanknotesIcon },
+      { href: '/dashboard/time', label: 'Time Tracking', icon: ClockIcon },
+      { href: '/dashboard/tax-documents', label: 'Tax Documents', icon: DocumentArrowDownIcon },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { href: '/dashboard/settings', label: 'Business Profile', icon: Cog6ToothIcon },
+    ],
+  },
 ];
 
 const adminTools = [
@@ -73,9 +104,14 @@ export default function Sidebar({ role }: { role?: OrgRole }) {
   // A prospector only gets the lead-gen surface: filter the nav and drop the
   // owner-only chrome (admin tools, notifications, "New Client").
   const isProspector = role === 'prospector';
-  const navItems = isProspector
-    ? items.filter((it) => PROSPECTOR_NAV_HREFS.includes(it.href))
-    : items;
+  const sections = navSections
+    .map((sec) => ({
+      ...sec,
+      items: isProspector
+        ? sec.items.filter((it) => PROSPECTOR_NAV_HREFS.includes(it.href))
+        : sec.items,
+    }))
+    .filter((sec) => sec.items.length > 0);
 
   // Poll the unread-inbox count for the nav badge. Mirrors NotificationBell:
   // 60s interval + refetch on tab focus. `pathname` is a dep so navigating
@@ -148,44 +184,60 @@ export default function Sidebar({ role }: { role?: OrgRole }) {
       )}
 
       <div className="flex-1 overflow-y-auto">
-      <nav className="p-2 space-y-1">
-        {navItems.map((it) => {
-          const Icon = it.icon;
-          const badge = it.href === '/dashboard/inbox' ? inboxUnread : 0;
-          const badgeText = badge > 9 ? '9+' : String(badge);
-          return (
-            <Link
-              key={it.href}
-              href={it.href}
-              className={
-                `flex items-center rounded-lg px-3 py-2 text-sm transition-colors ${
-                  isCollapsed ? 'justify-center' : ''
-                } ` +
-                (isActive(it.href)
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'hover:bg-gray-50 text-gray-700')
-              }
-              title={isCollapsed ? it.label : undefined}
-            >
-              <span className={`relative shrink-0 ${isCollapsed ? '' : 'mr-3'}`}>
-                <Icon className="w-5 h-5" />
-                {/* Collapsed: compact count bubble on the icon corner. */}
-                {isCollapsed && badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold text-white bg-red-500 rounded-full">
-                    {badgeText}
-                  </span>
-                )}
-              </span>
-              {!isCollapsed && <span className="truncate">{it.label}</span>}
-              {/* Expanded: count pill pushed to the right edge. */}
-              {!isCollapsed && badge > 0 && (
-                <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">
-                  {badgeText}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav className="p-2">
+        {sections.map((section, si) => (
+          <div key={section.label ?? `sec-${si}`} className={si > 0 ? 'mt-4' : ''}>
+            {/* Expanded: a section label. Collapsed: a hairline divider between
+                groups (skip before the first section). */}
+            {section.label && !isCollapsed && (
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                {section.label}
+              </div>
+            )}
+            {isCollapsed && si > 0 && (
+              <div className="mx-2 mb-2 border-t border-gray-100" aria-hidden="true" />
+            )}
+            <div className="space-y-1">
+              {section.items.map((it) => {
+                const Icon = it.icon;
+                const badge = it.href === '/dashboard/inbox' ? inboxUnread : 0;
+                const badgeText = badge > 9 ? '9+' : String(badge);
+                return (
+                  <Link
+                    key={it.href}
+                    href={it.href}
+                    className={
+                      `flex items-center rounded-lg px-3 py-2 text-sm transition-colors ${
+                        isCollapsed ? 'justify-center' : ''
+                      } ` +
+                      (isActive(it.href)
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'hover:bg-gray-50 text-gray-700')
+                    }
+                    title={isCollapsed ? it.label : undefined}
+                  >
+                    <span className={`relative shrink-0 ${isCollapsed ? '' : 'mr-3'}`}>
+                      <Icon className="w-5 h-5" />
+                      {/* Collapsed: compact count bubble on the icon corner. */}
+                      {isCollapsed && badge > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-bold text-white bg-red-500 rounded-full">
+                          {badgeText}
+                        </span>
+                      )}
+                    </span>
+                    {!isCollapsed && <span className="truncate">{it.label}</span>}
+                    {/* Expanded: count pill pushed to the right edge. */}
+                    {!isCollapsed && badge > 0 && (
+                      <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1.5 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                        {badgeText}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Admin Tools Section - Collapsible (owner only) */}
