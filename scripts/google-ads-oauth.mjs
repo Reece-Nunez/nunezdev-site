@@ -67,7 +67,12 @@ const authUrl = oauth2.generateAuthUrl({
 function openBrowser(url) {
   try {
     if (process.platform === "win32") {
-      spawn("cmd", ["/c", "start", "", url], { stdio: "ignore", detached: true }).unref();
+      // NOT `cmd /c start`: cmd treats the `&` between query params as a
+      // command separator and truncates the auth URL at the first `&`,
+      // dropping response_type etc. — Google then rejects it as
+      // invalid_request. rundll32 receives the URL as a single argument with
+      // no shell parsing, so `&` is preserved.
+      spawn("rundll32", ["url.dll,FileProtocolHandler", url], { stdio: "ignore", detached: true }).unref();
     } else if (process.platform === "darwin") {
       spawn("open", [url], { stdio: "ignore", detached: true }).unref();
     } else {
