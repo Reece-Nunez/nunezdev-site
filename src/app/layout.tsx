@@ -18,6 +18,7 @@ import Script from "next/script";
 import Footer from "@/components/Footer";
 import Providers from "./providers";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -163,6 +164,16 @@ export default function RootLayout({
         <Providers>{children}</Providers>
         <Footer />
         <ServiceWorkerRegister />
+        {/* Single app-wide toast pipeline. Every toast — direct react-hot-toast
+            calls AND the ui/useToast adapter — renders here, so there's one
+            visual language app-wide (dashboard, portal, and public pages). */}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            duration: 4000,
+            style: { borderRadius: "10px", background: "#1f2937", color: "#fff" },
+          }}
+        />
       </body>
     </html>
   );

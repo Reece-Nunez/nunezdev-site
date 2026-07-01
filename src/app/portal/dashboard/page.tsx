@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import FileDropzone, { UploadedFileInfo } from '@/components/portal/FileDropzone';
 import UploadProgress, { UploadFile } from '@/components/portal/UploadProgress';
 import UploadSuccessAnimation from '@/components/portal/UploadSuccessAnimation';
@@ -386,16 +386,7 @@ export default function PortalDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            maxWidth: 480,
-            fontSize: 14,
-            lineHeight: 1.4,
-          },
-        }}
-      />
+      {/* Toaster lives in the root layout now (single app-wide pipeline). */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

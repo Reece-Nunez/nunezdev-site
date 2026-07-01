@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import hotToast from 'react-hot-toast';
 
 interface ToastProps {
   message: string;
@@ -90,31 +91,26 @@ export default function Toast({ message, type = 'info', duration = 3000, onClose
   );
 }
 
-// Toast provider hook
+// Toast hook — now a thin adapter over the single app-wide react-hot-toast
+// pipeline (mounted once in the root layout). Historically this was a second,
+// self-contained toast system; delegating here collapses the two systems into
+// one visual language without having to edit every showToast() caller.
+//
+// `ToastContainer` is a no-op kept for API compatibility: existing callers
+// still render <ToastContainer /> in their JSX, but the root <Toaster> does
+// the actual rendering. New code should call react-hot-toast's `toast`
+// directly; this adapter can be retired call-site by call-site.
 export function useToast() {
-  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' }>>([]);
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  const ToastContainer = () => (
-    <>
-      {toasts.map(toast => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
-    </>
+  const showToast = useCallback(
+    (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+      if (type === 'success') hotToast.success(message);
+      else if (type === 'error') hotToast.error(message);
+      else hotToast(message);
+    },
+    [],
   );
+
+  const ToastContainer = useCallback(() => null, []);
 
   return { showToast, ToastContainer };
 }
