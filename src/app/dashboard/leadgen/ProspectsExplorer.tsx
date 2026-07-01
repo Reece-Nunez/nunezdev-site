@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
-  MagnifyingGlassIcon,
   BeakerIcon,
   DocumentCheckIcon,
   PaperAirplaneIcon,
@@ -13,6 +12,8 @@ import {
 import type { BusinessSummary } from "@/lib/leadgen-db";
 import BusinessesTable from "./BusinessesTable";
 import { Button } from "@/components/ui/Button";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { FilterSelect } from "@/components/ui/FilterSelect";
 import { bulkRunStage, bulkJobProgress, cancelBulkRun } from "./actions";
 import {
   filterSortProspects,
@@ -27,9 +28,6 @@ type MobileFilter = "all" | "mobile" | "not_mobile";
 // Filters persist across navigation (e.g. opening a prospect detail page and
 // hitting back) via sessionStorage — scoped to the tab, cleared when it closes.
 const FILTERS_KEY = "leadgen:prospect-filters";
-
-const SELECT_CLS =
-  "px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400";
 
 /**
  * Filter / sort / search over the prospect list, with multi-select bulk
@@ -276,49 +274,45 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
     <div className="space-y-3">
       {/* ── Toolbar ───────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, category, email, city…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
-          />
-        </div>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search name, category, email, city…"
+          className="flex-1 min-w-[200px]"
+        />
 
-        <select value={email} onChange={(e) => setEmail(e.target.value as TriState)} className={SELECT_CLS} aria-label="Email filter">
+        <FilterSelect value={email} onChange={(v) => setEmail(v as TriState)} aria-label="Email filter">
           <option value="all">Email: any</option>
           <option value="has">Has email</option>
           <option value="none">No email</option>
-        </select>
+        </FilterSelect>
 
-        <select value={website} onChange={(e) => setWebsite(e.target.value as TriState)} className={SELECT_CLS} aria-label="Website filter">
+        <FilterSelect value={website} onChange={(v) => setWebsite(v as TriState)} aria-label="Website filter">
           <option value="all">Website: any</option>
           <option value="has">Has website</option>
           <option value="none">No website</option>
-        </select>
+        </FilterSelect>
 
-        <select value={mobile} onChange={(e) => setMobile(e.target.value as MobileFilter)} className={SELECT_CLS} aria-label="Phone type filter">
+        <FilterSelect value={mobile} onChange={(v) => setMobile(v as MobileFilter)} aria-label="Phone type filter">
           <option value="all">Phone: any</option>
           <option value="mobile">Mobile only</option>
           <option value="not_mobile">Not mobile</option>
-        </select>
+        </FilterSelect>
 
         {cities.length > 1 && (
-          <select value={city} onChange={(e) => setCity(e.target.value)} className={SELECT_CLS} aria-label="City filter">
+          <FilterSelect value={city} onChange={setCity} aria-label="City filter">
             <option value="all">All cities</option>
             {cities.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
-          </select>
+          </FilterSelect>
         )}
 
-        <select value={sort} onChange={(e) => setSort(e.target.value as ProspectSort)} className={SELECT_CLS} aria-label="Sort">
+        <FilterSelect value={sort} onChange={(v) => setSort(v as ProspectSort)} aria-label="Sort">
           {PROSPECT_SORTS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
-        </select>
+        </FilterSelect>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
