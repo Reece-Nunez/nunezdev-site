@@ -9,3 +9,15 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-lora), serif;
 }
+
+/* Dashboard is an operational tool, not the marketing site — serif headings
+   add noise against dense tabular data. Scope headings inside the dashboard
+   back to the grotesk body face. Marketing keeps Lora. */
+.dashboard-scope h1,
+.dashboard-scope h2,
+.dashboard-scope h3,
+.dashboard-scope h4,
+.dashboard-scope h5,
+.dashboard-scope h6 {
+  font-family: var(--font-space-grotesk), sans-serif;
+}

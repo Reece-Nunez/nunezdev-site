@@ -231,7 +231,7 @@ export default function ProjectsTab({
                   <select
                     value={projectClientId}
                     onChange={(e) => setProjectClientId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent"
                     required
                   >
                     <option value="">Choose a client...</option>
@@ -251,7 +251,7 @@ export default function ProjectsTab({
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g., Kitchen Remodel Photos"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent"
                     required
                   />
                 </div>
@@ -265,7 +265,7 @@ export default function ProjectsTab({
                   value={projectDescription}
                   onChange={(e) => setProjectDescription(e.target.value)}
                   placeholder="e.g., Upload before/after photos"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent"
                 />
               </div>
               <div className="flex gap-3">

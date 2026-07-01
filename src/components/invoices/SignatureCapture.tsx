@@ -118,7 +118,7 @@ export default function SignatureCapture({
               type="text"
               value={signerName}
               onChange={(e) => setSignerName(e.target.value)}
-              className="w-full px-2 py-1.5 sm:px-3 sm:py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow"
+              className="w-full px-2 py-1.5 sm:px-3 sm:py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
               required
             />
           </div>
@@ -130,7 +130,7 @@ export default function SignatureCapture({
               type="email"
               value={signerEmail}
               onChange={(e) => setSignerEmail(e.target.value)}
-              className="w-full px-2 py-1.5 sm:px-3 sm:py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow"
+              className="w-full px-2 py-1.5 sm:px-3 sm:py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow"
               required
             />
           </div>

@@ -101,7 +101,7 @@ export default function PortalUsersTab({
                       const client = clients.find(c => c.id === e.target.value);
                       if (client?.email) setInviteEmail(client.email);
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent"
                     required
                   >
                     <option value="">Choose a client...</option>
@@ -121,7 +121,7 @@ export default function PortalUsersTab({
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="client@example.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent"
                     required
                   />
                 </div>

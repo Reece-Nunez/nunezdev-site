@@ -46,7 +46,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
     });
   }
 
-  function confirm(toEmail: string, override: boolean) {
+  function submitEmail(toEmail: string, override: boolean) {
     const clean = toEmail.trim();
     if (!EMAIL_RE.test(clean)) {
       toast.error("Enter a valid email address");
@@ -94,7 +94,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && email.trim()) confirm(email, true);
+            if (e.key === "Enter" && email.trim()) submitEmail(email, true);
           }}
           placeholder="name@business.com"
           disabled={isPending}
@@ -102,7 +102,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
         />
         <button
           type="button"
-          onClick={() => confirm(email, true)}
+          onClick={() => submitEmail(email, true)}
           disabled={isPending || !email.trim()}
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-brand-yellow text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 hover:shadow-[0_0_18px_rgba(255,195,18,0.35)] transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
         >
@@ -130,7 +130,7 @@ export default function SendEmailButton({ businessId, recipientEmail }: Props) {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        onClick={() => confirm(recipientEmail as string, false)}
+        onClick={() => submitEmail(recipientEmail as string, false)}
         disabled={isPending}
         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-brand-yellow text-brand-black border border-brand-yellow hover:bg-brand-yellow/90 hover:shadow-[0_0_18px_rgba(255,195,18,0.35)] transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
       >

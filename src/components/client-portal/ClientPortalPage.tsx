@@ -126,7 +126,7 @@ export default function ClientPortalPage() {
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent text-sm"
             >
               <option value="">All Clients</option>
               {clients.map((client) => (
@@ -152,7 +152,7 @@ export default function ClientPortalPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search projects and users..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent text-sm"
               />
               {searchQuery && (
                 <button

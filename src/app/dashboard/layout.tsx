@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardClient>
-      <div className="min-h-screen bg-gray-100">
+      <div className="dashboard-scope min-h-screen bg-gray-100">
         <MobileNavigation role={role} />
 
         <div className="flex">
@@ -27,7 +27,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Sidebar role={role} />
           </div>
 
-          <main className="flex-1 pt-32 lg:pt-6 max-w-full overflow-hidden">
+          {/* overflow-x-clip (not overflow-hidden) so wide tables can't cause
+              horizontal scroll while still letting `position: sticky` toolbars
+              inside pages work — overflow-hidden establishes a scroll container
+              that breaks sticky. */}
+          <main className="flex-1 pt-32 lg:pt-6 max-w-full overflow-x-clip">
             {children}
           </main>
         </div>

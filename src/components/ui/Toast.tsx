@@ -160,15 +160,15 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: (resul
   const variantStyles = {
     danger: {
       icon: 'bg-red-100 text-red-600',
-      button: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+      button: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
     },
     warning: {
       icon: 'bg-orange-100 text-orange-600',
-      button: 'bg-orange-500 hover:bg-orange-600 focus:ring-orange-500',
+      button: 'bg-orange-500 hover:bg-orange-600 focus-visible:ring-orange-500',
     },
     info: {
       icon: 'bg-blue-100 text-blue-600',
-      button: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+      button: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
     },
   };
 
@@ -214,13 +214,13 @@ function ConfirmModal({ state, onClose }: { state: ConfirmState; onClose: (resul
           <button
             ref={cancelRef}
             onClick={() => close(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-400 transition-colors"
           >
             {state.cancelLabel || 'Cancel'}
           </button>
           <button
             onClick={() => close(true)}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${v.button}`}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 transition-colors ${v.button}`}
           >
             {state.confirmLabel || 'Confirm'}
           </button>

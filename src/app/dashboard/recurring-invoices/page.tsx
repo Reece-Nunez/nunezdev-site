@@ -615,7 +615,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </label>
                 <select
                   name="client_id"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 >
                   <option value="">Select a client...</option>
@@ -635,7 +635,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                   type="text"
                   name="title"
                   defaultValue="Monthly Hosting & Maintenance"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
@@ -646,7 +646,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </label>
                 <textarea
                   name="description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   rows={3}
                   placeholder="Monthly hosting, SSL certificate, security monitoring, and website maintenance"
                 />
@@ -658,7 +658,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 </label>
                 <select
                   name="frequency"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 >
                   <option value="monthly">Monthly</option>
@@ -678,7 +678,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                   min="1"
                   max="31"
                   defaultValue="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   placeholder="1st of each month"
                 />
               </div>
@@ -692,7 +692,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                     type="date"
                     name="start_date"
                     defaultValue={today}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     required
                   />
                 </div>
@@ -703,7 +703,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                   <input
                     type="date"
                     name="end_date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
                 </div>
               </div>
@@ -715,7 +715,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                 <select
                   name="payment_terms"
                   defaultValue="30"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <option value="0">Due on receipt</option>
                   <option value="7">Net 7</option>
@@ -729,7 +729,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                   type="checkbox"
                   name="require_signature"
                   id="require_signature"
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                 />
                 <label htmlFor="require_signature" className="ml-2 text-sm text-gray-700">
                   Require client signature
@@ -761,7 +761,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                         value={item.description}
                         onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                         placeholder="Item description"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                       />
                     </div>
                     <div className="w-32">
@@ -771,7 +771,7 @@ function CreateRecurringInvoiceModal({ today, onClose, onSuccess }: { today: str
                         onChange={(e) => updateLineItem(index, 'amount_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
                         placeholder="0.00"
                         step="0.01"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                       />
                     </div>
                     <button
@@ -894,7 +894,7 @@ function EditRecurringInvoiceModal({
                   type="text"
                   name="title"
                   defaultValue={recurringInvoice.title}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
@@ -903,7 +903,7 @@ function EditRecurringInvoiceModal({
                 <select
                   name="status"
                   defaultValue={recurringInvoice.status}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
@@ -918,7 +918,7 @@ function EditRecurringInvoiceModal({
               <textarea
                 name="description"
                 defaultValue={recurringInvoice.description}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 rows={3}
               />
             </div>
@@ -929,7 +929,7 @@ function EditRecurringInvoiceModal({
                 <select
                   name="frequency"
                   defaultValue={recurringInvoice.frequency}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
@@ -945,7 +945,7 @@ function EditRecurringInvoiceModal({
                   min="1"
                   max="31"
                   defaultValue={recurringInvoice.day_of_month || ''}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 />
               </div>
             </div>
@@ -958,7 +958,7 @@ function EditRecurringInvoiceModal({
                 step="0.01"
                 min="0"
                 defaultValue={(recurringInvoice.amount_cents / 100).toString()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 required
               />
             </div>
@@ -970,7 +970,7 @@ function EditRecurringInvoiceModal({
                   type="date"
                   name="start_date"
                   defaultValue={recurringInvoice.start_date}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
@@ -980,7 +980,7 @@ function EditRecurringInvoiceModal({
                   type="date"
                   name="next_invoice_date"
                   defaultValue={recurringInvoice.next_invoice_date}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
@@ -990,7 +990,7 @@ function EditRecurringInvoiceModal({
                   type="date"
                   name="end_date"
                   defaultValue={recurringInvoice.end_date || ''}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 />
               </div>
             </div>
@@ -1000,7 +1000,7 @@ function EditRecurringInvoiceModal({
               <select
                 name="payment_terms"
                 defaultValue={recurringInvoice.payment_terms || '30'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <option value="0">Due on receipt</option>
                 <option value="7">Net 7</option>
@@ -1015,7 +1015,7 @@ function EditRecurringInvoiceModal({
                 name="require_signature"
                 id="edit_require_signature"
                 defaultChecked={recurringInvoice.require_signature}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
               />
               <label htmlFor="edit_require_signature" className="ml-2 text-sm text-gray-700">
                 Require client signature

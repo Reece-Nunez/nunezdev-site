@@ -696,7 +696,7 @@ export default function DashboardInvoices() {
                   type="checkbox"
                   checked={selectedInvoices.has(r.id)}
                   onChange={() => toggleInvoiceSelection(r.id)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-sm">
@@ -800,7 +800,7 @@ export default function DashboardInvoices() {
                   type="checkbox"
                   checked={rows.length > 0 && selectedInvoices.size === rows.length}
                   onChange={toggleSelectAll}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                 />
               </th>
               <th className="px-3 py-2">Client</th>
@@ -837,7 +837,7 @@ export default function DashboardInvoices() {
                     type="checkbox"
                     checked={selectedInvoices.has(r.id)}
                     onChange={() => toggleInvoiceSelection(r.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                   />
                 </td>
                 <td className="px-3 py-2">

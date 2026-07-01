@@ -1028,7 +1028,7 @@ export default function PaymentsPage() {
                     step="0.01"
                     min="0"
                     defaultValue={(selectedPayment.amount_cents / 100).toFixed(2)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     required
                   />
                 </div>
@@ -1038,7 +1038,7 @@ export default function PaymentsPage() {
                     name="paid_at"
                     type="date"
                     defaultValue={new Date(selectedPayment.paid_at).toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     required
                   />
                 </div>
@@ -1047,7 +1047,7 @@ export default function PaymentsPage() {
                   <select
                     name="payment_method"
                     defaultValue={selectedPayment.payment_method || 'Manual'}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                     <option value="Manual">Manual</option>
                     <option value="Cash">Cash</option>
@@ -1061,7 +1061,7 @@ export default function PaymentsPage() {
                   <textarea
                     name="notes"
                     defaultValue={selectedPayment.metadata?.notes || selectedPayment.metadata?.description || ''}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     rows={3}
                     placeholder="Add notes about this payment..."
                   />
@@ -1115,7 +1115,7 @@ export default function PaymentsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Add New Note</label>
                   <textarea
                     placeholder="Enter additional notes..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     rows={4}
                     required
                   />
@@ -1315,7 +1315,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               <select
                 value={selectedClient}
                 onChange={(e) => setSelectedClient(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 required
               >
                 <option value="">Select a client...</option>
@@ -1333,7 +1333,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
                 id="standalone-payment"
                 checked={isStandalonePayment}
                 onChange={(e) => setIsStandalonePayment(e.target.checked)}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus-visible:ring-blue-500"
               />
               <label htmlFor="standalone-payment" className="text-sm text-gray-700">
                 Standalone payment (no invoice required)
@@ -1349,7 +1349,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
                 <select
                   value={selectedInvoice}
                   onChange={(e) => setSelectedInvoice(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required={!isStandalonePayment}
                   disabled={!selectedClient || loadingInvoices}
                 >
@@ -1394,7 +1394,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
                 <input
                   type="text"
                   name="description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   placeholder="e.g., Website maintenance, consulting, etc."
                   required={isStandalonePayment}
                 />
@@ -1414,7 +1414,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
                   name="amount"
                   step="0.01"
                   min="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   placeholder="0.00"
                   required
                 />
@@ -1428,7 +1428,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
                   type="date"
                   name="payment_date"
                   defaultValue={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   required
                 />
               </div>
@@ -1440,7 +1440,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               </label>
               <select
                 name="payment_method"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 required
               >
                 <option value="CashApp">CashApp</option>
@@ -1460,7 +1460,7 @@ function AddManualPaymentModal({ onClose, onSuccess }: { onClose: () => void; on
               </label>
               <textarea
                 name="notes"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 rows={3}
                 placeholder="Add any notes about this payment (transaction ID, reference number, etc.)"
               />

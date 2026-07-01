@@ -288,7 +288,7 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
         <select
           value={lead.status}
           onChange={(e) => updateStatus(e.target.value)}
-          className="ml-auto text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="ml-auto text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -373,7 +373,7 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
               onChange={(e) => setDraft(e.target.value)}
               rows={4}
               placeholder="Write a reply, or tap Draft with AI to generate one in your voice. Review before sending."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             />
             <div className="flex items-center justify-between mt-2">
               <span className="text-xs text-gray-400">
@@ -409,7 +409,7 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
               onChange={(e) => setNotes(e.target.value)}
               rows={5}
               placeholder="Call notes, follow-up reminders, anything you want to remember about this lead..."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             />
           </section>
         </div>

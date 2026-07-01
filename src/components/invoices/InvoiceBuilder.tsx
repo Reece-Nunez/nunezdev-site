@@ -368,7 +368,7 @@ export default function InvoiceBuilder({
 • Mixed: 'E-commerce website $4500 plus 20 hours maintenance at $75/hr'"
             rows={4}
             disabled={aiLoading}
-            className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 disabled:opacity-50"
+            className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm bg-white placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-1 focus-visible:ring-purple-400 disabled:opacity-50"
           />
 
           <div className="flex items-center gap-3">

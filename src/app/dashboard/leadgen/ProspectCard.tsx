@@ -235,7 +235,7 @@ export default function ProspectCard() {
   }
 
   const inputBase =
-    "px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:bg-gray-50 disabled:text-gray-400";
+    "px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 disabled:bg-gray-50 disabled:text-gray-400";
 
   return (
     <div className="rounded-xl border bg-white p-4 sm:p-5">

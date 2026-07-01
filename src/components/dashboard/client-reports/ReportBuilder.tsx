@@ -516,7 +516,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
                       type="checkbox"
                       checked={isPass}
                       onChange={() => toggleItem(config.key, idx)}
-                      className="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                      className="mt-0.5 rounded border-gray-300 text-emerald-600 focus-visible:ring-emerald-500 w-4 h-4"
                     />
                     <span className="text-sm">
                       <span className={isPass ? 'text-gray-900' : isFail ? 'text-red-600' : 'text-gray-600'}>

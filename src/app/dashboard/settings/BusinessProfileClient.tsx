@@ -90,7 +90,7 @@ function SensitiveField({
         value={formValue}
         onChange={e => onChange(e.target.value)}
         placeholder={isSet ? 'Enter new value to update...' : 'Enter value...'}
-        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+        className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
       />
     </div>
   );
@@ -229,7 +229,7 @@ export default function BusinessProfileClient() {
                 type="text"
                 value={general.business_name}
                 onChange={e => setGeneral(p => ({ ...p, business_name: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
                 placeholder="NunezDev LLC"
               />
             </div>
@@ -239,7 +239,7 @@ export default function BusinessProfileClient() {
               <select
                 value={general.business_type}
                 onChange={e => setGeneral(p => ({ ...p, business_type: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
               >
                 <option value="">Select...</option>
                 {BUSINESS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -252,7 +252,7 @@ export default function BusinessProfileClient() {
                 type="date"
                 value={general.formation_date}
                 onChange={e => setGeneral(p => ({ ...p, formation_date: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
               />
             </div>
 
@@ -262,7 +262,7 @@ export default function BusinessProfileClient() {
                 type="text"
                 value={general.address_street}
                 onChange={e => setGeneral(p => ({ ...p, address_street: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
                 placeholder="123 Main St"
               />
             </div>
@@ -273,7 +273,7 @@ export default function BusinessProfileClient() {
                 type="text"
                 value={general.address_city}
                 onChange={e => setGeneral(p => ({ ...p, address_city: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
               />
             </div>
 
@@ -285,7 +285,7 @@ export default function BusinessProfileClient() {
                   value={general.address_state}
                   onChange={e => setGeneral(p => ({ ...p, address_state: e.target.value }))}
                   maxLength={2}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm uppercase"
+                  className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm uppercase"
                   placeholder="OK"
                 />
               </div>
@@ -296,7 +296,7 @@ export default function BusinessProfileClient() {
                   value={general.address_zip}
                   onChange={e => setGeneral(p => ({ ...p, address_zip: e.target.value }))}
                   maxLength={10}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                  className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
                   placeholder="73101"
                 />
               </div>
@@ -308,7 +308,7 @@ export default function BusinessProfileClient() {
                 type="tel"
                 value={general.phone}
                 onChange={e => setGeneral(p => ({ ...p, phone: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
                 placeholder="(405) 555-0100"
               />
             </div>
@@ -319,7 +319,7 @@ export default function BusinessProfileClient() {
                 type="email"
                 value={general.email}
                 onChange={e => setGeneral(p => ({ ...p, email: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
                 placeholder="hello@yourbusiness.com"
               />
             </div>
@@ -330,7 +330,7 @@ export default function BusinessProfileClient() {
                 type="url"
                 value={general.website}
                 onChange={e => setGeneral(p => ({ ...p, website: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
                 placeholder="https://nunezdev.com"
               />
             </div>
@@ -421,7 +421,7 @@ export default function BusinessProfileClient() {
               type="text"
               value={bank.bank_name}
               onChange={e => setBank(p => ({ ...p, bank_name: e.target.value }))}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+              className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500 text-sm"
               placeholder="Chase, Bank of Oklahoma, etc."
             />
           </div>

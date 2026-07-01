@@ -248,7 +248,7 @@ export default function FixStripePaymentPage() {
                     value={paymentIntentId}
                     onChange={(e) => setPaymentIntentId(e.target.value)}
                     placeholder="pi_3S3eb9I6Rruvv9u802NRnttF"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus:border-blue-500"
                   />
                   <button
                     onClick={searchForPayment}

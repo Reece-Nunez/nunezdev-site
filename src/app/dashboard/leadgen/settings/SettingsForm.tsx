@@ -122,7 +122,7 @@ export default function SettingsForm({ initialProfile }: Props) {
 }
 
 const inputClasses =
-  "block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none";
+  "block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-900 focus-visible:ring-1 focus-visible:ring-gray-900 outline-none";
 
 function Field({
   label,

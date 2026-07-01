@@ -235,7 +235,7 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
       <span className="text-gray-600">{label}</span>
       <input
         type={type}
-        className="rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+        className="rounded-lg border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder=""
@@ -249,7 +249,7 @@ function Select({ label, value, options, onChange }: { label: string; value: str
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-gray-600">{label}</span>
       <select
-        className="rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+        className="rounded-lg border px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >

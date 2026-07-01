@@ -543,7 +543,7 @@ export default function ExpensesPage() {
                 <select
                   value={filterYear}
                   onChange={(e) => setFilterYear(e.target.value)}
-                  className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   {yearOptions.map((y) => (
                     <option key={y} value={y}>
@@ -559,7 +559,7 @@ export default function ExpensesPage() {
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   <option value="">All Categories</option>
                   {CATEGORIES.map((c) => (
@@ -588,7 +588,7 @@ export default function ExpensesPage() {
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     placeholder="e.g., Adobe Creative Cloud subscription"
                     required
                   />
@@ -607,7 +607,7 @@ export default function ExpensesPage() {
                         min="0"
                         value={amountDollars}
                         onChange={(e) => setAmountDollars(e.target.value)}
-                        className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full pl-7 pr-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         placeholder="0.00"
                         required
                       />
@@ -621,7 +621,7 @@ export default function ExpensesPage() {
                       type="date"
                       value={expenseDate}
                       onChange={(e) => setExpenseDate(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                       required
                     />
                   </div>
@@ -638,7 +638,7 @@ export default function ExpensesPage() {
                         setCategory(e.target.value);
                         if (e.target.value !== "other") setCustomCategory("");
                       }}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       {CATEGORIES.map((c) => (
                         <option key={c.value} value={c.value}>
@@ -651,7 +651,7 @@ export default function ExpensesPage() {
                         type="text"
                         value={customCategory}
                         onChange={(e) => setCustomCategory(e.target.value)}
-                        className="w-full mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full mt-2 px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         placeholder="Enter custom category name"
                       />
                     )}
@@ -663,7 +663,7 @@ export default function ExpensesPage() {
                     <select
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     >
                       <option value="">Select...</option>
                       {PAYMENT_METHODS.map((m) => (
@@ -683,7 +683,7 @@ export default function ExpensesPage() {
                     type="text"
                     value={vendor}
                     onChange={(e) => setVendor(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     placeholder="e.g., AWS, Adobe, Office Depot"
                   />
                 </div>
@@ -695,7 +695,7 @@ export default function ExpensesPage() {
                   <select
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
                     <option value="">No client</option>
                     {clients?.map((c) => (
@@ -734,7 +734,7 @@ export default function ExpensesPage() {
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                     rows={2}
                     placeholder="Additional details..."
                   />
@@ -924,7 +924,7 @@ export default function ExpensesPage() {
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         placeholder="e.g., Claude Code subscription"
                         required
                       />
@@ -943,7 +943,7 @@ export default function ExpensesPage() {
                             min="0"
                             value={amountDollars}
                             onChange={(e) => setAmountDollars(e.target.value)}
-                            className="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-7 pr-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                             placeholder="0.00"
                             required
                           />
@@ -956,7 +956,7 @@ export default function ExpensesPage() {
                         <select
                           value={recFrequency}
                           onChange={(e) => setRecFrequency(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
                           {FREQUENCIES.map((f) => (
                             <option key={f.value} value={f.value}>
@@ -978,7 +978,7 @@ export default function ExpensesPage() {
                           max="28"
                           value={recDayOfMonth}
                           onChange={(e) => setRecDayOfMonth(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         />
                       </div>
                       <div>
@@ -991,7 +991,7 @@ export default function ExpensesPage() {
                             setCategory(e.target.value);
                             if (e.target.value !== "other") setCustomCategory("");
                           }}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
                           {CATEGORIES.map((c) => (
                             <option key={c.value} value={c.value}>
@@ -1004,7 +1004,7 @@ export default function ExpensesPage() {
                             type="text"
                             value={customCategory}
                             onChange={(e) => setCustomCategory(e.target.value)}
-                            className="w-full mt-2 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                            className="w-full mt-2 px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                             placeholder="Enter custom category name"
                           />
                         )}
@@ -1020,7 +1020,7 @@ export default function ExpensesPage() {
                           type="date"
                           value={recStartDate}
                           onChange={(e) => setRecStartDate(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         />
                       </div>
                       <div>
@@ -1031,7 +1031,7 @@ export default function ExpensesPage() {
                           type="date"
                           value={recEndDate}
                           onChange={(e) => setRecEndDate(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         />
                       </div>
                     </div>
@@ -1044,7 +1044,7 @@ export default function ExpensesPage() {
                         type="text"
                         value={vendor}
                         onChange={(e) => setVendor(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         placeholder="e.g., Anthropic, AWS, Adobe"
                       />
                     </div>
@@ -1068,7 +1068,7 @@ export default function ExpensesPage() {
                       <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border rounded-lg focus-visible:ring-2 focus-visible:ring-blue-500"
                         rows={2}
                         placeholder="Additional details..."
                       />

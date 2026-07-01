@@ -119,7 +119,7 @@ export default function MobileNavigation({ role }: { role?: OrgRole }) {
           {!isProspector && <NotificationBell />}
           <button
             onClick={() => setIsOpen(true)}
-            className="p-3 rounded-lg text-gray-700 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+            className="p-3 rounded-lg text-gray-700 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
             aria-label="Open menu"
             aria-expanded={isOpen}
           >
@@ -236,7 +236,7 @@ export default function MobileNavigation({ role }: { role?: OrgRole }) {
             <Link
               href="/dashboard/clients/new"
               onClick={closeMenu}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 text-white px-4 py-3 text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shadow-sm transition-colors"
             >
               <PlusIcon className="w-5 h-5" />
               New Client

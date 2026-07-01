@@ -344,7 +344,7 @@ export default function CombineInvoicesModal({
                 onChange={(e) => setSmsPhone(e.target.value)}
                 disabled={loading}
                 placeholder="(405) 555-1234"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               />
               {!phoneOnFile && (
                 <p className="text-xs text-amber-600 mt-1">

@@ -414,7 +414,7 @@ export default function LeadForm({
               id="lead-sms-consent"
               name="smsConsent"
               type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus:ring-yellow/60 focus:ring-offset-0 cursor-pointer accent-yellow"
+              className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus-visible:ring-yellow/60 focus-visible:ring-offset-0 cursor-pointer accent-yellow"
             />
             <span className="text-white/70 text-xs leading-relaxed">
               <strong className="text-white/90">Service messages.</strong> By
@@ -457,7 +457,7 @@ export default function LeadForm({
               id="lead-sms-marketing-consent"
               name="smsMarketingConsent"
               type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus:ring-yellow/60 focus:ring-offset-0 cursor-pointer accent-yellow"
+              className="mt-1 h-4 w-4 rounded border-white/30 bg-white/10 text-yellow focus-visible:ring-yellow/60 focus-visible:ring-offset-0 cursor-pointer accent-yellow"
             />
             <span className="text-white/70 text-xs leading-relaxed">
               <strong className="text-white/90">

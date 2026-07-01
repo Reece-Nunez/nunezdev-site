@@ -344,7 +344,7 @@ export default function CalendarPage() {
                   onChange={(e) =>
                     setNewEventForm({ ...newEventForm, title: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Meeting title"
                 />
               </div>
@@ -361,7 +361,7 @@ export default function CalendarPage() {
                     onChange={(e) =>
                       setNewEventForm({ ...newEventForm, start: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
                 <div>
@@ -375,7 +375,7 @@ export default function CalendarPage() {
                     onChange={(e) =>
                       setNewEventForm({ ...newEventForm, end: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -390,7 +390,7 @@ export default function CalendarPage() {
                     setNewEventForm({ ...newEventForm, description: e.target.value })
                   }
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Event description"
                 />
               </div>
@@ -405,7 +405,7 @@ export default function CalendarPage() {
                   onChange={(e) =>
                     setNewEventForm({ ...newEventForm, location: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500"
                   placeholder="Meeting location"
                 />
               </div>
@@ -420,7 +420,7 @@ export default function CalendarPage() {
                   onChange={(e) =>
                     setNewEventForm({ ...newEventForm, attendees: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-emerald-500 focus:border-emerald-500"
                   placeholder="email1@example.com, email2@example.com"
                 />
               </div>
@@ -433,7 +433,7 @@ export default function CalendarPage() {
                   onChange={(e) =>
                     setNewEventForm({ ...newEventForm, createMeet: e.target.checked })
                   }
-                  className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                  className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus-visible:ring-emerald-500"
                 />
                 <label htmlFor="createMeet" className="text-sm text-gray-700">
                   Add Google Meet video conferencing

@@ -365,13 +365,13 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
               value={query}
               onChange={(e) => { setQuery(e.target.value); setPage(1); }}
               placeholder="Search name, email, phone, company, tags…"
-              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
-            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             <option value="All">All statuses ({statusCounts.All})</option>
             <option value="Lead">Lead ({statusCounts.Lead})</option>
@@ -382,7 +382,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
           <select
             value={balanceFilter}
             onChange={(e) => { setBalanceFilter(e.target.value as BalanceFilter); setPage(1); }}
-            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
           >
             <option value="all">All balances</option>
             <option value="due">Has balance due</option>
@@ -412,7 +412,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                   type="checkbox"
                   checked={selectedClients.has(r.id)}
                   onChange={() => toggleClientSelection(r.id)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
@@ -515,7 +515,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                   type="checkbox"
                   checked={allOnPageSelected}
                   onChange={toggleSelectAll}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                   title="Select all on this page"
                 />
               </th>
@@ -540,7 +540,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                     type="checkbox"
                     checked={selectedClients.has(r.id)}
                     onChange={() => toggleClientSelection(r.id)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus-visible:ring-blue-500"
                   />
                 </td>
                 <td className="px-3 py-2">

@@ -912,7 +912,7 @@ export default function InvoiceDetailPage() {
                   onChange={(e) => setSmsPhone(e.target.value)}
                   placeholder="(405) 555-1234"
                   disabled={sendingSms}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                 />
                 {!invoice.clients?.phone && (
                   <p className="text-xs text-amber-600 mt-1">
@@ -931,7 +931,7 @@ export default function InvoiceDetailPage() {
                   rows={4}
                   disabled={sendingSms}
                   maxLength={800}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 font-mono"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 font-mono"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Twilio charges per 160-char segment.
@@ -994,7 +994,7 @@ export default function InvoiceDetailPage() {
                     onChange={(e) => setCcInput(e.target.value)}
                     onKeyDown={handleCcInputKeyDown}
                     placeholder="Enter email and press Enter"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-yellow-400 focus:border-transparent text-sm"
                   />
                   <button
                     type="button"

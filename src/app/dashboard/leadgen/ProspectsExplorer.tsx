@@ -28,7 +28,7 @@ type MobileFilter = "all" | "mobile" | "not_mobile";
 const FILTERS_KEY = "leadgen:prospect-filters";
 
 const SELECT_CLS =
-  "px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400";
+  "px-2.5 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400";
 
 /**
  * Filter / sort / search over the prospect list, with multi-select bulk
@@ -282,7 +282,7 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, category, email, city…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
           />
         </div>
 

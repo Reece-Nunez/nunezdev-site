@@ -46,7 +46,7 @@ export default function EditEmailField({ businessId, email }: Props) {
           onChange={(e) => setValue(e.target.value)}
           disabled={isPending}
           placeholder="name@business.com"
-          className="px-2 py-1 rounded border border-gray-300 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:bg-gray-50"
+          className="px-2 py-1 rounded border border-gray-300 text-sm w-56 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 disabled:bg-gray-50"
           onKeyDown={(e) => {
             if (e.key === "Enter") save();
             if (e.key === "Escape") setEditing(false);
