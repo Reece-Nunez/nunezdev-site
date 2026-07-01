@@ -7,6 +7,7 @@ import { stageToProgress } from '@/lib/progress';
 import { currency } from '@/lib/ui';
 import { formatPhoneUS, telHref } from '@/lib/phone';
 import { useToast } from '@/components/ui/Toast';
+import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import type { ClientOverview } from '@/types/clients';
 
 type SortKey =
@@ -25,12 +26,15 @@ type BalanceFilter = 'all' | 'due' | 'paid_up';
 
 const PAGE_SIZE = 25;
 
-const STATUS_BADGE: Record<string, string> = {
-  Lead: 'bg-blue-50 text-blue-700 border-blue-200',
-  Prospect: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  Active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  Past: 'bg-gray-100 text-gray-600 border-gray-200',
+// Client lifecycle status → Badge tone. Domain mapping lives here; the pill
+// styling lives in the shared Badge primitive.
+const CLIENT_STATUS_TONE: Record<string, BadgeTone> = {
+  Lead: 'info',
+  Prospect: 'warning',
+  Active: 'success',
+  Past: 'muted',
 };
+const clientStatusTone = (s: string): BadgeTone => CLIENT_STATUS_TONE[s] ?? 'muted';
 
 export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOverview[]; onClientDeleted?: () => void }) {
   const router = useRouter();
@@ -415,9 +419,9 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                     <Link href={`/dashboard/clients/${r.id}`} className="font-medium text-blue-600 hover:underline text-sm truncate">
                       {r.name}
                     </Link>
-                    <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium flex-shrink-0 ${STATUS_BADGE[r.status] ?? 'border-gray-200 bg-gray-50 text-gray-600'}`}>
+                    <Badge tone={clientStatusTone(r.status)} size="sm" className="flex-shrink-0">
                       {r.status}
-                    </span>
+                    </Badge>
                   </div>
                   <div className="text-xs text-gray-600 mt-1 truncate">
                     {r.company ?? '—'}
@@ -545,9 +549,7 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
                   </Link>
                 </td>
                 <td className="px-3 py-2">
-                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[r.status] ?? 'border-gray-200 bg-gray-50 text-gray-600'}`}>
-                    {r.status}
-                  </span>
+                  <Badge tone={clientStatusTone(r.status)}>{r.status}</Badge>
                 </td>
                 <td className="px-3 py-2">
                   {r.email ? (
