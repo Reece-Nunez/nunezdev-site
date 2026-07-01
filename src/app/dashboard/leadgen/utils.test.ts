@@ -68,6 +68,32 @@ describe("filterSortProspects", () => {
   it("filters by city", () => {
     assert.deepEqual(filterSortProspects(rows, { city: "Provo", sort: "ai_desc" }).map((b) => b.id), [1, 2]);
   });
+
+  it("filters to mobile phone numbers only", () => {
+    const phoneRows = [
+      biz({ id: 1, phone_type: "mobile" }),
+      biz({ id: 2, phone_type: "landline" }),
+      biz({ id: 3, phone_type: null }),
+      biz({ id: 4, phone_type: "mobile" }),
+    ];
+    assert.deepEqual(
+      filterSortProspects(phoneRows, { mobile: "mobile" }).map((b) => b.id).sort(),
+      [1, 4],
+    );
+  });
+
+  it("filters to non-mobile (landline, voip, and un-looked-up null)", () => {
+    const phoneRows = [
+      biz({ id: 1, phone_type: "mobile" }),
+      biz({ id: 2, phone_type: "landline" }),
+      biz({ id: 3, phone_type: null }),
+      biz({ id: 4, phone_type: "voip" }),
+    ];
+    assert.deepEqual(
+      filterSortProspects(phoneRows, { mobile: "not_mobile" }).map((b) => b.id).sort(),
+      [2, 3, 4],
+    );
+  });
 });
 
 describe("aiScoreClass", () => {

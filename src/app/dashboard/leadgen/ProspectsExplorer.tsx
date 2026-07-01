@@ -21,6 +21,7 @@ import {
 } from "./utils";
 
 type TriState = "all" | "has" | "none";
+type MobileFilter = "all" | "mobile" | "not_mobile";
 
 // Filters persist across navigation (e.g. opening a prospect detail page and
 // hitting back) via sessionStorage — scoped to the tab, cleared when it closes.
@@ -40,6 +41,7 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState<TriState>("all");
   const [website, setWebsite] = useState<TriState>("all");
+  const [mobile, setMobile] = useState<MobileFilter>("all");
   const [city, setCity] = useState("all");
   const [sort, setSort] = useState<ProspectSort>("ai_desc");
   // Gates persistence until after the one-time restore so the initial mount
@@ -115,6 +117,7 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         if (typeof f.search === "string") setSearch(f.search);
         if (f.email === "all" || f.email === "has" || f.email === "none") setEmail(f.email);
         if (f.website === "all" || f.website === "has" || f.website === "none") setWebsite(f.website);
+        if (f.mobile === "all" || f.mobile === "mobile" || f.mobile === "not_mobile") setMobile(f.mobile);
         if (typeof f.city === "string") setCity(f.city);
         if (PROSPECT_SORTS.some((s) => s.value === f.sort)) setSort(f.sort);
       }
@@ -131,12 +134,12 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
     try {
       sessionStorage.setItem(
         FILTERS_KEY,
-        JSON.stringify({ search, email, website, city, sort }),
+        JSON.stringify({ search, email, website, mobile, city, sort }),
       );
     } catch {
       // Storage full/blocked — non-fatal, filters just won't persist.
     }
-  }, [hydrated, search, email, website, city, sort]);
+  }, [hydrated, search, email, website, mobile, city, sort]);
 
   const cities = useMemo(() => {
     const s = new Set<string>();
@@ -145,8 +148,8 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   }, [businesses]);
 
   const results = useMemo(
-    () => filterSortProspects(businesses, { search, email, website, city, sort }),
-    [businesses, search, email, website, city, sort],
+    () => filterSortProspects(businesses, { search, email, website, mobile, city, sort }),
+    [businesses, search, email, website, mobile, city, sort],
   );
 
   function toggleRow(id: number) {
@@ -295,6 +298,12 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
           <option value="none">No website</option>
         </select>
 
+        <select value={mobile} onChange={(e) => setMobile(e.target.value as MobileFilter)} className={SELECT_CLS} aria-label="Phone type filter">
+          <option value="all">Phone: any</option>
+          <option value="mobile">Mobile only</option>
+          <option value="not_mobile">Not mobile</option>
+        </select>
+
         {cities.length > 1 && (
           <select value={city} onChange={(e) => setCity(e.target.value)} className={SELECT_CLS} aria-label="City filter">
             <option value="all">All cities</option>
@@ -349,10 +358,10 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
               <span className="text-gray-300">·</span>
             </>
           )}
-          {(search || email !== "all" || website !== "all" || city !== "all") && (
+          {(search || email !== "all" || website !== "all" || mobile !== "all" || city !== "all") && (
             <button
               type="button"
-              onClick={() => { setSearch(""); setEmail("all"); setWebsite("all"); setCity("all"); }}
+              onClick={() => { setSearch(""); setEmail("all"); setWebsite("all"); setMobile("all"); setCity("all"); }}
               className="text-gray-600 hover:text-gray-900 underline-offset-2 hover:underline"
             >
               Clear filters

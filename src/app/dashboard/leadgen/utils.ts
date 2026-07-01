@@ -121,6 +121,10 @@ export interface ProspectFilters {
   search?: string;
   email?: "all" | "has" | "none";
   website?: "all" | "has" | "none";
+  // Phone line type (Twilio Lookup, stored on the business). "mobile" keeps
+  // only confirmed mobile numbers; "not_mobile" keeps everything else,
+  // including landline/voip AND not-yet-looked-up (null) numbers.
+  mobile?: "all" | "mobile" | "not_mobile";
   city?: string; // "all" or an exact city name
   sort?: ProspectSort;
 }
@@ -138,6 +142,7 @@ export function filterSortProspects(
   const needle = (f.search ?? "").trim().toLowerCase();
   const email = f.email ?? "all";
   const website = f.website ?? "all";
+  const mobile = f.mobile ?? "all";
   const city = f.city ?? "all";
   const sort = f.sort ?? "ai_desc";
 
@@ -146,6 +151,8 @@ export function filterSortProspects(
     if (email === "none" && b.email) return false;
     if (website === "has" && !b.website) return false;
     if (website === "none" && b.website) return false;
+    if (mobile === "mobile" && b.phone_type !== "mobile") return false;
+    if (mobile === "not_mobile" && b.phone_type === "mobile") return false;
     if (city !== "all" && (b.city ?? "") !== city) return false;
     if (needle) {
       const hay = [b.name, b.category, b.address, b.email, b.phone, b.city]
