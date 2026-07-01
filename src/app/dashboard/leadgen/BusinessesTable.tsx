@@ -5,29 +5,9 @@
 // share the same table layout.
 import Link from "next/link";
 import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
-import type { BusinessStatus, BusinessSummary } from "@/lib/leadgen-db";
-import { Badge, type BadgeTone } from "@/components/ui/Badge";
-import { aiScoreClass } from "./utils";
-
-const STATUS_TONE: Record<BusinessStatus, BadgeTone> = {
-  new:             "info",
-  researched:      "purple",
-  proposal_built:  "success",
-  contacted:       "neutral",
-  replied:         "warning",
-  converted:       "success",
-  not_interested:  "danger",
-};
-
-const STATUS_LABELS: Record<BusinessStatus, string> = {
-  new:             "New",
-  researched:      "Researched",
-  proposal_built:  "Proposal built",
-  contacted:       "Contacted",
-  replied:         "Replied",
-  converted:       "Converted",
-  not_interested:  "Not interested",
-};
+import type { BusinessSummary } from "@/lib/leadgen-db";
+import { Badge } from "@/components/ui/Badge";
+import { aiScoreClass, BUSINESS_STATUS_TONE, BUSINESS_STATUS_LABEL } from "./utils";
 
 export default function BusinessesTable({
   businesses,
@@ -129,7 +109,7 @@ export default function BusinessesTable({
                   )}
                 </td>
                 <td className="px-3 py-3 text-center">
-                  <Badge tone={STATUS_TONE[b.status]}>{STATUS_LABELS[b.status]}</Badge>
+                  <Badge tone={BUSINESS_STATUS_TONE[b.status]}>{BUSINESS_STATUS_LABEL[b.status]}</Badge>
                 </td>
                 <td className="px-2 py-3">
                   <Link

@@ -10,7 +10,8 @@ import {
   type SmsConsentBasis,
 } from "@/lib/leadgen-api";
 import { businessOutputDirName } from "@/lib/leadgen-paths";
-import { aiScoreClass, reasonLabel } from "../utils";
+import { aiScoreClass, reasonLabel, BUSINESS_STATUS_TONE, BUSINESS_STATUS_LABEL } from "../utils";
+import { Badge } from "@/components/ui/Badge";
 import {
   ArrowLeftIcon,
   GlobeAltIcon,
@@ -43,24 +44,6 @@ import OutreachDraftBody from "./OutreachDraftBody";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const STATUS_STYLES: Record<BusinessStatus, string> = {
-  new:             "bg-blue-50 text-blue-700 border-blue-200",
-  researched:      "bg-purple-50 text-purple-700 border-purple-200",
-  proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-  contacted:       "bg-gray-100 text-gray-700 border-gray-200",
-  replied:         "bg-orange-50 text-orange-700 border-orange-200",
-  converted:       "bg-green-100 text-green-800 border-green-300",
-  not_interested:  "bg-red-50 text-red-700 border-red-200",
-};
-const STATUS_LABELS: Record<BusinessStatus, string> = {
-  new:             "New",
-  researched:      "Researched",
-  proposal_built:  "Proposal built",
-  contacted:       "Contacted",
-  replied:         "Replied",
-  converted:       "Converted",
-  not_interested:  "Not interested",
-};
 
 function formatCurrency(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -165,11 +148,7 @@ export default async function LeadgenDetail({ params }: PageProps) {
             >
               AI {aiScore != null ? `${aiScore}/10` : "—"}
             </span>
-            <span
-              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${STATUS_STYLES[detail.status]}`}
-            >
-              {STATUS_LABELS[detail.status]}
-            </span>
+            <Badge tone={BUSINESS_STATUS_TONE[detail.status]}>{BUSINESS_STATUS_LABEL[detail.status]}</Badge>
             {isParked && (
               <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
                 Parked domain
@@ -404,19 +383,17 @@ export default async function LeadgenDetail({ params }: PageProps) {
           <ol className="space-y-3">
             {detail.status_events.map((e) => (
               <li key={e.id} className="flex gap-3 text-sm">
-                <span
-                  className={`mt-0.5 inline-flex shrink-0 items-center px-2 py-0.5 rounded text-xs font-medium border ${STATUS_STYLES[e.to_status]}`}
-                >
-                  {STATUS_LABELS[e.to_status]}
-                </span>
+                <Badge tone={BUSINESS_STATUS_TONE[e.to_status]} className="mt-0.5 shrink-0">
+                  {BUSINESS_STATUS_LABEL[e.to_status]}
+                </Badge>
                 <div className="min-w-0">
                   <div className="text-gray-800">
                     {e.from_status ? (
                       <>
-                        {STATUS_LABELS[e.from_status]} → {STATUS_LABELS[e.to_status]}
+                        {BUSINESS_STATUS_LABEL[e.from_status]} → {BUSINESS_STATUS_LABEL[e.to_status]}
                       </>
                     ) : (
-                      STATUS_LABELS[e.to_status]
+                      BUSINESS_STATUS_LABEL[e.to_status]
                     )}
                     {e.reason && (
                       <span className="text-gray-500"> · {reasonLabel(e.reason)}</span>

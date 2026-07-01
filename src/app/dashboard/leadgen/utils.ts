@@ -9,11 +9,35 @@
  * that already import from actions.ts.
  */
 import type { BusinessStatus, BusinessSummary, Stage, StatusReason, SmsConsentBasis } from "@/lib/leadgen-db";
+import type { BadgeTone } from "@/components/ui/Badge";
 
 // Re-export Stage so existing callers (./StageButtons, ./actions) keep
 // working — the canonical definition lives in leadgen-db.ts next to the
 // other schema-shaped types.
 export type { Stage };
+
+// Business pipeline status → shared Badge tone + display label. Single source
+// of truth so the index table, city accordion, and detail page render the
+// same chip instead of each re-declaring a status-color map.
+export const BUSINESS_STATUS_TONE: Record<BusinessStatus, BadgeTone> = {
+  new: "info",
+  researched: "purple",
+  proposal_built: "success",
+  contacted: "neutral",
+  replied: "warning",
+  converted: "success",
+  not_interested: "danger",
+};
+
+export const BUSINESS_STATUS_LABEL: Record<BusinessStatus, string> = {
+  new: "New",
+  researched: "Researched",
+  proposal_built: "Proposal built",
+  contacted: "Contacted",
+  replied: "Replied",
+  converted: "Converted",
+  not_interested: "Not interested",
+};
 
 /**
  * Color-coded Tailwind classes for an AI opportunity score (0-10).

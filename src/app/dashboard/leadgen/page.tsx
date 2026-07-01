@@ -11,6 +11,7 @@ import {
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import ProspectCard from "./ProspectCard";
 import ProspectsExplorer from "./ProspectsExplorer";
+import { BUSINESS_STATUS_LABEL } from "./utils";
 import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, ChartBarIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
@@ -27,27 +28,6 @@ const ALL_STATUSES: (BusinessStatus | "all")[] = [
   "not_interested",
 ];
 
-const STATUS_STYLES: Record<BusinessStatus, string> = {
-  new:             "bg-blue-50 text-blue-700 border-blue-200",
-  researched:      "bg-purple-50 text-purple-700 border-purple-200",
-  proposal_built:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-  contacted:       "bg-gray-100 text-gray-700 border-gray-200",
-  // 'replied' is the hot signal — a warm orange so it jumps out of the list.
-  replied:         "bg-orange-50 text-orange-700 border-orange-200",
-  // 'converted' is the win — solid green.
-  converted:       "bg-green-100 text-green-800 border-green-300",
-  not_interested:  "bg-red-50 text-red-700 border-red-200",
-};
-
-const STATUS_LABELS: Record<BusinessStatus, string> = {
-  new:             "New",
-  researched:      "Researched",
-  proposal_built:  "Proposal built",
-  contacted:       "Contacted",
-  replied:         "Replied",
-  converted:       "Converted",
-  not_interested:  "Not interested",
-};
 
 function formatCurrency(n: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -218,7 +198,7 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
                   ? "bg-gray-900 text-white border-gray-900"
                   : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
             >
-              {s === "all" ? "All" : STATUS_LABELS[s as BusinessStatus]}
+              {s === "all" ? "All" : BUSINESS_STATUS_LABEL[s as BusinessStatus]}
               <span className={`ml-2 ${isActive ? "text-gray-300" : "text-gray-500"}`}>
                 {count}
               </span>
