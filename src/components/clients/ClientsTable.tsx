@@ -8,6 +8,9 @@ import { currency } from '@/lib/ui';
 import { formatPhoneUS, telHref } from '@/lib/phone';
 import { useToast } from '@/components/ui/Toast';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { FilterSelect } from '@/components/ui/FilterSelect';
 import type { ClientOverview } from '@/types/clients';
 
 type SortKey =
@@ -359,42 +362,34 @@ export default function ClientsTable({ rows, onClientDeleted }: { rows: ClientOv
 
         {/* Filter toolbar */}
         <div className="rounded-xl border bg-white p-3 shadow-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-              placeholder="Search name, email, phone, company, tags…"
-              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
-            />
-          </div>
-          <select
+          <SearchInput
+            value={query}
+            onChange={(v) => { setQuery(v); setPage(1); }}
+            placeholder="Search name, email, phone, company, tags…"
+            className="flex-1 min-w-[200px]"
+          />
+          <FilterSelect
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
-            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            onChange={(v) => { setStatusFilter(v as StatusFilter); setPage(1); }}
+            aria-label="Status filter"
           >
             <option value="All">All statuses ({statusCounts.All})</option>
             <option value="Lead">Lead ({statusCounts.Lead})</option>
             <option value="Prospect">Prospect ({statusCounts.Prospect})</option>
             <option value="Active">Active ({statusCounts.Active})</option>
             <option value="Past">Past ({statusCounts.Past})</option>
-          </select>
-          <select
+          </FilterSelect>
+          <FilterSelect
             value={balanceFilter}
-            onChange={(e) => { setBalanceFilter(e.target.value as BalanceFilter); setPage(1); }}
-            className="rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+            onChange={(v) => { setBalanceFilter(v as BalanceFilter); setPage(1); }}
+            aria-label="Balance filter"
           >
             <option value="all">All balances</option>
             <option value="due">Has balance due</option>
             <option value="paid_up">Paid up</option>
-          </select>
+          </FilterSelect>
           {(query || statusFilter !== 'All' || balanceFilter !== 'all') && (
-            <button
-              onClick={resetFilters}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
-            >
-              Reset
-            </button>
+            <Button variant="secondary" onClick={resetFilters}>Reset</Button>
           )}
           <div className="text-xs text-gray-500 sm:ml-auto whitespace-nowrap">
             Showing {visibleRows.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}

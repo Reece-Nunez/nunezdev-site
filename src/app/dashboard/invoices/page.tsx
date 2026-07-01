@@ -4,6 +4,7 @@ import useSWR, { useSWRConfig } from 'swr';
 import { useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
+import { FilterSelect } from '@/components/ui/FilterSelect';
 import InvoiceAnalytics from '@/components/invoices/InvoiceAnalytics';
 import { useToast, useConfirm } from '@/components/ui/Toast';
 import { useRealtimeEvents, RealtimeEvent } from '@/hooks/useRealtimeEvents';
@@ -607,7 +608,7 @@ export default function DashboardInvoices() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <label className="text-sm min-w-0">
             <div className="text-gray-600">Status</div>
-            <select className="w-full rounded-lg border px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <FilterSelect className="w-full" value={status} onChange={setStatus} aria-label="Status filter">
               <option value="all">All</option>
               <option value="sent">Sent</option>
               <option value="paid">Paid</option>
@@ -616,7 +617,7 @@ export default function DashboardInvoices() {
               <option value="draft">Draft</option>
               <option value="void">Void</option>
               <option value="suspended">Suspended</option>
-            </select>
+            </FilterSelect>
           </label>
           <label className="text-sm min-w-0">
             <div className="text-gray-600">From</div>
