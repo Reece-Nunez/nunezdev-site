@@ -211,7 +211,7 @@ export default function Sidebar({ role }: { role?: OrgRole }) {
                         isCollapsed ? 'justify-center' : ''
                       } ` +
                       (isActive(it.href)
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        ? 'bg-brand-yellow/15 text-brand-black border border-brand-yellow/40 font-medium'
                         : 'hover:bg-gray-50 text-gray-700')
                     }
                     title={isCollapsed ? it.label : undefined}
@@ -264,7 +264,7 @@ export default function Sidebar({ role }: { role?: OrgRole }) {
                   className={
                     'block rounded-lg px-3 py-2 text-sm ' +
                     (isActive(tool.href)
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      ? 'bg-brand-yellow/15 text-brand-black border border-brand-yellow/40 font-medium'
                       : 'hover:bg-gray-50 text-gray-600')
                   }
                 >
@@ -281,7 +281,7 @@ export default function Sidebar({ role }: { role?: OrgRole }) {
         {!isProspector && (
           <Link
             href="/dashboard/clients/new"
-            className={`w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-3 py-2 text-sm font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+            className={`w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-yellow text-brand-black px-3 py-2 text-sm font-semibold hover:bg-brand-yellow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-yellow focus-visible:ring-offset-1 ${
               isCollapsed ? 'w-10 h-10 p-0' : ''
             }`}
             aria-label="Add new client"
