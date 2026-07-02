@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import {
   BeakerIcon,
@@ -14,7 +13,8 @@ import BusinessesTable from "./BusinessesTable";
 import { Button } from "@/components/ui/Button";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/FilterSelect";
-import { bulkRunStage, bulkJobProgress, cancelBulkRun } from "./actions";
+import { bulkRunStage } from "./actions";
+import { useBulkRun } from "../BulkRunProvider";
 import {
   filterSortProspects,
   PROSPECT_SORTS,
@@ -36,7 +36,6 @@ const FILTERS_KEY = "leadgen:prospect-filters";
  * tested filterSortProspects helper.
  */
 export default function ProspectsExplorer({ businesses }: { businesses: BusinessSummary[] }) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState<TriState>("all");
   const [website, setWebsite] = useState<TriState>("all");
@@ -50,60 +49,10 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [isPending, startTransition] = useTransition();
 
-  // Live progress of an in-flight bulk run (research/build/outreach over many
-  // leads). Jobs drain one at a time on the pipeline's single worker, so a big
-  // run takes a while — this lets the operator watch it move instead of waiting
-  // blind.
-  const [bulkRun, setBulkRun] = useState<{
-    stage: Stage;
-    total: number;
-    jobIds: string[];
-    done: number;
-    failed: number;
-    startedAt: number;
-  } | null>(null);
-  const pollRef = useRef(0);
-
-  // 1s ticker so the elapsed/ETA readout updates smoothly between polls.
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!bulkRun) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, [bulkRun]);
-
-  // Poll the batch-progress endpoint until every job is terminal. Keyed on the
-  // jobIds array identity, which only changes when a NEW run starts.
-  useEffect(() => {
-    if (!bulkRun) return;
-    const myPoll = ++pollRef.current;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = async () => {
-      if (pollRef.current !== myPoll) return;
-      const p = await bulkJobProgress(bulkRun.jobIds);
-      if (pollRef.current !== myPoll) return;
-      if (p.ok) {
-        const done = p.completed + p.failed;
-        setBulkRun((cur) => (cur ? { ...cur, done, failed: p.failed } : cur));
-        if (done >= bulkRun.total) {
-          toast.success(
-            `${bulkRun.stage} finished — ${p.completed} done` +
-              (p.failed ? `, ${p.failed} failed` : ""),
-          );
-          router.refresh();
-          setBulkRun(null);
-          return;
-        }
-      }
-      timer = setTimeout(tick, 3000);
-    };
-    timer = setTimeout(tick, 1500);
-    return () => {
-      pollRef.current++;
-      clearTimeout(timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bulkRun?.jobIds]);
+  // Bulk-run state + progress bar live in the dashboard layout (BulkRunProvider)
+  // so a run keeps showing while the operator navigates to a detail page or
+  // elsewhere. This component just kicks runs off.
+  const { startBulkRun } = useBulkRun();
 
   // Restore persisted filters once on mount. Done in an effect (not lazy state
   // init) so the server-rendered and first client render match — no hydration
@@ -191,9 +140,9 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         `Started ${stage} on ${r.enqueued} lead${r.enqueued === 1 ? "" : "s"}` +
           (r.failed ? ` (${r.failed} failed to enqueue)` : ""),
       );
-      // Hand off to the progress bar — it polls until every job is terminal,
-      // then refreshes the list.
-      setBulkRun({
+      // Hand off to the layout-level progress bar — it polls until every job is
+      // terminal, then refreshes the list. Survives navigation away from here.
+      startBulkRun({
         stage,
         total: r.jobIds.length,
         jobIds: r.jobIds,
@@ -201,26 +150,6 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         failed: 0,
         startedAt: Date.now(),
       });
-    });
-  }
-
-  function stopBulkRun() {
-    const run = bulkRun;
-    if (!run) return;
-    // Hide the bar + stop polling immediately (the effect cleanup bumps
-    // pollRef), then cancel the pending jobs server-side so the worker skips
-    // them. The job currently mid-flight finishes on its own.
-    setBulkRun(null);
-    startTransition(async () => {
-      const r = await cancelBulkRun(run.jobIds);
-      if (r.ok) {
-        toast.success(
-          `Stopped — cancelled ${r.cancelled} pending job${r.cancelled === 1 ? "" : "s"}`,
-        );
-      } else {
-        toast.error(r.message);
-      }
-      router.refresh();
     });
   }
 
@@ -365,49 +294,8 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         </div>
       </div>
 
-      {/* ── Live bulk-run progress (sticky while a run is in flight) ── */}
-      {bulkRun && (() => {
-        const pct = bulkRun.total ? Math.round((bulkRun.done / bulkRun.total) * 100) : 0;
-        const elapsedSec = Math.max(0, Math.floor((Date.now() - bulkRun.startedAt) / 1000));
-        const secPerJob = bulkRun.done > 0 ? elapsedSec / bulkRun.done : 0;
-        const etaSec = secPerJob > 0 ? Math.round(secPerJob * (bulkRun.total - bulkRun.done)) : null;
-        const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-        return (
-          <div className="sticky top-2 z-30 rounded-xl border border-blue-300 bg-white/95 backdrop-blur px-4 py-3 shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <span className="text-sm font-medium text-gray-900">
-                Running {bulkRun.stage} · {bulkRun.done}/{bulkRun.total} done
-                {bulkRun.failed > 0 && (
-                  <span className="text-red-600"> · {bulkRun.failed} failed</span>
-                )}
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 tabular-nums">
-                  {pct}% · {fmt(elapsedSec)} elapsed
-                  {etaSec != null && etaSec > 0 ? ` · ~${fmt(etaSec)} left` : ""}
-                </span>
-                <button
-                  type="button"
-                  onClick={stopBulkRun}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                >
-                  <XMarkIcon className="w-3.5 h-3.5" />
-                  Stop
-                </button>
-              </div>
-            </div>
-            <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full bg-blue-600 transition-all duration-500"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-xs text-gray-400">
-              Jobs run one at a time — you can leave this page; the run keeps going.
-            </p>
-          </div>
-        );
-      })()}
+      {/* Bulk-run progress bar renders from BulkRunProvider (dashboard layout)
+          so it stays visible while navigating away from this page. */}
 
       {/* ── Bulk action bar (sticky top while leads are selected) ──── */}
       {selected.size > 0 && (
