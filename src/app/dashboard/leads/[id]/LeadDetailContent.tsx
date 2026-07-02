@@ -1,10 +1,18 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+
+interface FollowupRow {
+  step: number;
+  scheduled_for: string;
+  status: 'pending' | 'sent' | 'failed' | 'canceled';
+  sent_at: string | null;
+}
 
 type Lead = {
   id: string;
@@ -67,7 +75,47 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
   const [draft, setDraft] = useState('');
   const [drafting, setDrafting] = useState(false);
   const [sendingSms, setSendingSms] = useState(false);
+  const [followups, setFollowups] = useState<FollowupRow[] | null>(null);
+  const [followupBusy, setFollowupBusy] = useState(false);
   const [, startTransition] = useTransition();
+
+  const loadFollowups = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/followups`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setFollowups(data.rows ?? []);
+    } catch {
+      // non-fatal — the card just won't render its status
+    }
+  }, [lead.id]);
+
+  useEffect(() => {
+    loadFollowups();
+  }, [loadFollowups]);
+
+  async function toggleFollowups(action: 'start' | 'stop') {
+    setFollowupBusy(true);
+    const toastId = toast.loading(action === 'start' ? 'Starting follow-ups...' : 'Stopping follow-ups...');
+    try {
+      const res = await fetch(`/api/admin/leads/${lead.id}/followups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed');
+      toast.success(
+        action === 'start' ? `Follow-up cadence started (${data.scheduled} texts scheduled)` : 'Follow-ups stopped',
+        { id: toastId },
+      );
+      await loadFollowups();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed', { id: toastId });
+    } finally {
+      setFollowupBusy(false);
+    }
+  }
 
   async function draftReply() {
     setDrafting(true);
@@ -291,6 +339,49 @@ export default function LeadDetailContent({ lead: initialLead }: { lead: Lead })
             </option>
           ))}
         </select>
+      </div>
+
+      {/* SMS follow-up cadence */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <span className="text-sm text-gray-500">Follow-ups:</span>
+        {(() => {
+          if (followups === null) return <span className="text-sm text-gray-400">…</span>;
+          const pending = followups.filter((f) => f.status === 'pending');
+          const sent = followups.filter((f) => f.status === 'sent');
+          const nextAt = pending.map((p) => p.scheduled_for).sort()[0];
+          if (pending.length > 0) {
+            return (
+              <>
+                <Badge tone="success">Active</Badge>
+                <span className="text-sm text-gray-600">
+                  {sent.length} sent · {pending.length} scheduled · next {formatDateTime(nextAt)}
+                </span>
+                <Button variant="secondary" size="sm" className="ml-auto" disabled={followupBusy} onClick={() => toggleFollowups('stop')}>
+                  Stop follow-ups
+                </Button>
+              </>
+            );
+          }
+          if (sent.length > 0) {
+            return (
+              <>
+                <Badge tone="muted">Finished</Badge>
+                <span className="text-sm text-gray-600">{sent.length} sent</span>
+                <Button variant="secondary" size="sm" className="ml-auto" disabled={followupBusy} onClick={() => toggleFollowups('start')}>
+                  Restart
+                </Button>
+              </>
+            );
+          }
+          return (
+            <>
+              <Badge tone="muted">Not enrolled</Badge>
+              <Button variant="primary" size="sm" className="ml-auto" disabled={followupBusy} onClick={() => toggleFollowups('start')}>
+                Start follow-ups
+              </Button>
+            </>
+          );
+        })()}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

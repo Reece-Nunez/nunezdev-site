@@ -23,6 +23,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
 import { findOrCreateConversation, recordMessage, resolveContact } from '@/lib/inbox';
 import { sendTrackedSms } from '@/lib/smsOutbox';
+import { cancelSequencesForPhone } from '@/lib/leadSmsSequence';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { notifyInboundSms } from '@/lib/notifications';
 
@@ -77,6 +78,15 @@ export async function POST(request: NextRequest) {
   // recordMessage is idempotent on the Twilio MessageSid, so a webhook retry
   // won't double-thread.
   await recordInboundSms(from, toNumber, body, verdict.params.MessageSid);
+
+  // Any reply from a lead — STOP, YES, or a real "yeah let's talk" — means stop
+  // the auto follow-up cadence; you're in a conversation now. Best-effort.
+  try {
+    await cancelSequencesForPhone(from);
+  } catch (e) {
+    console.error('[sms-incoming] cancel follow-up sequence failed:', e);
+  }
+
   const contact = await resolveContact({ phone: from });
   await notifyInboundSms({
     fromE164: from,
