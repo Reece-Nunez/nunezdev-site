@@ -122,6 +122,9 @@ export default function LeadForm({
       smsConsent: formData.get("smsConsent") === "on",
       smsMarketingConsent: formData.get("smsMarketingConsent") === "on",
       turnstileToken: String(formData.get("cf-turnstile-response") || ""),
+      // Honeypot: real users never see this field, so a value here means a bot.
+      // The server silently swallows submissions that fill it.
+      company_website: String(formData.get("company_website") || "").trim(),
       source,
       subject: `Lead from ${source}`,
     };
@@ -205,6 +208,23 @@ export default function LeadForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      {/* Honeypot. Hidden from real users (off-screen, not display:none, so
+          bots that skip hidden fields still see it) and excluded from tab
+          order + autofill. Any value submitted here flags the request as a
+          bot server-side. */}
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
+      >
+        <label htmlFor="company_website">Company website (leave blank)</label>
+        <input
+          id="company_website"
+          name="company_website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
       <div className={compact ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
         <div>
           <label htmlFor="lead-name" className={labelCls}>

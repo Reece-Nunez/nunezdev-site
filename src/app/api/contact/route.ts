@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leadNurtureService } from '@/lib/leadNurturing';
 import { verifyTurnstile } from '@/lib/turnstile';
+import { screenLead } from '@/lib/leadSpamFilter';
 import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { Resend } from 'resend';
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
       source,
       smsConsent,
       smsMarketingConsent,
+      // Hidden honeypot field (see LeadForm). Named baitily on the wire; real
+      // users never fill it, bots that auto-fill every input do.
+      company_website: honeypot,
     } = contactData;
 
     // Validate required fields
@@ -34,6 +38,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Name, email, and message are required' },
         { status: 400 }
+      );
+    }
+
+    // Content-level spam screen. Turnstile stops bots; this stops the junk a
+    // human (or a challenge-solving bot) can still type — the reported lead
+    // had no valid email and a mashed name. Honeypot/gibberish hits are
+    // swallowed with a fake 201 so abusers get no signal to adapt; an invalid
+    // email gets a real 400 so a legit user fixing a typo sees why.
+    const screen = screenLead({ name, email, honeypot });
+    if (screen.spam) {
+      console.warn('[contact] blocked submission:', screen.reason);
+      if (screen.reason === 'invalid-email') {
+        return NextResponse.json(
+          { error: 'Please enter a valid email address.' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { success: true, message: 'Contact form submitted successfully' },
+        { status: 201 }
       );
     }
 
