@@ -2,9 +2,9 @@ import { redirect } from 'next/navigation';
 import { requireProspecting } from '@/lib/authz';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
-import { extractLeadDetails, isThumbtackLeadEvent } from '@/lib/thumbtackWebhook';
 import {
   computeThumbtackRoi,
+  nameKey,
   type RoiLead,
   type RoiClient,
   type ThumbtackRoi,
@@ -13,88 +13,66 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type EventRow = {
-  id: string;
-  event_type: string | null;
-  payload: unknown;
-  processed: boolean;
-  received_at: string;
-};
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
 function dollars(cents: number | null) {
   return cents == null ? null : `$${(cents / 100).toFixed(2)}`;
 }
 
 type SupabaseAdmin = ReturnType<typeof supabaseAdmin>;
 
+/** Strip the "Lead - " / "Thumbtack lead fee - " prefix off an expense
+ *  description to recover the customer name. */
+function leadNameFromDescription(description: string | null): string | null {
+  if (!description) return null;
+  return description.replace(/^(thumbtack lead fee|lead)\s*[-–]\s*/i, '').trim() || null;
+}
+
 /**
- * Load every Thumbtack lead straight from the raw events (deduped by
- * negotiation), match each to a client (explicit link → phone → name), and roll
- * up spend vs. collected revenue. Reading from the events — not the derived
- * leads/expenses tables — means the ROI reflects ALL leads regardless of
- * whether the processor has caught up. Matching + math live in the pure,
- * unit-tested @/lib/thumbtackRoi.
+ * Load every Thumbtack lead from the **lead-fee expenses** (vendor='Thumbtack')
+ * — the real source of truth for spend + leads, since the webhook only fires
+ * for a fraction of leads ("Direct leads" never generate an event). Enrich with
+ * phone/link from the leads table (best-effort, by name), match each lead to a
+ * client (link → phone → name), and roll up spend vs. collected revenue.
+ * Matching + math live in the pure, unit-tested @/lib/thumbtackRoi.
  */
 async function loadThumbtackRoi(supabase: SupabaseAdmin): Promise<ThumbtackRoi> {
-  // 1. All lead events → one RoiLead per negotiation.
-  const { data: events } = await supabase
-    .from('thumbtack_events')
-    .select('event_type, payload')
-    .order('received_at', { ascending: false })
-    .limit(5000);
+  // 1. Lead list + spend = the Thumbtack lead-fee expenses.
+  const { data: expenses } = await supabase
+    .from('expenses')
+    .select('description, amount_cents, expense_date, client_id')
+    .eq('vendor', 'Thumbtack')
+    .order('expense_date', { ascending: false });
 
-  const detailByNeg = new Map<string, ReturnType<typeof extractLeadDetails>>();
-  const anonLeads: RoiLead[] = [];
-  for (const e of (events ?? []) as { event_type: string | null; payload: unknown }[]) {
-    if (!isThumbtackLeadEvent(e.event_type)) continue;
-    const d = extractLeadDetails(e.payload);
-    if (d.negotiationID) {
-      if (!detailByNeg.has(d.negotiationID)) detailByNeg.set(d.negotiationID, d);
-    } else {
-      anonLeads.push({
-        negotiationId: null,
-        name: d.customerName,
-        phone: d.customerPhone,
-        priceCents: d.leadPriceCents,
-        dateISO: d.createdAtDate,
-      });
-    }
+  // 2. Phone + explicit link enrichment from the leads table, keyed by name.
+  const { data: leadRows } = await supabase
+    .from('leads')
+    .select('name, phone, client_id')
+    .eq('source', 'thumbtack');
+  const phoneByName = new Map<string, string>();
+  const linkByName = new Map<string, string>();
+  for (const l of (leadRows ?? []) as { name: string | null; phone: string | null; client_id: string | null }[]) {
+    const nk = nameKey(l.name);
+    if (!nk) continue;
+    if (l.phone && !phoneByName.has(nk)) phoneByName.set(nk, l.phone);
+    if (l.client_id && !linkByName.has(nk)) linkByName.set(nk, l.client_id);
   }
 
-  // 2. Explicit lead→client links (converted leads) keyed by negotiation id.
-  const negIds = [...detailByNeg.keys()];
-  const linkByNeg = new Map<string, string>();
-  if (negIds.length) {
-    const { data: leadRows } = await supabase
-      .from('leads')
-      .select('thumbtack_negotiation_id, client_id')
-      .in('thumbtack_negotiation_id', negIds);
-    for (const l of (leadRows ?? []) as { thumbtack_negotiation_id: string | null; client_id: string | null }[]) {
-      if (l.thumbtack_negotiation_id && l.client_id) linkByNeg.set(l.thumbtack_negotiation_id, l.client_id);
-    }
-  }
-
-  const leads: RoiLead[] = [
-    ...anonLeads,
-    ...[...detailByNeg.entries()].map(([neg, d]) => ({
-      negotiationId: neg,
-      name: d.customerName,
-      phone: d.customerPhone,
-      priceCents: d.leadPriceCents,
-      dateISO: d.createdAtDate,
-      linkedClientId: linkByNeg.get(neg) ?? null,
-    })),
-  ];
+  const leads: RoiLead[] = ((expenses ?? []) as {
+    description: string | null;
+    amount_cents: number | null;
+    expense_date: string | null;
+    client_id: string | null;
+  }[]).map((e) => {
+    const name = leadNameFromDescription(e.description);
+    const nk = nameKey(name);
+    return {
+      negotiationId: null,
+      name,
+      phone: nk ? phoneByName.get(nk) ?? null : null,
+      priceCents: e.amount_cents ?? null,
+      dateISO: e.expense_date ?? null,
+      linkedClientId: e.client_id ?? (nk ? linkByName.get(nk) ?? null : null),
+    };
+  });
 
   // 3. Clients to match against.
   const { data: clientRows } = await supabase.from('clients').select('id, name, phone, email');
@@ -132,34 +110,20 @@ export default async function ThumbtackLeadsPage() {
   if (!guard.ok) redirect('/login?next=/dashboard/thumbtack');
 
   const supabase = supabaseAdmin();
-  const { data, error } = await supabase
-    .from('thumbtack_events')
-    .select('id, event_type, payload, processed, received_at')
-    .order('received_at', { ascending: false })
-    .limit(200);
-
-  // Lead events only (messages/reviews live in the inbox). Decorate each with
-  // the parsed display fields.
-  const leads = ((data ?? []) as EventRow[])
-    .filter((e) => isThumbtackLeadEvent(e.event_type))
-    .map((e) => ({ row: e, lead: extractLeadDetails(e.payload) }));
-
   const roi = await loadThumbtackRoi(supabase);
-  // Per-lead outcome (won / in progress / unmatched) keyed by negotiation id,
-  // so the recent-leads table below can show which fees actually paid off.
-  const roiByNeg = new Map(roi.rows.filter((r) => r.negotiationId).map((r) => [r.negotiationId!, r]));
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Thumbtack Leads</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Thumbtack ROI</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Leads pushed in live from Thumbtack. Lead fees are logged automatically to{' '}
+            Every Thumbtack lead fee (logged to{' '}
             <a href="/dashboard/expenses" className="text-emerald-700 hover:underline">
               Expenses
-            </a>{' '}
-            (Thumbtack / lead&nbsp;fees) — no manual entry.
+            </a>
+            ) cross-referenced against your invoices to show what Thumbtack is actually
+            earning you.
           </p>
         </div>
       </header>
@@ -196,17 +160,10 @@ export default async function ThumbtackLeadsPage() {
         converted-lead link, phone, or name). A lead is &ldquo;won&rdquo; once its client has paid.
       </p>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Failed to load Thumbtack leads: {error.message}
-        </div>
-      )}
-
       <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-        {leads.length === 0 ? (
+        {roi.rows.length === 0 ? (
           <div className="p-10 text-center text-gray-500 text-sm">
-            No Thumbtack leads yet. New leads will appear here automatically as Thumbtack
-            sends them.
+            No Thumbtack lead fees logged yet.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -214,67 +171,51 @@ export default async function ThumbtackLeadsPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Service</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead fee</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Lead date</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Outcome</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Logged</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Matched client</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {leads.map(({ row, lead }) => (
-                  <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="text-sm font-medium text-gray-900">
-                        {lead.customerName ?? <span className="text-gray-400">Unknown</span>}
-                      </div>
-                      {lead.customerPhone && (
-                        <div className="text-xs text-gray-500">{lead.customerPhone}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
-                      {lead.category || <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {dollars(lead.leadPriceCents) ?? <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => {
-                        const r = lead.negotiationID ? roiByNeg.get(lead.negotiationID) : undefined;
-                        if (!r) return <span className="text-gray-400 text-xs">—</span>;
-                        const tone: BadgeTone =
-                          r.outcome === 'won' ? 'success' : r.outcome === 'in_progress' ? 'info' : 'muted';
-                        const label =
-                          r.outcome === 'won' ? 'Won' : r.outcome === 'in_progress' ? 'In progress' : 'No match';
-                        return (
-                          <div className="flex flex-col items-start gap-0.5">
-                            <Badge tone={tone}>{label}</Badge>
-                            {r.clientRevenueCents > 0 && (
-                              <span className="text-xs text-gray-500">
-                                {dollars(r.clientRevenueCents)}
-                                {r.clientName ? ` · ${r.clientName}` : ''}
-                              </span>
+                {roi.rows.map((r, i) => {
+                  const tone: BadgeTone =
+                    r.outcome === 'won' ? 'success' : r.outcome === 'in_progress' ? 'info' : 'muted';
+                  const label =
+                    r.outcome === 'won' ? 'Won' : r.outcome === 'in_progress' ? 'In progress' : 'No match';
+                  return (
+                    <tr key={r.negotiationId ?? `${r.name}-${i}`} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {r.name ?? <span className="text-gray-400">Unknown</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {dollars(r.priceCents) ?? <span className="text-gray-400">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap hidden sm:table-cell">
+                        {r.dateISO ?? '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={tone}>{label}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">
+                        {r.clientName ? (
+                          <span>
+                            {r.clientName}
+                            {r.confidence && (
+                              <span className="text-[11px] text-gray-400"> · {r.confidence}</span>
                             )}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <Badge tone="info">{lead.status || 'lead'}</Badge>
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      {row.processed ? (
-                        <Badge tone="success">In expenses</Badge>
-                      ) : (
-                        <Badge tone="warning">Pending</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                      {formatDate(row.received_at)}
-                    </td>
-                  </tr>
-                ))}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
+                        {r.clientRevenueCents > 0 ? dollars(r.clientRevenueCents) : <span className="text-gray-400">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
