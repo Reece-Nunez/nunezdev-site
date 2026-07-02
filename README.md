@@ -121,6 +121,24 @@ Workspace service account used elsewhere. Get each value, then set the
 Until all five are set the dashboard shows a "not connected" state and the cron
 no-ops — safe to deploy before the dev-token approval lands.
 
+### Ads ops scripts (manual, read + write)
+
+Standalone Node scripts for account maintenance the dashboard doesn't cover.
+Each loads `.env.local` itself (creds never printed) and talks to the live
+account via the same `google-ads-api` client. Write scripts are **dry-run by
+default** — pass `--commit` to apply.
+
+```
+node scripts/ads-search-terms.mjs          # read-only: last-30-day search terms report
+node scripts/ads-add-negatives.mjs         # dry-run: preview negative keywords to add
+node scripts/ads-add-negatives.mjs --commit
+node scripts/ads-set-geo.mjs               # dry-run: preview campaign geo retarget
+node scripts/ads-set-geo.mjs --commit
+```
+
+`ads-add-negatives` and `ads-set-geo` are idempotent — re-running detects
+what's already applied and does nothing.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
