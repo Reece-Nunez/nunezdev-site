@@ -22,6 +22,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   triggerStageOnApi,
   getJobsProgressFromApi,
+  getActiveRunsFromApi,
   cancelJobsOnApi,
   triggerProspectOnApi,
   getJobFromApi,
@@ -599,6 +600,40 @@ export async function bulkJobProgress(
     return {
       ok: false,
       message: err instanceof Error ? err.message : "progress check failed",
+    };
+  }
+}
+
+/**
+ * The single in-flight bulk run to show, if any — lets the progress bar
+ * re-attach to a run this browser didn't start (another tab/device, or one
+ * begun before the bar persisted its job ids). If several stages are mid-flight
+ * we surface the biggest (most jobs) — the one the operator is most likely
+ * watching. Returns { run: null } when nothing is running.
+ */
+export async function getActiveBulkRun(): Promise<
+  | { ok: true; run: { stage: Stage; jobIds: string[]; total: number; startedAt: number } | null }
+  | { ok: false; message: string }
+> {
+  const guard = await requireProspecting();
+  if (!guard.ok) return { ok: false, message: "Unauthorized" };
+  try {
+    const runs = await getActiveRunsFromApi();
+    if (runs.length === 0) return { ok: true, run: null };
+    const best = runs.reduce((a, b) => (b.total > a.total ? b : a));
+    return {
+      ok: true,
+      run: {
+        stage: best.stage,
+        jobIds: best.job_ids,
+        total: best.total,
+        startedAt: best.started_at ? Date.parse(best.started_at) : Date.now(),
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : "active-run check failed",
     };
   }
 }

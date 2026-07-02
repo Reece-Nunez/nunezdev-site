@@ -232,6 +232,22 @@ export async function cancelJobsOnApi(ids: string[]): Promise<{ cancelled: numbe
   });
 }
 
+/** One in-flight bulk run (queued/running jobs), reconstructed from an enqueue
+ *  burst — lets the dashboard re-attach its progress bar to a run it didn't
+ *  start in this browser (another tab/device, or one begun before the bar
+ *  persisted its job ids). */
+export interface ActiveRun {
+  stage: Stage;
+  job_ids: string[];
+  total: number;
+  started_at: string | null;
+}
+
+export async function getActiveRunsFromApi(): Promise<ActiveRun[]> {
+  const r = await apiFetch<{ runs: ActiveRun[] }>(`/jobs/active`);
+  return r.runs ?? [];
+}
+
 /**
  * Options for a prospect run. `zip` is always the search center. With no
  * `query` it's the 20-category sweep (`max` = per-category cap). With a

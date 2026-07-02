@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { bulkJobProgress, cancelBulkRun } from "./leadgen/actions";
+import { bulkJobProgress, cancelBulkRun, getActiveBulkRun } from "./leadgen/actions";
 import type { Stage } from "./leadgen/utils";
 
 // Live progress of an in-flight bulk run (research/build/outreach over many
@@ -55,18 +55,40 @@ export function BulkRunProvider({ children }: { children: React.ReactNode }) {
   // mount doesn't clobber a stored run with the null default.
   const [restored, setRestored] = useState(false);
 
-  // Restore an in-flight run once on mount (survives hard reload).
+  // Restore an in-flight run once on mount. Two sources, in order:
+  //  1. sessionStorage — a run this tab already knew about (survives reload).
+  //  2. the pipeline's active-jobs endpoint — a run this browser never saw
+  //     (started on another tab/device, or before the bar persisted ids).
+  // Each setBulkRun uses the functional guard `cur ?? next` so a run the
+  // operator kicks off between mount and the async resolving is never clobbered.
   useEffect(() => {
+    let cancelled = false;
+    let resumedFromStorage = false;
     try {
       const raw = sessionStorage.getItem(RUN_KEY);
       if (raw) {
         const r = JSON.parse(raw) as BulkRun;
-        if (r && Array.isArray(r.jobIds) && r.jobIds.length > 0) setBulkRun(r);
+        if (r && Array.isArray(r.jobIds) && r.jobIds.length > 0) {
+          setBulkRun(r);
+          resumedFromStorage = true;
+        }
       }
     } catch {
-      // Corrupt/blocked storage — nothing to resume.
+      // Corrupt/blocked storage — fall through to the active-jobs check.
     }
     setRestored(true);
+    if (!resumedFromStorage) {
+      (async () => {
+        const res = await getActiveBulkRun();
+        if (cancelled || !res.ok || !res.run) return;
+        const run = res.run;
+        // done/failed start at 0; the poll fills them in on its first tick.
+        setBulkRun((cur) => cur ?? { ...run, done: 0, failed: 0 });
+      })();
+    }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Persist on change so a reload can resume. Cleared when the run ends (null).
