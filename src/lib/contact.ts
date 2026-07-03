@@ -17,10 +17,9 @@ export const ADDRESS = {
   country: "US",
 } as const;
 
-// Paste your full Google Business Profile share URL here once you have it.
-// Until then, the footer falls back to a Google Maps search.
-export const GOOGLE_BUSINESS_URL =
-  "https://www.google.com/search?q=NunezDev+Ponca+City+OK";
+// Official Google Business Profile share link (Profile → Share). Opens the
+// NunezDev profile / knowledge panel. Used as the "Google" link in the footer.
+export const GOOGLE_BUSINESS_URL = "https://share.google/vlAONsaRLfxoBusC3";
 
 // Direct "write a review" link for the Google Business Profile. Opens the review
 // dialog straight away — used by the client review-request outreach.
