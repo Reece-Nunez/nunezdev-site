@@ -181,14 +181,16 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         );
       }
       if (channel !== "email") {
-        parts.push(
-          `${r.sms.sent} text${r.sms.sent === 1 ? "" : "s"} sent` +
-            (r.sms.failed ? `, ${r.sms.failed} failed` : ""),
-        );
+        const smsBits = [`${r.sms.sent} text${r.sms.sent === 1 ? "" : "s"} sent`];
+        // Texts fired outside 8am–9pm are deferred, not failed — they go out at
+        // 10am the recipient's local time.
+        if (r.sms.scheduled) smsBits.push(`${r.sms.scheduled} scheduled for the morning`);
+        if (r.sms.failed) smsBits.push(`${r.sms.failed} failed`);
+        parts.push(smsBits.join(", "));
       }
-      const anySent = r.email.sent + r.sms.sent > 0;
+      const anyDone = r.email.sent + r.sms.sent + r.sms.scheduled > 0;
       const msg = parts.join(" · ");
-      if (anySent) toast.success(msg);
+      if (anyDone) toast.success(msg);
       else toast.error(`Nothing sent — ${msg}. Check drafts exist / opt-outs.`);
       setSelected(new Set());
     });
@@ -208,6 +210,9 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
           <div className="mt-0.5 text-gray-600">
             This sends the drafted outreach to real prospects. Already-contacted or
             un-drafted leads are skipped.
+            {channel !== "email" && (
+              <> Texts outside 8am–9pm local time are scheduled for 10am the next morning.</>
+            )}
           </div>
           <div className="mt-2 flex gap-2">
             <button

@@ -423,7 +423,10 @@ export async function recordSmsConsent(
  */
 export async function sendSmsOutreach(
   businessId: number,
-): Promise<{ ok: true; sentAt: string | null } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; status: "sent" | "scheduled"; sentAt: string | null; scheduledFor: string | null }
+  | { ok: false; message: string }
+> {
   const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Owner access required" };
   if (!Number.isInteger(businessId) || businessId <= 0) {
@@ -433,7 +436,12 @@ export async function sendSmsOutreach(
     const result = await sendSmsOutreachOnApi(businessId);
     revalidatePath(`/dashboard/leadgen/${businessId}`);
     revalidatePath("/dashboard/leadgen");
-    return { ok: true, sentAt: result.sent_at };
+    return {
+      ok: true,
+      status: result.status === "scheduled" ? "scheduled" : "sent",
+      sentAt: result.sent_at,
+      scheduledFor: result.scheduled_for ?? null,
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "send failed";
     return { ok: false, message };
@@ -656,7 +664,12 @@ export async function bulkSendOutreach(
   channel: OutreachChannel,
   businessIds: number[],
 ): Promise<
-  | { ok: true; email: { sent: number; failed: number }; sms: { sent: number; failed: number } }
+  | {
+      ok: true;
+      email: { sent: number; failed: number };
+      // scheduled = deferred out of quiet hours; goes out at 10am recipient-local.
+      sms: { sent: number; scheduled: number; failed: number };
+    }
   | { ok: false; message: string }
 > {
   const guard = await requireProspecting();
@@ -671,7 +684,7 @@ export async function bulkSendOutreach(
   }
 
   const email = { sent: 0, failed: 0 };
-  const sms = { sent: 0, failed: 0 };
+  const sms = { sent: 0, scheduled: 0, failed: 0 };
   const doEmail = channel === "email" || channel === "both";
   const doSms = channel === "sms" || channel === "both";
 
@@ -689,8 +702,9 @@ export async function bulkSendOutreach(
         }
         if (doSms) {
           try {
-            await sendSmsOutreachOnApi(id);
-            sms.sent += 1;
+            const r = await sendSmsOutreachOnApi(id);
+            if (r.status === "scheduled") sms.scheduled += 1;
+            else sms.sent += 1;
           } catch {
             sms.failed += 1;
           }

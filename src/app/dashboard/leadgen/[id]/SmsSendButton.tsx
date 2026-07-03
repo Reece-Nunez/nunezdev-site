@@ -49,8 +49,22 @@ export default function SmsSendButton({ businessId, phone, consentBasis, optedOu
   function send() {
     startTransition(async () => {
       const result = await sendSmsOutreach(businessId);
-      if (result.ok) toast.success("SMS sent");
-      else toast.error(result.message);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      if (result.status === "scheduled") {
+        const when = result.scheduledFor
+          ? new Date(result.scheduledFor).toLocaleString([], {
+              weekday: "short",
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "the morning";
+        toast.success(`Outside quiet hours — scheduled for ${when}`);
+      } else {
+        toast.success("SMS sent");
+      }
     });
   }
 
@@ -62,8 +76,8 @@ export default function SmsSendButton({ businessId, phone, consentBasis, optedOu
             <div className="font-medium text-gray-900">Send this text?</div>
             <div className="text-xs text-gray-600 mt-0.5">To: {phone}</div>
             <div className="text-[11px] text-gray-500 mt-1">
-              We append &ldquo;Reply STOP to opt out&rdquo; and only send within
-              8am–9pm local time.
+              We append &ldquo;Reply STOP to opt out.&rdquo; Outside 8am–9pm their
+              local time, it&rsquo;s scheduled for 10am the next morning.
             </div>
           </div>
           <div className="flex flex-col gap-1">

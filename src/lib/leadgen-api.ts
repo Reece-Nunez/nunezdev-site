@@ -359,14 +359,19 @@ export async function sendOutreachEmail(businessId: number): Promise<OutreachSen
 
 export interface SmsSendResult {
   ok: boolean;
+  // "sent" now, or "scheduled" when deferred out of quiet hours.
+  status?: "sent" | "scheduled" | null;
+  // ISO time a deferred send will go out (present only when status="scheduled").
+  scheduled_for?: string | null;
   message_id: string | null;
   sent_at: string | null;
 }
 
 /**
- * Send the SMS draft via Twilio — compliance-gated server-side (consent,
- * opt-out, quiet hours, sender ID + STOP). Throws on a non-2xx; the message
- * carries the human-readable reason (e.g. "no SMS consent on file").
+ * Send the SMS draft via Twilio — compliance-gated server-side (opt-out, sender
+ * ID + STOP). Outside the recipient's 8am-9pm quiet hours the send is DEFERRED
+ * (status="scheduled" + scheduled_for), not rejected. Throws on a non-2xx; the
+ * message carries the human-readable reason (e.g. "opted out").
  */
 export async function sendSmsOutreach(businessId: number): Promise<SmsSendResult> {
   if (!isRemoteBackend()) {
@@ -376,6 +381,20 @@ export async function sendSmsOutreach(businessId: number): Promise<SmsSendResult
     );
   }
   return apiFetch<SmsSendResult>(`/outreach/${businessId}/send-sms`, { method: "POST" });
+}
+
+export interface ReleaseScheduledResult {
+  considered: number;
+  sent: number;
+  failed: number;
+}
+
+/** Fire any deferred SMS whose send time has arrived. Called by the hourly cron. */
+export async function releaseScheduledSends(): Promise<ReleaseScheduledResult> {
+  if (!isRemoteBackend()) {
+    throw new LeadgenApiError(500, "Releasing scheduled sends requires LEADGEN_API_URL.");
+  }
+  return apiFetch<ReleaseScheduledResult>(`/scheduled-sends/release`, { method: "POST" });
 }
 
 export interface SmsConsentResult {
