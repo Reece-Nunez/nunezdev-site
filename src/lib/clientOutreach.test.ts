@@ -30,10 +30,11 @@ describe("client outreach templates", () => {
     assert.ok(reviewRequestEmailHtml("Jane").includes(GOOGLE_REVIEW_URL));
   });
 
-  it("care-plan email pitches all three tiers", () => {
+  it("care-plan email pitches all four tiers", () => {
     const html = carePlanEmailHtml("Jane");
-    assert.match(html, /\$49/);
-    assert.match(html, /\$199/);
-    assert.match(html, /\$499/);
+    assert.match(html, /\$75/);
+    assert.match(html, /\$150/);
+    assert.match(html, /\$250/);
+    assert.match(html, /\$500/);
   });
 });

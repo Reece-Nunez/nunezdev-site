@@ -9,7 +9,7 @@ function firstName(name: string | null | undefined): string {
   return (name || "").trim().split(/\s+/)[0] || "there";
 }
 
-/** Care-plan upsell email. Pitches all three plans; the client picks. */
+/** Care-plan upsell email. Pitches all four plans; the client picks. */
 export function carePlanEmailHtml(name: string | null | undefined): string {
   return `
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333; line-height: 1.6;">
@@ -18,19 +18,23 @@ export function carePlanEmailHtml(name: string | null | undefined): string {
     <p>Here are the options:</p>
 
     <div style="border: 1px solid #eee; border-radius: 8px; padding: 16px; margin: 12px 0;">
-      <strong>Essential: $49/mo</strong>
+      <strong>Starter: $75/mo</strong>
       <p style="margin: 6px 0 0; color: #555;">Hosting, SSL, uptime monitoring, monthly backups, security and dependency updates, 99.9% uptime.</p>
     </div>
+    <div style="border: 1px solid #eee; border-radius: 8px; padding: 16px; margin: 12px 0;">
+      <strong>Essential: $150/mo</strong>
+      <p style="margin: 6px 0 0; color: #555;">Everything in Starter, plus 1 hour/month of dev or content time, daily backups, and performance monitoring.</p>
+    </div>
     <div style="border: 1px solid #ffe08a; background: #fffdf5; border-radius: 8px; padding: 16px; margin: 12px 0;">
-      <strong>Growth: $199/mo</strong> <span style="color:#b8860b;">(most popular)</span>
-      <p style="margin: 6px 0 0; color: #555;">Everything in Essential, plus 3 hours/month of dev or content time, daily backups, performance and SEO monitoring.</p>
+      <strong>Growth: $250/mo</strong> <span style="color:#b8860b;">(most popular)</span>
+      <p style="margin: 6px 0 0; color: #555;">Everything in Essential, plus 3 hours/month of dev or content time, SEO monitoring, CMS updates, and priority support.</p>
     </div>
     <div style="border: 1px solid #eee; border-radius: 8px; padding: 16px; margin: 12px 0;">
-      <strong>Premium: $499/mo</strong>
+      <strong>Premium: $500/mo</strong>
       <p style="margin: 6px 0 0; color: #555;">Everything in Growth, plus 8 hours/month, a staging environment, A/B testing, a dedicated support channel, and a monthly strategy call.</p>
     </div>
 
-    <p>Most clients start on Essential or Growth. Just reply with which one fits and I will get you set up. Happy to talk it through if you are not sure.</p>
+    <p>Most clients start on Starter or Essential. Just reply with which one fits and I will get you set up. Happy to talk it through if you are not sure.</p>
     <p>Thanks,<br>Reece Nunez<br>NunezDev</p>
   </div>`;
 }
