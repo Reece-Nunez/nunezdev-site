@@ -11,6 +11,7 @@
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
+import { matchClientId } from '@/lib/proposals/matchClient';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -127,7 +128,12 @@ export default function ProposalForm({
     setAiError(null);
     setAiLoading(true);
     try {
-      const clientName = clients.find((c) => c.id === formData.client_id)?.name;
+      // If the brief names a client we already have, prefer that; otherwise fall
+      // back to whatever is selected in the dropdown. matchClientId also lets us
+      // auto-select the client from the prompt below.
+      const matchedClientId = matchClientId(aiBrief, clients);
+      const clientName =
+        clients.find((c) => c.id === (matchedClientId || formData.client_id))?.name;
       const res = await fetch('/api/proposals/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,6 +144,7 @@ export default function ProposalForm({
 
       const draft = data.draft as {
         title: string;
+        description: string;
         project_overview: string;
         line_items: ProposalLineItem[];
         terms_conditions: string;
@@ -146,7 +153,9 @@ export default function ProposalForm({
 
       setFormData((prev) => ({
         ...prev,
+        client_id: matchedClientId || prev.client_id,
         title: draft.title || prev.title,
+        description: draft.description || prev.description,
         project_overview: draft.project_overview || prev.project_overview,
         terms_conditions: draft.terms_conditions || prev.terms_conditions,
         technology_stack: draft.technology_stack?.length

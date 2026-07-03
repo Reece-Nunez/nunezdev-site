@@ -35,6 +35,7 @@ describe("sanitizeProposalDraft", () => {
   it("coerces a well-formed draft and recomputes amounts", () => {
     const draft = sanitizeProposalDraft({
       title: "Website Redesign",
+      description: "A fresh marketing site.",
       project_overview: "We rebuild the site.",
       line_items: [
         { description: "Design", quantity: 2, rate_cents: 7500, amount_cents: 99999 }, // amount ignored, recomputed
@@ -45,6 +46,7 @@ describe("sanitizeProposalDraft", () => {
     });
     assert.ok(draft);
     assert.equal(draft.title, "Website Redesign");
+    assert.equal(draft.description, "A fresh marketing site.");
     assert.equal(draft.line_items.length, 2);
     assert.equal(draft.line_items[0].amount_cents, 15000); // 2 * 7500, not the bogus 99999
     assert.deepEqual(draft.technology_stack, ["Next.js", "Supabase"]);
@@ -83,6 +85,7 @@ describe("sanitizeProposalDraft", () => {
     });
     assert.ok(draft);
     assert.equal(draft.title, "Project Proposal");
+    assert.equal(draft.description, "");
     assert.equal(draft.project_overview, "");
     assert.deepEqual(draft.technology_stack, []);
   });

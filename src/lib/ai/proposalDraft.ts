@@ -13,6 +13,7 @@ export interface DraftLineItem {
 
 export interface ProposalDraft {
   title: string;
+  description: string;
   project_overview: string;
   line_items: DraftLineItem[];
   terms_conditions: string;
@@ -40,6 +41,7 @@ OUTPUT
 Respond with ONLY a JSON object, no preamble and no markdown fences:
 {
   "title": "Short proposal title (e.g. 'Website Redesign for Acme Co')",
+  "description": "One sentence summarizing what this proposal covers, for an at-a-glance list view.",
   "project_overview": "2 to 4 sentences describing the work, the goal, and what the client gets. In the voice above.",
   "line_items": [
     { "description": "What this covers", "quantity": <number>, "rate_cents": <integer>, "amount_cents": <integer> }
@@ -99,6 +101,7 @@ export function sanitizeProposalDraft(raw: unknown): ProposalDraft | null {
 
   return {
     title: toStr(obj.title, 150, "Project Proposal"),
+    description: toStr(obj.description, 500),
     project_overview: toStr(obj.project_overview, 2000),
     line_items,
     terms_conditions: toStr(obj.terms_conditions, 4000),
