@@ -1,7 +1,7 @@
 "use client";
 import Script from "next/script";
 import { testimonials } from "@/data/testimonials";
-import { REVIEW_SUMMARY } from "@/lib/contact";
+import { REVIEW_SUMMARY, GOOGLE_BUSINESS_URL, EMAIL } from "@/lib/contact";
 
 export default function StructuredData() {
   // Synthesize Review nodes from the testimonials we display on-site so the
@@ -71,6 +71,9 @@ export default function StructuredData() {
                 "https://www.facebook.com/NunezDevLLC",
                 "https://www.instagram.com/nunez-dev",
                 "https://github.com/reecenunez",
+                // Google Business Profile — ties this Organization to the GBP
+                // entity, a local-SEO signal.
+                GOOGLE_BUSINESS_URL,
               ]
             },
             {
@@ -96,7 +99,7 @@ export default function StructuredData() {
               image: "https://www.nunezdev.com/logo.png",
               url: "https://www.nunezdev.com",
               telephone: "+1-435-660-6100",
-              email: "contact@nunezdev.com",
+              email: EMAIL,
               priceRange: "$$",
               description: "Custom web design, client portals, CRM tools, and full-stack software development based in Ponca City, OK.",
               address: {
