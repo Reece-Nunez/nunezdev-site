@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Resend } from "resend";
 import { createNotification } from "@/lib/notifications";
 
@@ -9,12 +9,19 @@ export const dynamic = "force-dynamic";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // POST /api/proposals/[id]/accept - Client accepts proposal (public endpoint via token)
+//
+// Uses the service-role client, not supabaseServer(): the signer is an
+// unauthenticated public visitor, so the anon role's RLS UPDATE policy
+// (org_id must belong to auth.uid()) matches zero rows. An RLS-filtered UPDATE
+// returns *no error* — it silently writes nothing — so the status would stay
+// "sent" while the notification still fired. Access is gated by the secret
+// access_token check below instead of RLS.
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await supabaseServer();
+  const supabase = supabaseAdmin();
 
   try {
     const body = await request.json();
@@ -74,13 +81,21 @@ export async function POST(
       updateData.signature_svg = signature;
     }
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from("proposals")
       .update(updateData)
-      .eq("id", id);
+      .eq("id", id)
+      .select("id");
 
     if (updateError) {
       console.error("Error accepting proposal:", updateError);
+      return NextResponse.json({ error: "Failed to accept proposal" }, { status: 500 });
+    }
+
+    // Guard against a silent zero-row write (e.g. RLS filtering). Without this
+    // the acceptance notification below would fire even though nothing saved.
+    if (!updated || updated.length === 0) {
+      console.error("Accept proposal affected 0 rows:", id);
       return NextResponse.json({ error: "Failed to accept proposal" }, { status: 500 });
     }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Resend } from "resend";
 
 export const runtime = "nodejs";
@@ -8,12 +8,16 @@ export const dynamic = "force-dynamic";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // POST /api/proposals/[id]/reject - Client rejects proposal (public endpoint via token)
+//
+// Service-role client, not supabaseServer(): the visitor is unauthenticated, so
+// the anon RLS UPDATE policy matches zero rows and the status write silently
+// no-ops. Access is gated by the access_token check below. (Same fix as accept.)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await supabaseServer();
+  const supabase = supabaseAdmin();
 
   try {
     const body = await request.json();
@@ -47,17 +51,23 @@ export async function POST(
     }
 
     // Update proposal
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from("proposals")
       .update({
         status: 'rejected',
         rejected_at: new Date().toISOString(),
         rejection_reason: reason || null
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id");
 
     if (updateError) {
       console.error("Error rejecting proposal:", updateError);
+      return NextResponse.json({ error: "Failed to reject proposal" }, { status: 500 });
+    }
+
+    if (!updated || updated.length === 0) {
+      console.error("Reject proposal affected 0 rows:", id);
       return NextResponse.json({ error: "Failed to reject proposal" }, { status: 500 });
     }
 
