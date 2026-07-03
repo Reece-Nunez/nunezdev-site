@@ -162,15 +162,50 @@ describe('extractLeadDetails', () => {
       leadPriceCents: 2500,
       category: 'Full Service Lawn Care',
       description: 'Need Full Service Lawn Care',
+      budget: null, // this event carries no request.details[]
+      timeline: null,
       status: 'Open',
       createdAtDate: '2026-06-15',
     });
+  });
+
+  it('pulls budget + timeline out of the request.details[] Q&A array', () => {
+    // Real NegotiationCreatedV4 leads carry structured Q&A in request.details[];
+    // budget lives under "Budget" and the timeline under "Deadline". Regression
+    // for leads showing "—" for budget/timeline despite Thumbtack sending them.
+    const withDetails = {
+      event: { eventType: 'NegotiationCreatedV4' },
+      data: {
+        negotiationID: 'n1',
+        request: {
+          category: { name: 'Web Design' },
+          details: [
+            { question: 'Website type', answer: 'Social network / community' },
+            { question: 'Budget', answer: 'Under $500, $500 - $1,000, $1,000 - $1,500, $1,500 - $2,000' },
+            { question: 'Deadline', answer: 'Within 1 month' },
+          ],
+        },
+      },
+    };
+    const d = extractLeadDetails(withDetails);
+    assert.equal(d.budget, 'Under $500, $500 - $1,000, $1,000 - $1,500, $1,500 - $2,000');
+    assert.equal(d.timeline, 'Within 1 month');
+    assert.equal(d.category, 'Web Design');
+  });
+
+  it('matches detail questions case-insensitively and falls back Deadline->Timeline', () => {
+    const d = extractLeadDetails({
+      data: { request: { details: [{ question: 'timeline', answer: 'ASAP' }] } },
+    });
+    assert.equal(d.timeline, 'ASAP');
   });
 
   it('degrades to all-null (never throws) on an empty payload', () => {
     const d = extractLeadDetails({});
     assert.equal(d.customerName, null);
     assert.equal(d.leadPriceCents, null);
+    assert.equal(d.budget, null);
+    assert.equal(d.timeline, null);
     assert.equal(d.createdAtDate, null);
   });
 });
@@ -234,6 +269,8 @@ describe('buildThumbtackLeadInsert', () => {
       name: 'Test Customer',
       phone: '1234567890', // raw — DB layer normalizes to E.164
       project_type: 'Full Service Lawn Care',
+      budget: null,
+      timeline: null,
       message: 'Need Full Service Lawn Care',
       source: 'thumbtack',
       lead_source: 'Thumbtack',

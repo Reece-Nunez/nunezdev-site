@@ -54,6 +54,21 @@ function asStr(v: unknown): string | null {
   return null;
 }
 
+// A lead's structured Q&A lives in request.details[] as {question, answer}
+// pairs (e.g. {question:"Budget", answer:"$1,000 - $1,500"}). Look up the
+// answer for the first matching question label (case-insensitive). Defensive:
+// a non-array or missing label -> null rather than throwing.
+function findDetailAnswer(details: unknown, ...labels: string[]): string | null {
+  if (!Array.isArray(details)) return null;
+  const want = labels.map((l) => l.toLowerCase());
+  for (const item of details) {
+    if (!isRecord(item)) continue;
+    const q = asStr(item.question);
+    if (q && want.includes(q.toLowerCase())) return asStr(item.answer);
+  }
+  return null;
+}
+
 /**
  * Pull the indexed fields out of a real Thumbtack webhook payload.
  *
@@ -128,6 +143,8 @@ export interface ThumbtackLeadDetails {
   leadPriceCents: number | null;
   category: string | null;
   description: string | null;
+  budget: string | null;   // from the "Budget" Q&A in request.details[]
+  timeline: string | null; // from the "Deadline" Q&A in request.details[]
   status: string | null;
   createdAtDate: string | null; // YYYY-MM-DD (date portion of data.createdAt)
 }
@@ -160,6 +177,8 @@ export function extractLeadDetails(payload: unknown): ThumbtackLeadDetails {
     leadPriceCents: parseDollarsToCents(data.leadPrice),
     category: asStr(category.name),
     description: asStr(request.description),
+    budget: findDetailAnswer(request.details, 'Budget'),
+    timeline: findDetailAnswer(request.details, 'Deadline', 'Timeline'),
     status: asStr(data.status),
     createdAtDate,
   };
@@ -172,6 +191,8 @@ export interface ThumbtackLeadInsert {
   name: string | null;
   phone: string | null;
   project_type: string | null;
+  budget: string | null;
+  timeline: string | null;
   message: string | null;
   source: 'thumbtack';
   lead_source: 'Thumbtack';
@@ -189,6 +210,8 @@ export function buildThumbtackLeadInsert(details: ThumbtackLeadDetails): Thumbta
     name: details.customerName,
     phone: details.customerPhone,
     project_type: details.category,
+    budget: details.budget,
+    timeline: details.timeline,
     message: details.description,
     source: 'thumbtack',
     lead_source: 'Thumbtack',

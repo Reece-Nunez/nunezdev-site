@@ -154,7 +154,7 @@ async function upsertLeadFromThumbtack(supabase: SupabaseAdmin, payload: unknown
 
   const { data: existing } = await supabase
     .from('leads')
-    .select('id, name, phone, project_type, message')
+    .select('id, name, phone, project_type, budget, timeline, message')
     .eq('thumbtack_negotiation_id', details.negotiationID)
     .limit(1);
 
@@ -164,6 +164,8 @@ async function upsertLeadFromThumbtack(supabase: SupabaseAdmin, payload: unknown
     if (!row.name && fields.name) patch.name = fields.name;
     if (!row.phone && phone) patch.phone = phone;
     if (!row.project_type && fields.project_type) patch.project_type = fields.project_type;
+    if (!row.budget && fields.budget) patch.budget = fields.budget;
+    if (!row.timeline && fields.timeline) patch.timeline = fields.timeline;
     if (!row.message && fields.message) patch.message = fields.message;
     await supabase.from('leads').update(patch).eq('id', row.id as string);
     return;
