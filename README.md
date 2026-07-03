@@ -136,6 +136,8 @@ node scripts/ads-set-geo.mjs               # dry-run: preview campaign geo retar
 node scripts/ads-set-geo.mjs --commit
 node scripts/ads-create-software-campaign.mjs          # dry-run: preview the software campaign + budget split
 node scripts/ads-create-software-campaign.mjs --commit
+node scripts/ads-fix-conversions.mjs                   # dry-run: preview conversion-tracking fix (run on generate_lead)
+node scripts/ads-fix-conversions.mjs --commit
 ```
 
 `ads-add-negatives`, `ads-set-geo`, and `ads-create-software-campaign` are
