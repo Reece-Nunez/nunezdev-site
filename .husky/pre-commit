@@ -3,3 +3,11 @@
 # less tempted to --no-verify our way around it).
 # Documented in NunezDev/CLAUDE.md "Definition of Done" — Layer 1.
 npx lint-staged
+
+# Keep the graphify code graph current (AST-only, no API cost). Best-effort:
+# graphify-out/ is a local gitignored aid, not a correctness gate, so a missing
+# binary or a graphify hiccup must never block the commit.
+if command -v graphify >/dev/null 2>&1; then
+  echo "Updating graphify graph…"
+  graphify update . >/dev/null 2>&1 || echo "graphify update skipped (non-fatal)"
+fi
