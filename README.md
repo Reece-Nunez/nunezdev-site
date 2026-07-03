@@ -73,16 +73,28 @@ page never calls Google on load.
   (the **Refresh** button). Both upsert idempotently over a trailing 30-day
   window, so late-attributing conversions get corrected each run.
 
+### Keyword search-volume (outreach demand line)
+
+`getKeywordVolume(keyword, city, state)` in [`src/lib/keywordVolume.ts`](src/lib/keywordVolume.ts)
+returns average monthly local search volume for a trade, backing the leadgen
+pipeline's outreach line *"~N people a month search for a plumber near Tulsa."*
+It reads through the `keyword_search_volume` cache and only calls the Keyword
+Planner API on a cache miss or a row older than 30 days (pure selection/staleness
+helpers in `keywordVolumeTransform.ts`, unit-tested). The pipeline reaches it via
+**`/api/keyword-volume?keyword=&city=&state=`** (Bearer `KEYWORD_VOLUME_SECRET`,
+server-to-server only).
+
 ### Database
 
-Run the migration once against Supabase:
+Run the migrations once against Supabase:
 
 ```
-database/migrations/create_google_ads_metrics.sql
+database/migrations/create_google_ads_metrics.sql       # campaign + keyword metrics
+database/migrations/create_keyword_search_volume.sql    # keyword-volume cache
 ```
 
-Creates `google_ads_campaign_metrics` + `google_ads_keyword_metrics`
-(RLS fail-closed, service-role only).
+Creates `google_ads_campaign_metrics`, `google_ads_keyword_metrics`, and
+`keyword_search_volume` (RLS fail-closed, service-role only).
 
 ### Credentials (one-time, from scratch)
 

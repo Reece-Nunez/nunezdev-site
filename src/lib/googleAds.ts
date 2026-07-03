@@ -42,9 +42,14 @@ export function isConfigured(): boolean {
 // per-account Customer handle is cheap and created per call.
 let _api: GoogleAdsApi | null = null;
 
-type Customer = ReturnType<GoogleAdsApi["Customer"]>;
+export type Customer = ReturnType<GoogleAdsApi["Customer"]>;
 
-function getCustomer(): Customer {
+/**
+ * The per-account Customer handle. Exported so the keyword-volume lib can issue
+ * its own GAQL/Keyword-Planner calls against the same configured account without
+ * re-wiring the credentials. Throws when GOOGLE_ADS_* env vars are missing.
+ */
+export function getCustomer(): Customer {
   if (!isConfigured()) {
     throw new Error(
       "Google Ads is not configured — set GOOGLE_ADS_* env vars (see README).",
