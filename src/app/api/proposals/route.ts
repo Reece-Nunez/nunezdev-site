@@ -32,7 +32,7 @@ export async function GET() {
     .from("proposals")
     .select(`
       *,
-      clients (id, name, email, company)
+      clients (id, name, email, company, phone, sms_opted_out_at)
     `)
     .eq("org_id", orgId)
     .order("created_at", { ascending: false });

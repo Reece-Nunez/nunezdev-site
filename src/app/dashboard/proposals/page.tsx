@@ -6,8 +6,11 @@ import Link from 'next/link';
 import { useToast, useConfirm } from '@/components/ui/Toast';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { currency } from '@/lib/ui';
+import { buildProposalShareMessage } from '@/lib/proposalShareMessage';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
+
+type SendChannel = 'email' | 'sms' | 'both';
 
 interface Proposal {
   id: string;
@@ -21,7 +24,15 @@ interface Proposal {
   accepted_at?: string;
   rejected_at?: string;
   converted_to_invoice_id?: string;
-  clients?: { id: string; name?: string; email?: string; company?: string } | null;
+  access_token?: string;
+  clients?: {
+    id: string;
+    name?: string;
+    email?: string;
+    company?: string;
+    phone?: string;
+    sms_opted_out_at?: string | null;
+  } | null;
 }
 
 const statusTone: Record<string, BadgeTone> = {
@@ -42,6 +53,62 @@ const statusLabels: Record<string, string> = {
   expired: 'Expired'
 };
 
+/**
+ * Small "Send ▾" split menu offering Email / Text / Both. Open state is owned
+ * by the parent (only one row's menu open at a time). A transparent full-screen
+ * backdrop closes it on any outside click.
+ */
+function SendMenu({
+  label,
+  isOpen,
+  disabled,
+  onToggle,
+  onChoose,
+}: {
+  label: string;
+  isOpen: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+  onChoose: (channel: SendChannel) => void;
+}) {
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={onToggle}
+        disabled={disabled}
+        className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+      >
+        {disabled ? 'Sending…' : `${label} ▾`}
+      </button>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={onToggle} />
+          <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg border bg-white py-1 shadow-lg">
+            <button
+              onClick={() => onChoose('email')}
+              className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+            >
+              Email
+            </button>
+            <button
+              onClick={() => onChoose('sms')}
+              className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+            >
+              Text
+            </button>
+            <button
+              onClick={() => onChoose('both')}
+              className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+            >
+              Text + Email
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ProposalsPage() {
   const { data, error, mutate } = useSWR<{ proposals: Proposal[] }>('/api/proposals', fetcher);
   const { showToast, ToastContainer } = useToast();
@@ -49,6 +116,12 @@ export default function ProposalsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sending, setSending] = useState<string | null>(null);
   const [converting, setConverting] = useState<string | null>(null);
+  // Which row's "Send ▾" menu is open (null = none).
+  const [sendMenuFor, setSendMenuFor] = useState<string | null>(null);
+  // SMS/Both confirm modal state.
+  const [smsModal, setSmsModal] = useState<{ proposal: Proposal; channel: 'sms' | 'both' } | null>(null);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsBody, setSmsBody] = useState('');
 
   const proposals = data?.proposals ?? [];
 
@@ -56,19 +129,78 @@ export default function ProposalsPage() {
     ? proposals
     : proposals.filter(p => p.status === statusFilter);
 
-  const handleSend = async (id: string) => {
+  // Surface per-channel outcomes from the send API as individual toasts.
+  const reportSendResult = (json: {
+    email?: { ok: boolean; error?: string };
+    sms?: { ok: boolean; error?: string; to?: string };
+  }) => {
+    if (json.email) {
+      if (json.email.ok) showToast('Proposal emailed', 'success');
+      else showToast(`Email failed: ${json.email.error ?? 'unknown error'}`, 'error');
+    }
+    if (json.sms) {
+      if (json.sms.ok) showToast(`Proposal texted${json.sms.to ? ` to ${json.sms.to}` : ''}`, 'success');
+      else showToast(`Text failed: ${json.sms.error ?? 'unknown error'}`, 'error');
+    }
+  };
+
+  const handleSend = async (
+    id: string,
+    channel: SendChannel,
+    opts?: { to?: string; bodyOverride?: string },
+  ) => {
     setSending(id);
     try {
-      const res = await fetch(`/api/proposals/${id}/send`, { method: 'POST' });
+      const res = await fetch(`/api/proposals/${id}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, to: opts?.to, bodyOverride: opts?.bodyOverride }),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to send');
-      showToast('Proposal sent successfully', 'success');
+      reportSendResult(json);
       mutate();
+      return true;
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to send proposal', 'error');
+      return false;
     } finally {
       setSending(null);
     }
+  };
+
+  // Pick a channel from the row menu. Email sends immediately; Text/Both open a
+  // modal so the operator can confirm the phone and preview the message.
+  const chooseChannel = (p: Proposal, channel: SendChannel) => {
+    setSendMenuFor(null);
+    if (channel === 'email') {
+      handleSend(p.id, 'email');
+      return;
+    }
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/proposal/${p.access_token}` : '';
+    setSmsPhone(p.clients?.phone || '');
+    setSmsBody(
+      buildProposalShareMessage({
+        clientName: p.clients?.name,
+        proposalTitle: p.title,
+        amountCents: p.amount_cents,
+        url,
+      }),
+    );
+    setSmsModal({ proposal: p, channel });
+  };
+
+  const submitSmsModal = async () => {
+    if (!smsModal) return;
+    if (!smsPhone.trim()) {
+      showToast('Please enter a phone number', 'error');
+      return;
+    }
+    const ok = await handleSend(smsModal.proposal.id, smsModal.channel, {
+      to: smsPhone.trim(),
+      bodyOverride: smsBody.trim() || undefined,
+    });
+    if (ok) setSmsModal(null);
   };
 
   const handleConvert = async (id: string) => {
@@ -220,13 +352,13 @@ export default function ProposalsPage() {
                                 <Link href={`/dashboard/proposals/${p.id}/edit`} className="text-xs text-gray-600 hover:text-gray-900">
                                   Edit
                                 </Link>
-                                <button
-                                  onClick={() => handleSend(p.id)}
+                                <SendMenu
+                                  label="Send"
+                                  isOpen={sendMenuFor === p.id}
                                   disabled={sending === p.id}
-                                  className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                                >
-                                  {sending === p.id ? 'Sending...' : 'Send'}
-                                </button>
+                                  onToggle={() => setSendMenuFor(sendMenuFor === p.id ? null : p.id)}
+                                  onChoose={(channel) => chooseChannel(p, channel)}
+                                />
                               </>
                             )}
                             {p.status === 'accepted' && !p.converted_to_invoice_id && (
@@ -244,13 +376,13 @@ export default function ProposalsPage() {
                               </Link>
                             )}
                             {['sent', 'viewed'].includes(p.status) && (
-                              <button
-                                onClick={() => handleSend(p.id)}
+                              <SendMenu
+                                label="Resend"
+                                isOpen={sendMenuFor === p.id}
                                 disabled={sending === p.id}
-                                className="text-xs text-gray-600 hover:text-gray-900 disabled:opacity-50"
-                              >
-                                Resend
-                              </button>
+                                onToggle={() => setSendMenuFor(sendMenuFor === p.id ? null : p.id)}
+                                onChoose={(channel) => chooseChannel(p, channel)}
+                              />
                             )}
                             <button
                               onClick={() => handleDelete(p.id)}
@@ -287,14 +419,23 @@ export default function ProposalsPage() {
                           <Link href={`/dashboard/proposals/${p.id}/edit`} className="text-xs text-gray-600">
                             Edit
                           </Link>
-                          <button
-                            onClick={() => handleSend(p.id)}
+                          <SendMenu
+                            label="Send"
+                            isOpen={sendMenuFor === p.id}
                             disabled={sending === p.id}
-                            className="text-xs text-blue-600 disabled:opacity-50"
-                          >
-                            {sending === p.id ? 'Sending...' : 'Send'}
-                          </button>
+                            onToggle={() => setSendMenuFor(sendMenuFor === p.id ? null : p.id)}
+                            onChoose={(channel) => chooseChannel(p, channel)}
+                          />
                         </>
+                      )}
+                      {['sent', 'viewed'].includes(p.status) && (
+                        <SendMenu
+                          label="Resend"
+                          isOpen={sendMenuFor === p.id}
+                          disabled={sending === p.id}
+                          onToggle={() => setSendMenuFor(sendMenuFor === p.id ? null : p.id)}
+                          onChoose={(channel) => chooseChannel(p, channel)}
+                        />
                       )}
                       {p.status === 'accepted' && !p.converted_to_invoice_id && (
                         <button
@@ -319,6 +460,101 @@ export default function ProposalsPage() {
           )}
         </div>
       </div>
+
+      {smsModal && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => sending !== smsModal.proposal.id && setSmsModal(null)}
+        >
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">
+                  {smsModal.channel === 'both' ? 'Send Text + Email' : 'Send via Text'}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {smsModal.channel === 'both'
+                    ? `Texts the number below and emails ${smsModal.proposal.clients?.email || 'the client'}`
+                    : "Twilio SMS to the client's phone"}
+                </p>
+              </div>
+              <button
+                onClick={() => sending !== smsModal.proposal.id && setSmsModal(null)}
+                className="text-gray-400 hover:text-gray-600"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Phone number</label>
+                <input
+                  type="tel"
+                  value={smsPhone}
+                  onChange={(e) => setSmsPhone(e.target.value)}
+                  placeholder="(405) 555-1234"
+                  disabled={sending === smsModal.proposal.id}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                />
+                {!smsModal.proposal.clients?.phone && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    No phone on file for this client. Type one above or add it to the client record for next time.
+                  </p>
+                )}
+                {smsModal.proposal.clients?.sms_opted_out_at && (
+                  <p className="text-xs text-red-600 mt-1">
+                    This client replied STOP and can&apos;t be texted. The send will be refused.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Message <span className="text-gray-400">({smsBody.length} chars)</span>
+                </label>
+                <textarea
+                  value={smsBody}
+                  onChange={(e) => setSmsBody(e.target.value)}
+                  rows={4}
+                  disabled={sending === smsModal.proposal.id}
+                  maxLength={800}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Keep the proposal link in the message. Twilio charges per 160-char segment.
+                  {smsBody.length > 160 && (
+                    <span className="text-amber-600">
+                      {' '}This message will be sent as {Math.ceil(smsBody.length / 160)} segments.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t flex items-center justify-end gap-2">
+              <button
+                onClick={() => setSmsModal(null)}
+                disabled={sending === smsModal.proposal.id}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitSmsModal}
+                disabled={sending === smsModal.proposal.id}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {sending === smsModal.proposal.id
+                  ? 'Sending…'
+                  : smsModal.channel === 'both'
+                    ? 'Send Text + Email'
+                    : 'Send Text'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
