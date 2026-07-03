@@ -17,6 +17,7 @@ import StructuredData from "@/components/StructuredData";
 import Script from "next/script";
 import Footer from "@/components/Footer";
 import Providers from "./providers";
+import ChromeGate from "@/components/ChromeGate";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { Toaster } from "react-hot-toast";
 
@@ -160,9 +161,13 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${lora.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-white text-gray-900`}
       >
-        <Navbar />
+        <ChromeGate>
+          <Navbar />
+        </ChromeGate>
         <Providers>{children}</Providers>
-        <Footer />
+        <ChromeGate>
+          <Footer />
+        </ChromeGate>
         <ServiceWorkerRegister />
         {/* Single app-wide toast pipeline. Every toast — direct react-hot-toast
             calls AND the ui/useToast adapter — renders here, so there's one
