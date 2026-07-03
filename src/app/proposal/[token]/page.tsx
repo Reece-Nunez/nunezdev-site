@@ -86,10 +86,18 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
   const proposal = data.proposal;
 
   const handleAccept = async () => {
-    if (proposal.require_signature && !sigRef.current?.isEmpty()) {
-      // Has signature, proceed
-    } else if (proposal.require_signature) {
+    // Reveal the signature pad on first click when a signature is required.
+    // (Before it's shown, <SignatureCanvas> isn't mounted and sigRef.current is
+    // null — guard on showSignature rather than the ref's isEmpty(), which
+    // returns undefined and reads as "already signed".)
+    if (proposal.require_signature && !showSignature) {
       setShowSignature(true);
+      return;
+    }
+
+    // Pad is visible but nothing was drawn.
+    if (proposal.require_signature && sigRef.current?.isEmpty()) {
+      setActionError('Please draw your signature in the box before accepting.');
       return;
     }
 
