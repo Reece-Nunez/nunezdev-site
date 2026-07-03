@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import Turnstile from "@/components/Turnstile";
 import { trackEvent } from "@/lib/gtag";
+import { estimateLeadValue } from "@/lib/leadValue";
 
 // Qualifying lead form. POSTs to /api/contact (extended to accept
 // projectType / budget / timeline / source) so all leads flow through the
@@ -161,14 +162,27 @@ export default function LeadForm({
         throw new Error(body.error || "Something went wrong. Please try again.");
       }
 
+      // Estimated USD value of this lead (deal size × close-rate assumption),
+      // so Google Ads can bid toward revenue, not raw form-fills. A $10k
+      // software lead outweighs a $1,200 brochure-site lead. See lib/leadValue.
+      const leadValue = estimateLeadValue({
+        budget: payload.budget,
+        projectType: payload.projectType,
+        source,
+      });
+
       trackEvent("lead_form_submit", {
         source,
         project_type: payload.projectType,
         budget: payload.budget,
+        value: leadValue,
+        currency: "USD",
       });
       // GA4 recommended lead event — mark as a key event in GA4 and import
-      // into Google Ads so bidding optimizes on real form submissions.
-      trackEvent("generate_lead", { source });
+      // into Google Ads so bidding optimizes on real form submissions. The
+      // value/currency ride along so the imported conversion can use
+      // per-conversion values (enable that on the Ads conversion action).
+      trackEvent("generate_lead", { source, value: leadValue, currency: "USD" });
       setStatus("success");
       form.reset();
       // Land on a dedicated thank-you URL so Google Ads can also count a
