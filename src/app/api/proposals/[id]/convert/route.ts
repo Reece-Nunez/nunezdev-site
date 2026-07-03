@@ -71,6 +71,13 @@ export async function POST(
     }
     const invoice_number = `INV-${year}-${String(nextNum).padStart(4, '0')}`;
 
+    // Public access token for the /invoice/[token] page, "Send via Text", and
+    // "Share Link". Normal invoice creation generates this; without it those
+    // actions don't render and the client has no payable link. Same 64-hex
+    // shape as src/app/api/invoices/route.ts.
+    const access_token =
+      crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+
     // Calculate due date based on payment terms
     const issued_at = new Date().toISOString();
     const due_at = new Date();
@@ -84,6 +91,7 @@ export async function POST(
         org_id: orgId,
         client_id: proposal.client_id,
         invoice_number,
+        access_token,
         title: proposal.title,
         description: proposal.description,
         line_items: proposal.line_items,
