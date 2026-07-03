@@ -6,6 +6,8 @@ import {
   BeakerIcon,
   DocumentCheckIcon,
   PaperAirplaneIcon,
+  EnvelopeIcon,
+  DevicePhoneMobileIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import type { BusinessSummary } from "@/lib/leadgen-db";
@@ -13,17 +15,19 @@ import BusinessesTable from "./BusinessesTable";
 import { Button } from "@/components/ui/Button";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { FilterSelect } from "@/components/ui/FilterSelect";
-import { bulkRunStage } from "./actions";
+import { bulkRunStage, bulkSendOutreach } from "./actions";
 import { useBulkRun } from "../BulkRunProvider";
 import {
   filterSortProspects,
   PROSPECT_SORTS,
   type ProspectSort,
   type Stage,
+  type OutreachChannel,
 } from "./utils";
 
 type TriState = "all" | "has" | "none";
 type MobileFilter = "all" | "mobile" | "not_mobile";
+type ContactedFilter = "all" | "no" | "yes";
 
 // Filters persist across navigation (e.g. opening a prospect detail page and
 // hitting back) via sessionStorage — scoped to the tab, cleared when it closes.
@@ -40,6 +44,7 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   const [email, setEmail] = useState<TriState>("all");
   const [website, setWebsite] = useState<TriState>("all");
   const [mobile, setMobile] = useState<MobileFilter>("all");
+  const [contacted, setContacted] = useState<ContactedFilter>("all");
   const [city, setCity] = useState("all");
   const [sort, setSort] = useState<ProspectSort>("ai_desc");
   // Gates persistence until after the one-time restore so the initial mount
@@ -66,6 +71,7 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         if (f.email === "all" || f.email === "has" || f.email === "none") setEmail(f.email);
         if (f.website === "all" || f.website === "has" || f.website === "none") setWebsite(f.website);
         if (f.mobile === "all" || f.mobile === "mobile" || f.mobile === "not_mobile") setMobile(f.mobile);
+        if (f.contacted === "all" || f.contacted === "no" || f.contacted === "yes") setContacted(f.contacted);
         if (typeof f.city === "string") setCity(f.city);
         if (PROSPECT_SORTS.some((s) => s.value === f.sort)) setSort(f.sort);
       }
@@ -82,12 +88,12 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
     try {
       sessionStorage.setItem(
         FILTERS_KEY,
-        JSON.stringify({ search, email, website, mobile, city, sort }),
+        JSON.stringify({ search, email, website, mobile, contacted, city, sort }),
       );
     } catch {
       // Storage full/blocked — non-fatal, filters just won't persist.
     }
-  }, [hydrated, search, email, website, mobile, city, sort]);
+  }, [hydrated, search, email, website, mobile, contacted, city, sort]);
 
   const cities = useMemo(() => {
     const s = new Set<string>();
@@ -96,8 +102,8 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
   }, [businesses]);
 
   const results = useMemo(
-    () => filterSortProspects(businesses, { search, email, website, mobile, city, sort }),
-    [businesses, search, email, website, mobile, city, sort],
+    () => filterSortProspects(businesses, { search, email, website, mobile, contacted, city, sort }),
+    [businesses, search, email, website, mobile, contacted, city, sort],
   );
 
   function toggleRow(id: number) {
@@ -151,6 +157,81 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
         startedAt: Date.now(),
       });
     });
+  }
+
+  // Bulk-send already-drafted outreach to the current selection. Sending is
+  // irreversible and goes to real businesses, so it's always gated behind a
+  // confirm toast (no silent one-click send, even for small batches).
+  function dispatchSend(channel: OutreachChannel, ids: number[]) {
+    const noun =
+      channel === "email" ? "emails" : channel === "sms" ? "texts" : "emails + texts";
+    startTransition(async () => {
+      const loadingId = toast.loading(`Sending ${noun} to ${ids.length}…`);
+      const r = await bulkSendOutreach(channel, ids);
+      toast.dismiss(loadingId);
+      if (!r.ok) {
+        toast.error(r.message);
+        return;
+      }
+      const parts: string[] = [];
+      if (channel !== "sms") {
+        parts.push(
+          `${r.email.sent} email${r.email.sent === 1 ? "" : "s"} sent` +
+            (r.email.failed ? `, ${r.email.failed} failed` : ""),
+        );
+      }
+      if (channel !== "email") {
+        parts.push(
+          `${r.sms.sent} text${r.sms.sent === 1 ? "" : "s"} sent` +
+            (r.sms.failed ? `, ${r.sms.failed} failed` : ""),
+        );
+      }
+      const anySent = r.email.sent + r.sms.sent > 0;
+      const msg = parts.join(" · ");
+      if (anySent) toast.success(msg);
+      else toast.error(`Nothing sent — ${msg}. Check drafts exist / opt-outs.`);
+      setSelected(new Set());
+    });
+  }
+
+  function runBulkSend(channel: OutreachChannel) {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const noun =
+      channel === "email" ? "emails" : channel === "sms" ? "texts" : "emails + texts";
+    toast(
+      (t) => (
+        <div className="text-sm">
+          <div className="font-medium text-gray-900">
+            Send {noun} to {ids.length} business{ids.length === 1 ? "" : "es"}?
+          </div>
+          <div className="mt-0.5 text-gray-600">
+            This sends the drafted outreach to real prospects. Already-contacted or
+            un-drafted leads are skipped.
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                toast.dismiss(t.id);
+                dispatchSend(channel, ids);
+              }}
+              className="px-3 py-1 rounded-md text-xs font-semibold bg-gray-900 text-white hover:bg-gray-800"
+            >
+              Send {ids.length}
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 rounded-md text-xs font-medium text-gray-600 hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: Infinity },
+    );
   }
 
   // research + build call Claude per lead, so a large bulk run costs real
@@ -228,6 +309,12 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
           <option value="not_mobile">Not mobile</option>
         </FilterSelect>
 
+        <FilterSelect value={contacted} onChange={(v) => setContacted(v as ContactedFilter)} aria-label="Contacted filter">
+          <option value="all">Outreach: any</option>
+          <option value="no">Not yet contacted</option>
+          <option value="yes">Already contacted</option>
+        </FilterSelect>
+
         {cities.length > 1 && (
           <FilterSelect value={city} onChange={setCity} aria-label="City filter">
             <option value="all">All cities</option>
@@ -282,10 +369,10 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
               <span className="text-gray-300">·</span>
             </>
           )}
-          {(search || email !== "all" || website !== "all" || mobile !== "all" || city !== "all") && (
+          {(search || email !== "all" || website !== "all" || mobile !== "all" || contacted !== "all" || city !== "all") && (
             <button
               type="button"
-              onClick={() => { setSearch(""); setEmail("all"); setWebsite("all"); setMobile("all"); setCity("all"); }}
+              onClick={() => { setSearch(""); setEmail("all"); setWebsite("all"); setMobile("all"); setContacted("all"); setCity("all"); }}
               className="text-gray-600 hover:text-gray-900 underline-offset-2 hover:underline"
             >
               Clear filters
@@ -305,6 +392,16 @@ export default function ProspectsExplorer({ businesses }: { businesses: Business
           <Button variant="secondary" onClick={() => runBulk("research")} disabled={isPending} leftIcon={<BeakerIcon className="w-4 h-4" />}>Research</Button>
           <Button variant="secondary" onClick={() => runBulk("build")} disabled={isPending} leftIcon={<DocumentCheckIcon className="w-4 h-4" />}>Build</Button>
           <Button variant="secondary" onClick={() => runBulk("outreach")} disabled={isPending} leftIcon={<PaperAirplaneIcon className="w-4 h-4" />}>Outreach</Button>
+
+          {/* Send already-drafted outreach to the whole selection. Separated
+              from the drafting stages above so Send isn't mistaken for Outreach
+              (which only drafts). */}
+          <span className="text-gray-300">·</span>
+          <span className="text-xs font-medium text-gray-500">Send:</span>
+          <Button variant="primary" onClick={() => runBulkSend("email")} disabled={isPending} leftIcon={<EnvelopeIcon className="w-4 h-4" />}>Email</Button>
+          <Button variant="primary" onClick={() => runBulkSend("sms")} disabled={isPending} leftIcon={<DevicePhoneMobileIcon className="w-4 h-4" />}>SMS</Button>
+          <Button variant="primary" onClick={() => runBulkSend("both")} disabled={isPending}>Both</Button>
+
           <button
             type="button"
             onClick={() => setSelected(new Set())}

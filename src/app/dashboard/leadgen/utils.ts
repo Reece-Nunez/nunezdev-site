@@ -16,6 +16,11 @@ import type { BadgeTone } from "@/components/ui/Badge";
 // other schema-shaped types.
 export type { Stage };
 
+// Which channel(s) a bulk send targets. Lives here (not actions.ts) so the
+// client ProspectsExplorer can import the type without pulling a value export
+// out of the "use server" module — same reason Stage lives here.
+export type OutreachChannel = "email" | "sms" | "both";
+
 // Business pipeline status → shared Badge tone + display label. Single source
 // of truth so the index table, city accordion, and detail page render the
 // same chip instead of each re-declaring a status-color map.
@@ -141,6 +146,15 @@ export const PROSPECT_SORTS: { value: ProspectSort; label: string }[] = [
   { value: "name",         label: "Name (A–Z)" },
 ];
 
+// Statuses that mean outreach has already gone out (or the lead has since
+// moved past it). Used by the "not yet contacted" filter so a bulk send
+// doesn't double-message anyone already in the conversation.
+export const CONTACTED_STATUSES: ReadonlySet<BusinessStatus> = new Set<BusinessStatus>([
+  "contacted",
+  "replied",
+  "converted",
+]);
+
 export interface ProspectFilters {
   search?: string;
   email?: "all" | "has" | "none";
@@ -149,6 +163,9 @@ export interface ProspectFilters {
   // only confirmed mobile numbers; "not_mobile" keeps everything else,
   // including landline/voip AND not-yet-looked-up (null) numbers.
   mobile?: "all" | "mobile" | "not_mobile";
+  // Outreach state. "no" = not yet contacted (hasn't been sent outreach, so
+  // it's a fresh send target); "yes" = already contacted/replied/converted.
+  contacted?: "all" | "no" | "yes";
   city?: string; // "all" or an exact city name
   sort?: ProspectSort;
 }
@@ -167,6 +184,7 @@ export function filterSortProspects(
   const email = f.email ?? "all";
   const website = f.website ?? "all";
   const mobile = f.mobile ?? "all";
+  const contacted = f.contacted ?? "all";
   const city = f.city ?? "all";
   const sort = f.sort ?? "ai_desc";
 
@@ -177,6 +195,8 @@ export function filterSortProspects(
     if (website === "none" && b.website) return false;
     if (mobile === "mobile" && b.phone_type !== "mobile") return false;
     if (mobile === "not_mobile" && b.phone_type === "mobile") return false;
+    if (contacted === "no" && CONTACTED_STATUSES.has(b.status)) return false;
+    if (contacted === "yes" && !CONTACTED_STATUSES.has(b.status)) return false;
     if (city !== "all" && (b.city ?? "") !== city) return false;
     if (needle) {
       const hay = [b.name, b.category, b.address, b.email, b.phone, b.city]

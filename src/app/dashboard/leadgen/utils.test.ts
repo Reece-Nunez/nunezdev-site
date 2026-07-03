@@ -94,6 +94,39 @@ describe("filterSortProspects", () => {
       [2, 3, 4],
     );
   });
+
+  it("filters to not-yet-contacted leads (excludes contacted/replied/converted)", () => {
+    const statusRows = [
+      biz({ id: 1, status: "new" }),
+      biz({ id: 2, status: "proposal_built" }),
+      biz({ id: 3, status: "contacted" }),
+      biz({ id: 4, status: "replied" }),
+      biz({ id: 5, status: "converted" }),
+      biz({ id: 6, status: "not_interested" }),
+    ];
+    assert.deepEqual(
+      filterSortProspects(statusRows, { contacted: "no" }).map((b) => b.id).sort(),
+      [1, 2, 6], // new, proposal_built, not_interested haven't been sent outreach
+    );
+  });
+
+  it("filters to already-contacted leads", () => {
+    const statusRows = [
+      biz({ id: 1, status: "new" }),
+      biz({ id: 2, status: "contacted" }),
+      biz({ id: 3, status: "replied" }),
+      biz({ id: 4, status: "converted" }),
+    ];
+    assert.deepEqual(
+      filterSortProspects(statusRows, { contacted: "yes" }).map((b) => b.id).sort(),
+      [2, 3, 4],
+    );
+  });
+
+  it("contacted 'all' (default) leaves the status mix untouched", () => {
+    const statusRows = [biz({ id: 1, status: "new" }), biz({ id: 2, status: "contacted" })];
+    assert.deepEqual(filterSortProspects(statusRows, {}).map((b) => b.id).sort(), [1, 2]);
+  });
 });
 
 describe("aiScoreClass", () => {

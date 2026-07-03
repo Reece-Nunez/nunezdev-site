@@ -46,6 +46,7 @@ import {
   type StatusReason,
   type SmsConsentBasis,
 } from "@/lib/leadgen-api";
+import type { OutreachChannel } from "./utils";
 
 export type { Stage };
 
@@ -636,6 +637,70 @@ export async function getActiveBulkRun(): Promise<
       message: err instanceof Error ? err.message : "active-run check failed",
     };
   }
+}
+
+/**
+ * Bulk-send outreach that's already been drafted (by the outreach stage) to
+ * many businesses at once — the multi-select equivalent of clicking Send on
+ * each detail page. Sends existing drafts only; it does NOT draft.
+ *
+ * Each business's send reuses the same per-business API the detail page uses,
+ * so all server-side guards still apply (email: draft must exist + not already
+ * sent; SMS: STOP opt-out list). A per-send failure (no draft, opted out, no
+ * email on file) is counted, not fatal — the run continues and the caller
+ * reports sent/failed per channel. Runs in BULK_CONCURRENCY batches so a big
+ * selection doesn't fire hundreds of requests at once; revalidates once at the
+ * end so contacted statuses (and the "not yet contacted" filter) update.
+ */
+export async function bulkSendOutreach(
+  channel: OutreachChannel,
+  businessIds: number[],
+): Promise<
+  | { ok: true; email: { sent: number; failed: number }; sms: { sent: number; failed: number } }
+  | { ok: false; message: string }
+> {
+  const guard = await requireProspecting();
+  if (!guard.ok) return { ok: false, message: "Owner access required" };
+  if (!["email", "sms", "both"].includes(channel)) {
+    return { ok: false, message: "invalid channel" };
+  }
+  const ids = (businessIds ?? []).filter((id) => Number.isInteger(id) && id > 0);
+  if (ids.length === 0) return { ok: false, message: "no leads selected" };
+  if (ids.length > BULK_MAX) {
+    return { ok: false, message: `that's too many at once — keep it under ${BULK_MAX}` };
+  }
+
+  const email = { sent: 0, failed: 0 };
+  const sms = { sent: 0, failed: 0 };
+  const doEmail = channel === "email" || channel === "both";
+  const doSms = channel === "sms" || channel === "both";
+
+  for (let i = 0; i < ids.length; i += BULK_CONCURRENCY) {
+    const batch = ids.slice(i, i + BULK_CONCURRENCY);
+    await Promise.all(
+      batch.map(async (id) => {
+        if (doEmail) {
+          try {
+            await sendOutreachEmail(id);
+            email.sent += 1;
+          } catch {
+            email.failed += 1;
+          }
+        }
+        if (doSms) {
+          try {
+            await sendSmsOutreachOnApi(id);
+            sms.sent += 1;
+          } catch {
+            sms.failed += 1;
+          }
+        }
+      }),
+    );
+  }
+
+  revalidatePath("/dashboard/leadgen");
+  return { ok: true, email, sms };
 }
 
 
