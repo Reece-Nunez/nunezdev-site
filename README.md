@@ -134,10 +134,13 @@ node scripts/ads-add-negatives.mjs         # dry-run: preview negative keywords 
 node scripts/ads-add-negatives.mjs --commit
 node scripts/ads-set-geo.mjs               # dry-run: preview campaign geo retarget
 node scripts/ads-set-geo.mjs --commit
+node scripts/ads-create-software-campaign.mjs          # dry-run: preview the software campaign + budget split
+node scripts/ads-create-software-campaign.mjs --commit
 ```
 
-`ads-add-negatives` and `ads-set-geo` are idempotent — re-running detects
-what's already applied and does nothing.
+`ads-add-negatives`, `ads-set-geo`, and `ads-create-software-campaign` are
+idempotent — re-running detects what's already applied and does nothing. The
+software campaign is created **paused**; enable it in the Ads UI when ready.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
