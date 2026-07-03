@@ -138,6 +138,8 @@ node scripts/ads-create-software-campaign.mjs          # dry-run: preview the so
 node scripts/ads-create-software-campaign.mjs --commit
 node scripts/ads-fix-conversions.mjs                   # dry-run: preview conversion-tracking fix (run on generate_lead)
 node scripts/ads-fix-conversions.mjs --commit
+node scripts/ads-enable-software-campaign.mjs          # dry-run: check status + ad review, then enable
+node scripts/ads-enable-software-campaign.mjs --commit
 ```
 
 `ads-add-negatives`, `ads-set-geo`, and `ads-create-software-campaign` are
