@@ -111,6 +111,31 @@ export function decideComposerSmsAction(state: {
   return 'send';
 }
 
+/**
+ * Decide how the inbound webhook should treat a YES/START keyword reply.
+ *
+ * The double-opt-in flow ("reply YES to opt in") means a YES from a contact who
+ * is NOT yet consented — or who previously opted out — is affirmative consent:
+ * grant it and send the friendly welcome confirmation.
+ *
+ * But once a contact is already actively opted in, a message that merely starts
+ * with "yes" ("Yes, Tuesday works") is ordinary conversation, not a fresh
+ * opt-in. Re-sending the welcome every time they say yes is spammy and wrong
+ * (the bug this guards against). In that case we treat it as a normal inbound
+ * message and stay quiet.
+ *
+ * Pure + exported so the rule is unit-tested independently of the route.
+ */
+export type OptInKeywordAction = 'grant_and_welcome' | 'treat_as_normal';
+
+export function decideOptInKeywordAction(state: {
+  consented: boolean;
+  optedOut: boolean;
+}): OptInKeywordAction {
+  if (state.consented && !state.optedOut) return 'treat_as_normal';
+  return 'grant_and_welcome';
+}
+
 export interface SmsConsentLookup {
   clientId: string | null;
   name: string | null;

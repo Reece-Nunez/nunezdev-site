@@ -26,6 +26,7 @@ import { sendTrackedSms } from '@/lib/smsOutbox';
 import { cancelSequencesForPhone } from '@/lib/leadSmsSequence';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { notifyInboundSms } from '@/lib/notifications';
+import { decideOptInKeywordAction, lookupSmsConsentByPhone } from '@/lib/smsConsent';
 
 export const runtime = 'nodejs';
 
@@ -109,18 +110,26 @@ export async function POST(request: NextRequest) {
   }
 
   if (START_KEYWORDS.has(firstWord)) {
-    // A YES/START reply is an affirmative opt-in. Grant fresh consent (not
-    // just reverse a prior STOP) so the double-opt-in loop completes, then
-    // deliver the friendly "you're in" confirmation.
-    //
-    // Send it through the Twilio API (sendTrackedSms), NOT a TwiML <Message>
-    // reply: a TwiML reply only reaches the client if the number's inbound
-    // config honors it, and we saw it get recorded-but-not-delivered. The API
-    // send is guaranteed delivery to the client's phone and threads the
-    // confirmation into the inbox with a real provider SID. Empty TwiML back.
-    const matchedName = await grantConsent(from);
-    await sendTrackedSms({ to: from, body: buildWelcomeSms({ name: matchedName }) });
-    return twimlResponse(emptyTwiml());
+    // Only treat YES/START as an opt-in when the contact isn't already actively
+    // consented. A bare YES from a not-yet-consented (or opted-out) number
+    // completes the double opt-in; but "Yes, Tuesday works" from someone already
+    // opted in is just conversation and must NOT re-fire the welcome text every
+    // time. See decideOptInKeywordAction.
+    const consent = await lookupSmsConsentByPhone(from);
+    if (decideOptInKeywordAction(consent) === 'grant_and_welcome') {
+      // Grant fresh consent (also reverses any prior STOP) so the double-opt-in
+      // loop completes, then deliver the friendly "you're in" confirmation.
+      //
+      // Send it through the Twilio API (sendTrackedSms), NOT a TwiML <Message>
+      // reply: a TwiML reply only reaches the client if the number's inbound
+      // config honors it, and we saw it get recorded-but-not-delivered. The API
+      // send is guaranteed delivery and threads the confirmation into the inbox
+      // with a real provider SID.
+      const matchedName = await grantConsent(from);
+      await sendTrackedSms({ to: from, body: buildWelcomeSms({ name: matchedName }) });
+      return twimlResponse(emptyTwiml());
+    }
+    // Already opted in — fall through and treat this "yes" as a normal message.
   }
 
   if (HELP_KEYWORDS.has(firstWord)) {

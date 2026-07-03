@@ -10,7 +10,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { decideComposerSmsAction } from "./smsConsent";
+import { decideComposerSmsAction, decideOptInKeywordAction } from "./smsConsent";
 
 describe("decideComposerSmsAction", () => {
   it("blocks anyone who opted out, regardless of anything else", () => {
@@ -40,6 +40,33 @@ describe("decideComposerSmsAction", () => {
     assert.equal(
       decideComposerSmsAction({ optedOut: false, consented: false, hasInbound: false }),
       "send",
+    );
+  });
+});
+
+describe("decideOptInKeywordAction", () => {
+  it("treats YES as normal conversation when already actively consented", () => {
+    // The reported bug: an opted-in client texting "Yes, Tuesday works" was
+    // re-sent the welcome/opt-in confirmation every time.
+    assert.equal(
+      decideOptInKeywordAction({ consented: true, optedOut: false }),
+      "treat_as_normal",
+    );
+  });
+
+  it("grants + welcomes a YES from a not-yet-consented number", () => {
+    // Completes the double opt-in for a fresh contact.
+    assert.equal(
+      decideOptInKeywordAction({ consented: false, optedOut: false }),
+      "grant_and_welcome",
+    );
+  });
+
+  it("grants + welcomes a YES/START from someone who previously opted out", () => {
+    // Re-subscribe path: opted_out overrides a stale consented flag.
+    assert.equal(
+      decideOptInKeywordAction({ consented: true, optedOut: true }),
+      "grant_and_welcome",
     );
   });
 });
