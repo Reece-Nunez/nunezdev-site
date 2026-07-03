@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { stackToArray } from "@/lib/techStack";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,7 +102,10 @@ export async function POST(
         project_overview: proposal.project_overview,
         project_start_date: proposal.project_start_date,
         delivery_date: proposal.estimated_delivery_date,
-        technology_stack: proposal.technology_stack,
+        // proposals.technology_stack is text ("A, B, C") but
+        // invoices.technology_stack is text[] — split so Postgres doesn't
+        // reject the raw string with "malformed array literal".
+        technology_stack: stackToArray(proposal.technology_stack),
         terms_conditions: proposal.terms_conditions,
         // Copy signature if proposal was signed
         require_signature: false, // Already signed on proposal
