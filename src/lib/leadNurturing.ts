@@ -115,8 +115,13 @@ export class LeadNurtureService {
     smsConsent?: boolean;
     smsMarketingConsent?: boolean;
     smsConsentIp?: string;
+    // Quarantine flag from the geo screen (see lib/leadGeo). When set, the lead
+    // is still stored for review but tagged 'offshore' and kept out of the
+    // nurture sequence — the caller also skips notifications + the Ads event.
+    lowQuality?: boolean;
   }): Promise<string> {
     const tags = await this.classifyLead(contactData.message, 'contact_form');
+    if (contactData.lowQuality) tags.push('offshore');
 
     const { data: lead, error } = await this.supabase
       .from('leads')
@@ -152,8 +157,11 @@ export class LeadNurtureService {
       throw error;
     }
 
-    // Trigger nurture sequence
-    await this.triggerEmailSequence(lead.id, 'lead_created');
+    // Trigger nurture sequence — but never for quarantined offshore leads: we
+    // don't want an automated email drip chasing a junk inquiry.
+    if (!contactData.lowQuality) {
+      await this.triggerEmailSequence(lead.id, 'lead_created');
+    }
 
     return lead.id;
   }

@@ -162,6 +162,13 @@ export default function LeadForm({
         throw new Error(body.error || "Something went wrong. Please try again.");
       }
 
+      // The server flags off-market (offshore) submissions as low quality. They
+      // still succeed for the visitor, but we must NOT fire the Google Ads
+      // conversion for them — otherwise Smart Bidding optimizes toward the junk
+      // we're trying to filter out. See app/api/contact/route.ts + lib/leadGeo.
+      const result = await res.json().catch(() => ({}));
+      const lowQuality = result?.quality === "low";
+
       // Estimated USD value of this lead (deal size × close-rate assumption),
       // so Google Ads can bid toward revenue, not raw form-fills. A $10k
       // software lead outweighs a $1,200 brochure-site lead. See lib/leadValue.
@@ -171,18 +178,22 @@ export default function LeadForm({
         source,
       });
 
-      trackEvent("lead_form_submit", {
-        source,
-        project_type: payload.projectType,
-        budget: payload.budget,
-        value: leadValue,
-        currency: "USD",
-      });
-      // GA4 recommended lead event — mark as a key event in GA4 and import
-      // into Google Ads so bidding optimizes on real form submissions. The
-      // value/currency ride along so the imported conversion can use
-      // per-conversion values (enable that on the Ads conversion action).
-      trackEvent("generate_lead", { source, value: leadValue, currency: "USD" });
+      // Skip all conversion signals for quarantined offshore leads so neither
+      // GA4 nor the imported Google Ads conversion counts them.
+      if (!lowQuality) {
+        trackEvent("lead_form_submit", {
+          source,
+          project_type: payload.projectType,
+          budget: payload.budget,
+          value: leadValue,
+          currency: "USD",
+        });
+        // GA4 recommended lead event — mark as a key event in GA4 and import
+        // into Google Ads so bidding optimizes on real form submissions. The
+        // value/currency ride along so the imported conversion can use
+        // per-conversion values (enable that on the Ads conversion action).
+        trackEvent("generate_lead", { source, value: leadValue, currency: "USD" });
+      }
       setStatus("success");
       form.reset();
       // Land on a dedicated thank-you URL so Google Ads can also count a

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { leadNurtureService } from '@/lib/leadNurturing';
 import { verifyTurnstile } from '@/lib/turnstile';
 import { screenLead } from '@/lib/leadSpamFilter';
+import { getRequestCountry, isLowQualityGeo } from '@/lib/leadGeo';
 import { sendTrackedSms } from '@/lib/smsOutbox';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { Resend } from 'resend';
@@ -91,6 +92,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Geo quarantine: a real human outside our market (the recurring offshore
+    // app-clone / recharge-app inquiries) still gets a 201 and the normal
+    // thank-you page, but we store the lead tagged 'offshore', skip every
+    // notification, and — via the `quality: 'low'` response — tell the client
+    // NOT to fire the Google Ads `generate_lead` conversion, so bidding stops
+    // being trained toward more of the same. See lib/leadGeo.
+    const country = getRequestCountry(request.headers);
+    const lowQuality = isLowQualityGeo(country);
+    if (lowQuality) {
+      console.warn('[contact] quarantined offshore lead:', { country });
+    }
+
     // Build an enriched message body so qualifying fields land in both the
     // lead-nurture record and the notification email without changing the
     // lead schema.
@@ -121,6 +134,7 @@ export async function POST(request: NextRequest) {
         smsConsent: Boolean(smsConsent),
         smsMarketingConsent: Boolean(smsMarketingConsent),
         smsConsentIp: remoteIp,
+        lowQuality,
       });
 
       console.log('Lead created successfully:', leadId);
@@ -129,8 +143,9 @@ export async function POST(request: NextRequest) {
       // Continue even if lead creation fails
     }
 
-    // Send immediate notification to you
-    try {
+    // Send immediate notification to you — skipped for quarantined offshore
+    // leads so junk inquiries never hit the inbox or the contact's mailbox.
+    if (!lowQuality) try {
       const dashboardUrl = leadId
         ? `https://www.nunezdev.com/dashboard/leads/${leadId}`
         : 'https://www.nunezdev.com/dashboard/leads';
@@ -225,7 +240,7 @@ export async function POST(request: NextRequest) {
     // route already 400s on a phone without consent). Carriers expect this
     // confirmation right after opt-in — and it tells the lead the opt-in
     // actually worked. Best-effort: never block or fail the submission.
-    if (smsConsent && phone) {
+    if (smsConsent && phone && !lowQuality) {
       try {
         const smsResult = await sendTrackedSms({
           to: phone,
@@ -239,10 +254,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // `quality` drives the client's conversion tracking: 'low' suppresses the
+    // Google Ads `generate_lead` event so Smart Bidding isn't rewarded for
+    // offshore junk. The visitor still sees a normal success + thank-you page.
     return NextResponse.json(
       {
         success: true,
-        message: 'Contact form submitted successfully'
+        message: 'Contact form submitted successfully',
+        quality: lowQuality ? 'low' : 'ok',
       },
       { status: 201 }
     );
