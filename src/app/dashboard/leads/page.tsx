@@ -20,12 +20,20 @@ type LeadRow = {
   budget: string | null;
   created_at: string;
   client_id: string | null;
+  tags: string[] | null;
 };
 
-const STATUS_FILTERS = ['active', 'new', 'contacted', 'qualified', 'converted', 'lost'] as const;
+const STATUS_FILTERS = ['active', 'new', 'contacted', 'qualified', 'converted', 'lost', 'offshore'] as const;
 // 'active' = default daily-triage view: everything that's still in your funnel.
 // Hides 'converted' (already a client) and 'lost' (preserved for analytics but noise day-to-day).
 const ACTIVE_STATUSES = ['new', 'contacted', 'nurturing', 'qualified'] as const;
+
+// Geo-quarantined junk (see lib/leadGeo). Tagged 'offshore' on intake; hidden
+// from every normal view and surfaced only under the dedicated 'offshore' chip
+// so it stays reviewable without cluttering daily triage.
+const OFFSHORE_TAG = 'offshore';
+const isOffshore = (tags: string[] | null) =>
+  Array.isArray(tags) && tags.includes(OFFSHORE_TAG);
 
 const STATUS_TONE: Record<string, BadgeTone> = {
   new: 'info',
@@ -61,30 +69,45 @@ export default async function LeadsPage({
   let query = supabase
     .from('leads')
     .select(
-      'id, name, email, phone, company, status, source, lead_source, project_type, budget, created_at, client_id'
+      'id, name, email, phone, company, status, source, lead_source, project_type, budget, created_at, client_id, tags'
     )
     .order('created_at', { ascending: false })
     .limit(200);
 
   if (effectiveFilter === 'active') {
     query = query.in('status', [...ACTIVE_STATUSES]);
-  } else {
+  } else if (effectiveFilter !== 'offshore') {
+    // Offshore is a tag, not a status — it spans statuses, so don't constrain
+    // by status here; the tag filter below narrows it.
     query = query.eq('status', effectiveFilter);
   }
 
   const { data: leads = [], error } = await query;
 
-  // Status counts for the filter chips.
-  const { data: allForCount } = await supabase.from('leads').select('status');
+  // The offshore tag is filtered in memory (not in the query) to avoid the
+  // three-valued-logic trap where a NULL-tags row would vanish from a
+  // `NOT tags @> '{offshore}'` filter. The 200-row cap keeps this cheap.
+  const rawRows = (leads || []) as LeadRow[];
+  const rows =
+    effectiveFilter === 'offshore'
+      ? rawRows.filter((l) => isOffshore(l.tags))
+      : rawRows.filter((l) => !isOffshore(l.tags));
+
+  // Status counts for the filter chips. Offshore leads are counted only under
+  // the 'offshore' chip and removed from every status/active count so the
+  // numbers match what the table actually shows.
+  const { data: allForCount } = await supabase.from('leads').select('status, tags');
   const counts = (allForCount || []).reduce<Record<string, number>>((acc, l) => {
+    if (isOffshore(l.tags as string[] | null)) {
+      acc.offshore = (acc.offshore || 0) + 1;
+      return acc;
+    }
     acc[l.status] = (acc[l.status] || 0) + 1;
     if ((ACTIVE_STATUSES as readonly string[]).includes(l.status)) {
       acc.active = (acc.active || 0) + 1;
     }
     return acc;
   }, {});
-
-  const rows = (leads || []) as LeadRow[];
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
@@ -137,7 +160,9 @@ export default async function LeadsPage({
               ? counts.active === 0 && (counts.lost || counts.converted)
                 ? 'No active leads. Switch a filter chip above to see closed leads.'
                 : 'No leads yet. New form submissions will show up here automatically.'
-              : `No leads with status "${effectiveFilter}".`}
+              : effectiveFilter === 'offshore'
+                ? 'No quarantined (offshore) leads.'
+                : `No leads with status "${effectiveFilter}".`}
           </div>
         ) : (
           <div className="overflow-x-auto">
