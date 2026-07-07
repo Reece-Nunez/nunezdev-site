@@ -7,9 +7,12 @@ import assert from "node:assert/strict";
 import {
   selectDunningTier,
   renderDunningBody,
+  renderShutdownBody,
+  shutdownApprovalDue,
   formatUsd,
   invoicePayUrl,
   DUNNING_LADDER,
+  SHUTDOWN_DAYS,
   type DunningStep,
 } from "./invoiceDunningSms";
 
@@ -40,11 +43,51 @@ describe("selectDunningTier", () => {
     assert.equal(selectDunningTier(53, ["urgent"]), null);
   });
 
-  it("never picks 'shutdown' — that rung is not in the auto ladder", () => {
+  it("never picks 'shutdown' - that rung is not in the auto ladder", () => {
     for (let d = 0; d <= 120; d++) {
       const tier = selectDunningTier(d, [])?.tier;
       assert.notEqual(tier, "shutdown");
     }
+  });
+});
+
+describe("shutdownApprovalDue", () => {
+  it("is false before the 35-day threshold", () => {
+    assert.equal(shutdownApprovalDue(21, { alreadyQueued: false }), false);
+    assert.equal(shutdownApprovalDue(SHUTDOWN_DAYS - 1, { alreadyQueued: false }), false);
+  });
+
+  it("is true at/after 35 days when nothing is queued", () => {
+    assert.equal(shutdownApprovalDue(SHUTDOWN_DAYS, { alreadyQueued: false }), true);
+    assert.equal(shutdownApprovalDue(52, { alreadyQueued: false }), true);
+  });
+
+  it("never re-queues once an approval exists (pending, approved, or dismissed)", () => {
+    assert.equal(shutdownApprovalDue(52, { alreadyQueued: true }), false);
+  });
+});
+
+describe("renderShutdownBody", () => {
+  const ctx = {
+    firstName: "Aaron",
+    invoiceNumber: "INV-1042",
+    amount: "$1,200.00",
+    daysOverdue: 40,
+    payUrl: "https://www.nunezdev.com/invoice/tok123",
+  };
+
+  it("warns about suspension, carries STOP + pay link, no em dashes", () => {
+    const body = renderShutdownBody(ctx);
+    assert.match(body, /suspension of your website/i);
+    assert.match(body, /Reply STOP to opt out/i);
+    assert.match(body, /invoice\/tok123/);
+    assert.doesNotMatch(body, /—/);
+  });
+
+  it("omits the pay link cleanly when there is none", () => {
+    const body = renderShutdownBody({ ...ctx, payUrl: "" });
+    assert.doesNotMatch(body, /https?:\/\//);
+    assert.match(body, /Reply STOP to opt out/i);
   });
 });
 

@@ -22,6 +22,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.nunezdev.com';
 
 export type DunningTier = 'gentle' | 'firm' | 'urgent';
 
+/**
+ * The owner-approval rung. Deliberately separate from the auto DUNNING_LADDER:
+ * a 35-day "your site could be shut down" text is never sent by the cron. The
+ * cron queues it for the owner (pending_sms_approvals) and it only goes out on an
+ * explicit Approve. See Phase 3.
+ */
+export const SHUTDOWN_DAYS = 35;
+
 export interface DunningContext {
   firstName: string;
   invoiceNumber: string;
@@ -110,14 +118,45 @@ export function invoicePayUrl(
   return inv.hosted_invoice_url ?? '';
 }
 
+/**
+ * Pure: the 35-day shutdown-warning body. Firm but professional, carries the pay
+ * link + STOP notice, no em dashes. This is what gets frozen into the approval
+ * row and sent verbatim once the owner approves.
+ */
+export function renderShutdownBody(ctx: DunningContext): string {
+  return (
+    `NunezDev: ${ctx.firstName}, invoice ${ctx.invoiceNumber} for ${ctx.amount} is now ` +
+    `${ctx.daysOverdue} days overdue and still unpaid. To avoid suspension of your website ` +
+    `and services, payment is required now.` +
+    (ctx.payUrl ? ` Pay here: ${ctx.payUrl}` : '') +
+    ` Reply here to make arrangements. Reply STOP to opt out.`
+  );
+}
+
+/**
+ * Pure: should this invoice have a shutdown approval queued right now? True once
+ * it crosses SHUTDOWN_DAYS and nothing is queued yet. `alreadyQueued` covers any
+ * existing row (pending, approved, or dismissed) so we never re-surface a text the
+ * owner already actioned.
+ */
+export function shutdownApprovalDue(
+  daysOverdue: number,
+  opts: { alreadyQueued: boolean },
+): boolean {
+  return daysOverdue >= SHUTDOWN_DAYS && !opts.alreadyQueued;
+}
+
 export interface DunningSummary {
   candidates: number;
   byStatus: Record<string, number>;
+  /** Shutdown texts queued for owner approval this run. */
+  shutdownQueued: number;
 }
 
 interface OverdueInvoiceRow {
   id: string;
   client_id: string;
+  org_id: string;
   amount_cents: number | null;
   remaining_balance_cents: number | null;
   due_at: string;
@@ -145,7 +184,7 @@ export async function processOverdueDunningSms(): Promise<DunningSummary> {
   const { data: invoices, error } = await supabase
     .from('invoices')
     .select(
-      'id, client_id, amount_cents, remaining_balance_cents, due_at, invoice_number, access_token, hosted_invoice_url, clients!inner(name)',
+      'id, client_id, org_id, amount_cents, remaining_balance_cents, due_at, invoice_number, access_token, hosted_invoice_url, clients!inner(name)',
     )
     .eq('status', 'sent')
     .eq('is_suspended', false)
@@ -153,65 +192,107 @@ export async function processOverdueDunningSms(): Promise<DunningSummary> {
 
   if (error) {
     console.error('[dunningSms] failed to load overdue invoices:', error.message);
-    return { candidates: 0, byStatus: { db_error: 1 } };
+    return { candidates: 0, byStatus: { db_error: 1 }, shutdownQueued: 0 };
   }
   const rows = (invoices ?? []) as unknown as OverdueInvoiceRow[];
-  if (rows.length === 0) return { candidates: 0, byStatus };
+  if (rows.length === 0) return { candidates: 0, byStatus, shutdownQueued: 0 };
+
+  const invoiceIds = rows.map((r) => r.id);
 
   // Batch-load already-sent tiers for all candidates (avoids an N+1 in the loop).
   const { data: sentRows } = await supabase
     .from('invoice_dunning_sms')
     .select('invoice_id, tier')
-    .in('invoice_id', rows.map((r) => r.id));
+    .in('invoice_id', invoiceIds);
   const sentByInvoice = new Map<string, Set<string>>();
   for (const s of (sentRows ?? []) as { invoice_id: string; tier: string }[]) {
     if (!sentByInvoice.has(s.invoice_id)) sentByInvoice.set(s.invoice_id, new Set());
     sentByInvoice.get(s.invoice_id)!.add(s.tier);
   }
 
+  // Batch-load invoices that already have a shutdown approval (any status) so we
+  // never re-queue one the owner has already sent or dismissed.
+  const { data: approvalRows } = await supabase
+    .from('pending_sms_approvals')
+    .select('invoice_id')
+    .eq('tier', 'shutdown')
+    .in('invoice_id', invoiceIds);
+  const queuedInvoiceIds = new Set(
+    ((approvalRows ?? []) as { invoice_id: string }[]).map((r) => r.invoice_id),
+  );
+  let shutdownQueued = 0;
+
   for (const inv of rows) {
     const remaining = inv.remaining_balance_cents ?? inv.amount_cents ?? 0;
     if (remaining <= 0) continue; // fully paid, nothing to chase
 
     const daysOverdue = Math.floor((nowMs - new Date(inv.due_at).getTime()) / 86_400_000);
-    const step = selectDunningTier(daysOverdue, sentByInvoice.get(inv.id) ?? []);
-    if (!step) continue;
-
     const client = Array.isArray(inv.clients) ? inv.clients[0] : inv.clients;
     const firstName = (client?.name ?? '').trim().split(/\s+/)[0] || 'there';
     const invoiceNumber = inv.invoice_number || `INV-${inv.id.slice(-6).toUpperCase()}`;
-    const body = renderDunningBody(step, {
+    const ctx: DunningContext = {
       firstName,
       invoiceNumber,
       amount: formatUsd(remaining),
       daysOverdue,
       payUrl: invoicePayUrl(inv),
-    });
+    };
 
-    const result = await sendInvoiceReminderSms({
-      invoiceId: inv.id,
-      clientId: inv.client_id,
-      reminderType: 'payment_overdue',
-      body,
-    });
-    record(result);
-
-    // Only mark the rung sent when the text actually went out. A quiet-hours or
-    // transient skip leaves the ledger untouched so the next cron run retries.
-    if (result.ok) {
-      const { error: ledgerErr } = await supabase.from('invoice_dunning_sms').insert({
-        invoice_id: inv.id,
-        tier: step.tier,
-        days_overdue: daysOverdue,
-        twilio_sid: result.sid ?? null,
+    // Auto rungs (gentle/firm/urgent): sent by the cron, once per rung.
+    const step = selectDunningTier(daysOverdue, sentByInvoice.get(inv.id) ?? []);
+    if (step) {
+      const result = await sendInvoiceReminderSms({
+        invoiceId: inv.id,
+        clientId: inv.client_id,
+        reminderType: 'payment_overdue',
+        body: renderDunningBody(step, ctx),
       });
-      if (ledgerErr) {
-        // The text already sent; a duplicate-key here just means a concurrent run
-        // beat us. Log, don't throw.
-        console.error(`[dunningSms] sent ${step.tier} for ${inv.id} but ledger insert failed:`, ledgerErr.message);
+      record(result);
+
+      // Only mark the rung sent when the text actually went out. A quiet-hours or
+      // transient skip leaves the ledger untouched so the next cron run retries.
+      if (result.ok) {
+        const { error: ledgerErr } = await supabase.from('invoice_dunning_sms').insert({
+          invoice_id: inv.id,
+          tier: step.tier,
+          days_overdue: daysOverdue,
+          twilio_sid: result.sid ?? null,
+        });
+        if (ledgerErr) {
+          // The text already sent; a duplicate-key here just means a concurrent run
+          // beat us. Log, don't throw.
+          console.error(`[dunningSms] sent ${step.tier} for ${inv.id} but ledger insert failed:`, ledgerErr.message);
+        }
+      }
+    }
+
+    // Shutdown rung: NEVER auto-sent. Queue it for owner approval instead. This
+    // runs independently of the auto rung above so a very-late invoice (whose auto
+    // rungs are done or held) still surfaces for review.
+    if (shutdownApprovalDue(daysOverdue, { alreadyQueued: queuedInvoiceIds.has(inv.id) })) {
+      const { error: queueErr } = await supabase
+        .from('pending_sms_approvals')
+        .upsert(
+          {
+            invoice_id: inv.id,
+            client_id: inv.client_id,
+            org_id: inv.org_id,
+            tier: 'shutdown',
+            body: renderShutdownBody(ctx),
+            days_overdue: daysOverdue,
+            amount_cents: remaining,
+            client_name: client?.name ?? null,
+            invoice_number: invoiceNumber,
+          },
+          { onConflict: 'invoice_id,tier', ignoreDuplicates: true },
+        );
+      if (queueErr) {
+        console.error(`[dunningSms] failed to queue shutdown approval for ${inv.id}:`, queueErr.message);
+      } else {
+        shutdownQueued += 1;
       }
     }
   }
 
-  return { candidates: rows.length, byStatus };
+  return { candidates: rows.length, byStatus, shutdownQueued };
 }

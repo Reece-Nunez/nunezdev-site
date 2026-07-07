@@ -9,6 +9,7 @@ import MrrWidget from "./MrrWidget";
 import MrrHistoryChart from "./MrrHistoryChart";
 import RevenueMixChart from "./RevenueMixChart";
 import LeadSourcesPanel from "./LeadSourcesPanel";
+import DunningApprovalBanner from "./DunningApprovalBanner";
 import { useRealtimeEvents, RealtimeEvent } from "@/hooks/useRealtimeEvents";
 
 interface DashboardClientProps {
@@ -188,6 +189,7 @@ export default function DashboardClient({ kpis }: DashboardClientProps) {
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
+      <DunningApprovalBanner />
       {paymentNotification?.visible && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right duration-300">
           <div className="bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
