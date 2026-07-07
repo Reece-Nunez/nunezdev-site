@@ -158,6 +158,51 @@ node scripts/ads-enable-software-campaign.mjs --commit
 idempotent — re-running detects what's already applied and does nothing. The
 software campaign is created **paused**; enable it in the Ads UI when ready.
 
+## SMS follow-ups & invoice dunning
+
+Three linked SMS systems, all sent through one policy chokepoint
+([`sendInvoiceReminderSms`](src/lib/smsReminders.ts) / `sendTrackedSms`):
+STOP opt-out, quiet hours (9am–8pm CT, Mon–Sat), a per-org toggle, and dedupe.
+Affirmative consent is **not** required (owner policy) — only a STOP reply blocks.
+
+- **Lead follow-up cadence** — new leads auto-enroll into a 5-touch cadence over
+  14 days ([`src/lib/leadSmsSequence.ts`](src/lib/leadSmsSequence.ts)), sent
+  hourly by `/api/cron/process-sms-sequences`. Enrollment fires from
+  `createLeadFromContact` / `createLeadFromAppointment`
+  ([`src/lib/leadNurturing.ts`](src/lib/leadNurturing.ts)); offshore-quarantined
+  leads are excluded (`autoEnrollSkipReason`). Auto-stops on reply / STOP / won /
+  lost.
+- **Overdue-invoice dunning ladder** —
+  [`src/lib/invoiceDunningSms.ts`](src/lib/invoiceDunningSms.ts) texts overdue
+  invoices at **3 / 10 / 21 days** (gentle → firm → urgent), once per rung, from
+  the daily `/api/cron/process-invoice-followups` cron (alongside the email
+  ladder in `invoiceFollowup.ts`). Dedupe via the `invoice_dunning_sms` ledger.
+- **Owner-approved escalations** — the **35-day "shutdown"** text and the
+  **chronic non-payer** direct text are never auto-sent. The cron queues them
+  into `pending_sms_approvals`; the owner approves/dismisses from the red banner
+  atop `/dashboard` ([`DunningApprovalBanner`](src/components/dashboard/DunningApprovalBanner.tsx),
+  `/api/dunning-approvals`). A **chronic non-payer** = active `recurring_invoices`
+  plan + overdue non-void balance ≥ 3× the monthly amount; they skip the soft
+  ladder and get one client-level text about the total behind.
+
+**Gotcha — `void` means "bundled":** the combine flow
+(`/api/invoices/combine`) voids the source invoices
+(`notes = 'Voided - Combined into …'`) and moves the debt into a new combined
+invoice. Dunning **and** chronic detection therefore count **non-void, overdue**
+balances only — counting the voids too would double-count the same debt.
+
+### Database
+
+```
+database/migrations/create_invoice_dunning_sms.sql        # per-rung dedupe ledger + activity_log CHECK fix
+database/migrations/create_pending_sms_approvals.sql      # owner-approval queue (shutdown + chronic)
+database/migrations/add_chronic_direct_approval_tier.sql  # adds the chronic_direct tier
+```
+
+Reuses the same Twilio env vars as the inbox, plus `CRON_SECRET` for the crons.
+The pure logic (rung selection, templates, chronic math, offshore gate) is
+unit-tested in `leadSmsSequence.test.ts` and `invoiceDunningSms.test.ts`.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
