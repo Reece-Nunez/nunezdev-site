@@ -66,6 +66,26 @@ export function isStopStatus(status: string | null | undefined): boolean {
   return !!status && STOP_STATUSES.has(status);
 }
 
+/**
+ * Call-site gate for AUTO-enrollment (owner-triggered manual enrollment via the
+ * dashboard is not subject to this — it's the one place we allow overriding).
+ * Offshore-quarantined leads must never be cold-texted: it's junk/geo-screened
+ * traffic and a compliance liability. We centralize the rule here (instead of an
+ * implicit `if` at each caller) so it's covered by one unit test and can't drift.
+ * Returns the skip reason, or null if the lead is eligible to auto-enroll.
+ *
+ * Note: this is only the pre-DB gate. `enrollLeadInSmsSequence` still applies its
+ * own guards (no phone / opted out / terminal status / already running).
+ */
+export function autoEnrollSkipReason(lead: {
+  tags?: string[] | null;
+  lowQuality?: boolean;
+}): 'offshore' | null {
+  if (lead.lowQuality) return 'offshore';
+  if (lead.tags?.includes('offshore')) return 'offshore';
+  return null;
+}
+
 /** Fill {name}/{service}/{booking}/{portfolio} in a step body. */
 export function renderSmsTemplate(
   body: string,

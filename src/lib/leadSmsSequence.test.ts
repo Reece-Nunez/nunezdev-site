@@ -8,6 +8,7 @@ import {
   renderSmsTemplate,
   buildSequenceRows,
   isStopStatus,
+  autoEnrollSkipReason,
   THUMBTACK_SMS_SEQUENCE,
 } from "./leadSmsSequence";
 
@@ -65,5 +66,21 @@ describe("buildSequenceRows", () => {
   it("step 0 carries the STOP opt-out notice", () => {
     const rows = buildSequenceRows("l", { name: "A", project_type: "x" }, Date.now());
     assert.match(rows[0].body, /Reply STOP to opt out/i);
+  });
+});
+
+describe("autoEnrollSkipReason", () => {
+  it("skips leads flagged low-quality by the geo screen", () => {
+    assert.equal(autoEnrollSkipReason({ lowQuality: true }), "offshore");
+  });
+
+  it("skips leads already tagged 'offshore' even without the lowQuality flag", () => {
+    assert.equal(autoEnrollSkipReason({ tags: ["web-design", "offshore"] }), "offshore");
+  });
+
+  it("allows normal leads through (null = eligible)", () => {
+    assert.equal(autoEnrollSkipReason({ tags: ["web-design"], lowQuality: false }), null);
+    assert.equal(autoEnrollSkipReason({}), null);
+    assert.equal(autoEnrollSkipReason({ tags: null }), null);
   });
 });

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './supabaseAdmin';
 import { Resend } from 'resend';
+import { enrollLeadInSmsSequence, autoEnrollSkipReason } from './leadSmsSequence';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -98,6 +99,12 @@ export class LeadNurtureService {
     // Trigger welcome sequence
     await this.triggerEmailSequence(lead.id, 'appointment_completed');
 
+    // Auto-enroll into the SMS cadence too. Appointment leads are inserted as
+    // 'qualified', which the cadence treats as a terminal (stop) status, so this
+    // is a deliberate no-op today — wired for consistency and to cover any future
+    // appointment path that lands a lead in a non-terminal status.
+    await this.enrollInSmsSequence(lead.id, tags);
+
     return lead.id;
   }
 
@@ -163,7 +170,41 @@ export class LeadNurtureService {
       await this.triggerEmailSequence(lead.id, 'lead_created');
     }
 
+    // Auto-enroll into the SMS follow-up cadence (replaces the manual "Start
+    // follow-ups" click as the default). The offshore gate lives in
+    // enrollInSmsSequence via autoEnrollSkipReason.
+    await this.enrollInSmsSequence(lead.id, tags, contactData.lowQuality);
+
     return lead.id;
+  }
+
+  /**
+   * Auto-enroll a freshly created lead into the SMS follow-up cadence.
+   * Never throws — a lead insert must not fail because SMS scheduling hiccuped,
+   * and skipping is normal (offshore, no phone, opted out, terminal status).
+   * The heavy guards live in enrollLeadInSmsSequence; the offshore gate is the
+   * one we enforce here, before touching the DB.
+   */
+  private async enrollInSmsSequence(
+    leadId: string,
+    tags: string[],
+    lowQuality?: boolean,
+  ): Promise<void> {
+    const skip = autoEnrollSkipReason({ tags, lowQuality });
+    if (skip) {
+      console.log(`[leadNurture] SMS auto-enroll skipped for ${leadId}: ${skip}`);
+      return;
+    }
+    try {
+      const result = await enrollLeadInSmsSequence(leadId);
+      // 'already_enrolled' is an expected no-op; anything else non-zero-with-
+      // reason is worth a breadcrumb (e.g. no_phone) but not an error.
+      if (result.scheduled === 0 && result.reason && result.reason !== 'already_enrolled') {
+        console.log(`[leadNurture] SMS auto-enroll no-op for ${leadId}: ${result.reason}`);
+      }
+    } catch (err) {
+      console.error(`[leadNurture] SMS auto-enroll failed for ${leadId}:`, err);
+    }
   }
 
   // Trigger email sequence
