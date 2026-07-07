@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { invoiceFollowupService } from '@/lib/invoiceFollowup';
+import { processOverdueDunningSms } from '@/lib/invoiceDunningSms';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,10 +18,17 @@ export async function POST(request: NextRequest) {
     console.log('Processing invoice follow-ups...');
 
     await invoiceFollowupService.processOverdueInvoices();
+    // SMS dunning ladder runs alongside the email ladder. Isolated so a Twilio
+    // hiccup can't fail the (already-completed) email run.
+    const sms = await processOverdueDunningSms().catch((err) => {
+      console.error('Error processing SMS dunning:', err);
+      return { candidates: 0, byStatus: { error: 1 } };
+    });
 
     return NextResponse.json({
       success: true,
-      message: 'Invoice follow-ups processed successfully'
+      message: 'Invoice follow-ups processed successfully',
+      sms,
     });
 
   } catch (error: any) {
@@ -44,10 +52,15 @@ export async function GET(request: NextRequest) {
     }
 
     await invoiceFollowupService.processOverdueInvoices();
+    const sms = await processOverdueDunningSms().catch((err) => {
+      console.error('Error processing SMS dunning:', err);
+      return { candidates: 0, byStatus: { error: 1 } };
+    });
 
     return NextResponse.json({
       success: true,
-      message: 'Invoice follow-ups processed successfully'
+      message: 'Invoice follow-ups processed successfully',
+      sms,
     });
 
   } catch (error: any) {
