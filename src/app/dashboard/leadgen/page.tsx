@@ -9,6 +9,7 @@ import {
   type BusinessStatus,
 } from "@/lib/leadgen-api";
 import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
+import { countUnansweredReplyLeads } from "@/lib/leadgenInbox";
 import ProspectCard from "./ProspectCard";
 import ProspectsExplorer from "./ProspectsExplorer";
 import { BUSINESS_STATUS_LABEL } from "./utils";
@@ -114,11 +115,20 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
   // City filtering is no longer a URL param — the page now groups
   // businesses into a per-city accordion, so the operator drills in
   // by expanding sections rather than navigating between filters.
-  const [stats, businesses, followUpsDue] = await Promise.all([
+  const [stats, businesses, followUpsDue, repliedBusinesses] = await Promise.all([
     getStats(),
     listBusinesses({ status: activeStatus, limit: 500 }),
     listFollowUps("due", 200),
+    listBusinesses({ status: "replied", limit: 500 }),
   ]);
+
+  // The banner counts only replied leads we haven't answered yet in the inbox,
+  // so it clears once you reply (see leadgenInbox). Falls back to the raw
+  // replied count if the inbox lookup errors — never silently hide a reply.
+  const unanswered = await countUnansweredReplyLeads(
+    repliedBusinesses.map((b) => ({ id: b.id, phone: b.phone, email: b.email })),
+  );
+  const attentionCount = unanswered ?? stats.by_status.replied;
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
@@ -130,14 +140,14 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
       {/* ── Needs-attention banner ───────────────────────────────────
           Replies are the whole point — when a prospect responds, surface it
           loudly at the top and deep-link straight to the replied filter. */}
-      {stats.by_status.replied > 0 && (
+      {attentionCount > 0 && (
         <Link
           href="/dashboard/leadgen?status=replied"
           className="flex items-center justify-between gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-800 hover:bg-orange-100 transition"
         >
           <span className="flex items-center gap-2">
             <EnvelopeIcon className="w-5 h-5" />
-            {stats.by_status.replied} lead{stats.by_status.replied === 1 ? "" : "s"} replied — needs your attention
+            {attentionCount} lead{attentionCount === 1 ? "" : "s"} replied — needs your attention
           </span>
           <span aria-hidden className="text-orange-500">→</span>
         </Link>
