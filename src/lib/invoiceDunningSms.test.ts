@@ -9,10 +9,14 @@ import {
   renderDunningBody,
   renderShutdownBody,
   shutdownApprovalDue,
+  cyclesBehind,
+  isChronicNonPayer,
+  renderChronicDirectBody,
   formatUsd,
   invoicePayUrl,
   DUNNING_LADDER,
   SHUTDOWN_DAYS,
+  CHRONIC_MIN_CYCLES,
   type DunningStep,
 } from "./invoiceDunningSms";
 
@@ -88,6 +92,70 @@ describe("renderShutdownBody", () => {
     const body = renderShutdownBody({ ...ctx, payUrl: "" });
     assert.doesNotMatch(body, /https?:\/\//);
     assert.match(body, /Reply STOP to opt out/i);
+  });
+});
+
+describe("cyclesBehind", () => {
+  it("divides outstanding by the monthly amount, floored", () => {
+    assert.equal(cyclesBehind(28000, 4000), 7); // Aaron: $280 / $40
+    assert.equal(cyclesBehind(12000, 4000), 3);
+    assert.equal(cyclesBehind(11999, 4000), 2); // floors, doesn't round up
+  });
+
+  it("is 0 when the monthly amount is unknown/zero (no divide-by-zero)", () => {
+    assert.equal(cyclesBehind(28000, 0), 0);
+  });
+});
+
+describe("isChronicNonPayer", () => {
+  it("flags an active-recurring client 3+ cycles behind (Aaron's shape)", () => {
+    assert.equal(
+      isChronicNonPayer({ hasActiveRecurring: true, outstandingOverdueCents: 28000, monthlyCents: 4000 }),
+      true,
+    );
+  });
+
+  it("requires >= CHRONIC_MIN_CYCLES cycles behind", () => {
+    const twoMonths = (CHRONIC_MIN_CYCLES - 1) * 4000;
+    assert.equal(
+      isChronicNonPayer({ hasActiveRecurring: true, outstandingOverdueCents: twoMonths, monthlyCents: 4000 }),
+      false,
+    );
+  });
+
+  it("never flags a client without an active recurring plan", () => {
+    assert.equal(
+      isChronicNonPayer({ hasActiveRecurring: false, outstandingOverdueCents: 100000, monthlyCents: 4000 }),
+      false,
+    );
+  });
+
+  it("never flags when the monthly amount is zero", () => {
+    assert.equal(
+      isChronicNonPayer({ hasActiveRecurring: true, outstandingOverdueCents: 100000, monthlyCents: 0 }),
+      false,
+    );
+  });
+});
+
+describe("renderChronicDirectBody", () => {
+  const ctx = { firstName: "Aaron", amount: "$280.00", cyclesBehind: 7, payUrl: "https://www.nunezdev.com/invoice/tok" };
+
+  it("is blunt, names the total + months, carries STOP + link, no em dashes", () => {
+    const body = renderChronicDirectBody(ctx);
+    assert.match(body, /seriously past due/i);
+    assert.match(body, /\$280\.00 outstanding across 7 unpaid months/);
+    assert.match(body, /invoice\/tok/);
+    assert.match(body, /Reply STOP to opt out/i);
+    assert.doesNotMatch(body, /—/);
+  });
+
+  it("uses singular 'month' when exactly one cycle behind", () => {
+    assert.match(renderChronicDirectBody({ ...ctx, cyclesBehind: 1 }), /1 unpaid month of service/);
+  });
+
+  it("omits the pay link cleanly when there is none", () => {
+    assert.doesNotMatch(renderChronicDirectBody({ ...ctx, payUrl: "" }), /https?:\/\//);
   });
 });
 

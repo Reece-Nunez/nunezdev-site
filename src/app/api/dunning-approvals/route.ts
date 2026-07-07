@@ -16,7 +16,7 @@ export async function GET() {
   const supabase = supabaseAdmin();
   const { data, error } = await supabase
     .from('pending_sms_approvals')
-    .select('id, invoice_id, client_name, invoice_number, amount_cents, days_overdue, body, created_at')
+    .select('id, tier, invoice_id, client_name, invoice_number, amount_cents, days_overdue, body, created_at')
     .eq('org_id', guard.orgId!)
     .eq('status', 'pending')
     .order('days_overdue', { ascending: false });

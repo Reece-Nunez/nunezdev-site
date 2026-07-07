@@ -146,11 +146,63 @@ export function shutdownApprovalDue(
   return daysOverdue >= SHUTDOWN_DAYS && !opts.alreadyQueued;
 }
 
+// ---- Chronic non-payer detection (Phase 4) ---------------------------------
+// A client with an active recurring invoice who is this many billing cycles
+// behind gets the direct, owner-approved treatment instead of the soft ladder.
+export const CHRONIC_MIN_CYCLES = 3;
+
+/** Pure: how many billing cycles an outstanding balance represents. */
+export function cyclesBehind(outstandingCents: number, monthlyCents: number): number {
+  if (monthlyCents <= 0) return 0;
+  return Math.floor(outstandingCents / monthlyCents);
+}
+
+/**
+ * Pure: is this client a chronic non-payer? Only clients on an active recurring
+ * plan qualify, and only once their OVERDUE, non-void outstanding balance is
+ * worth >= CHRONIC_MIN_CYCLES months of that plan. Counting overdue-and-non-void
+ * is deliberate: void invoices here mean "bundled into a combined invoice" (the
+ * combine flow), so the debt already lives in that combined invoice — counting
+ * the voids too would double-count. Gating on overdue avoids nagging someone whose
+ * consolidated invoice hasn't hit its due date yet.
+ */
+export function isChronicNonPayer(opts: {
+  hasActiveRecurring: boolean;
+  outstandingOverdueCents: number;
+  monthlyCents: number;
+}): boolean {
+  if (!opts.hasActiveRecurring || opts.monthlyCents <= 0) return false;
+  return cyclesBehind(opts.outstandingOverdueCents, opts.monthlyCents) >= CHRONIC_MIN_CYCLES;
+}
+
+/**
+ * Pure: the blunt, client-level "you are seriously past due" body. About the
+ * whole outstanding balance, not one invoice. Carries pay link + STOP, no em
+ * dashes. Frozen into the approval row and sent verbatim once the owner approves.
+ */
+export function renderChronicDirectBody(ctx: {
+  firstName: string;
+  amount: string;
+  cyclesBehind: number;
+  payUrl: string;
+}): string {
+  const months = ctx.cyclesBehind === 1 ? 'month' : 'months';
+  return (
+    `NunezDev: ${ctx.firstName}, your account is seriously past due. You have ${ctx.amount} ` +
+    `outstanding across ${ctx.cyclesBehind} unpaid ${months} of service, and it needs to be paid ` +
+    `now to keep your services running.` +
+    (ctx.payUrl ? ` Pay here: ${ctx.payUrl}` : '') +
+    ` Reply here to make arrangements. Reply STOP to opt out.`
+  );
+}
+
 export interface DunningSummary {
   candidates: number;
   byStatus: Record<string, number>;
   /** Shutdown texts queued for owner approval this run. */
   shutdownQueued: number;
+  /** Chronic-non-payer direct texts queued for owner approval this run. */
+  chronicQueued: number;
 }
 
 interface OverdueInvoiceRow {
@@ -164,6 +216,14 @@ interface OverdueInvoiceRow {
   access_token: string | null;
   hosted_invoice_url: string | null;
   clients: { name: string | null } | { name: string | null }[] | null;
+}
+
+interface ClientOverdueAgg {
+  outstanding: number;
+  anchor: OverdueInvoiceRow;
+  maxDaysOverdue: number;
+  clientName: string | null;
+  orgId: string;
 }
 
 /**
@@ -192,12 +252,13 @@ export async function processOverdueDunningSms(): Promise<DunningSummary> {
 
   if (error) {
     console.error('[dunningSms] failed to load overdue invoices:', error.message);
-    return { candidates: 0, byStatus: { db_error: 1 }, shutdownQueued: 0 };
+    return { candidates: 0, byStatus: { db_error: 1 }, shutdownQueued: 0, chronicQueued: 0 };
   }
   const rows = (invoices ?? []) as unknown as OverdueInvoiceRow[];
-  if (rows.length === 0) return { candidates: 0, byStatus, shutdownQueued: 0 };
+  if (rows.length === 0) return { candidates: 0, byStatus, shutdownQueued: 0, chronicQueued: 0 };
 
   const invoiceIds = rows.map((r) => r.id);
+  const clientIds = [...new Set(rows.map((r) => r.client_id))];
 
   // Batch-load already-sent tiers for all candidates (avoids an N+1 in the loop).
   const { data: sentRows } = await supabase
@@ -220,9 +281,79 @@ export async function processOverdueDunningSms(): Promise<DunningSummary> {
   const queuedInvoiceIds = new Set(
     ((approvalRows ?? []) as { invoice_id: string }[]).map((r) => r.invoice_id),
   );
-  let shutdownQueued = 0;
 
+  // Active recurring plans -> monthly commitment per client (summed if a client
+  // has more than one active plan).
+  const { data: recurringRows } = await supabase
+    .from('recurring_invoices')
+    .select('client_id, amount_cents')
+    .eq('status', 'active')
+    .in('client_id', clientIds);
+  const monthlyByClient = new Map<string, number>();
+  for (const r of (recurringRows ?? []) as { client_id: string; amount_cents: number | null }[]) {
+    monthlyByClient.set(r.client_id, (monthlyByClient.get(r.client_id) ?? 0) + (r.amount_cents ?? 0));
+  }
+
+  // Per-client overdue aggregates: total outstanding + the most-overdue invoice
+  // (used as the anchor + pay link for a client-level chronic approval).
+  const aggByClient = new Map<string, ClientOverdueAgg>();
   for (const inv of rows) {
+    const remaining = inv.remaining_balance_cents ?? inv.amount_cents ?? 0;
+    if (remaining <= 0) continue;
+    const days = Math.floor((nowMs - new Date(inv.due_at).getTime()) / 86_400_000);
+    const client = Array.isArray(inv.clients) ? inv.clients[0] : inv.clients;
+    const existing = aggByClient.get(inv.client_id);
+    if (!existing) {
+      aggByClient.set(inv.client_id, {
+        outstanding: remaining,
+        anchor: inv,
+        maxDaysOverdue: days,
+        clientName: client?.name ?? null,
+        orgId: inv.org_id,
+      });
+    } else {
+      existing.outstanding += remaining;
+      if (days > existing.maxDaysOverdue) {
+        existing.maxDaysOverdue = days;
+        existing.anchor = inv;
+      }
+    }
+  }
+
+  // Chronic non-payers: active recurring + 3+ cycles of overdue debt.
+  const chronicClientIds = new Set<string>();
+  for (const [clientId, agg] of aggByClient) {
+    const monthly = monthlyByClient.get(clientId) ?? 0;
+    if (isChronicNonPayer({ hasActiveRecurring: monthly > 0, outstandingOverdueCents: agg.outstanding, monthlyCents: monthly })) {
+      chronicClientIds.add(clientId);
+    }
+  }
+
+  // Client-level dedupe for chronic approvals: skip if one is already pending or
+  // was resolved in the last 30 days (don't re-nag every run or every month).
+  const chronicCutoffIso = new Date(nowMs - 30 * 86_400_000).toISOString();
+  const chronicHandled = new Set<string>();
+  if (chronicClientIds.size > 0) {
+    const { data: chronicRows } = await supabase
+      .from('pending_sms_approvals')
+      .select('client_id, status, resolved_at')
+      .eq('tier', 'chronic_direct')
+      .in('client_id', [...chronicClientIds]);
+    for (const r of (chronicRows ?? []) as { client_id: string; status: string; resolved_at: string | null }[]) {
+      if (r.status === 'pending' || (r.resolved_at && r.resolved_at >= chronicCutoffIso)) {
+        chronicHandled.add(r.client_id);
+      }
+    }
+  }
+
+  let shutdownQueued = 0;
+  let chronicQueued = 0;
+
+  // Per-invoice pass: auto ladder + shutdown approval. Chronic clients are skipped
+  // here so they don't get soft nudges on top of the direct approval queued below.
+  for (const inv of rows) {
+    if (chronicClientIds.has(inv.client_id)) continue;
+
     const remaining = inv.remaining_balance_cents ?? inv.amount_cents ?? 0;
     if (remaining <= 0) continue; // fully paid, nothing to chase
 
@@ -294,5 +425,41 @@ export async function processOverdueDunningSms(): Promise<DunningSummary> {
     }
   }
 
-  return { candidates: rows.length, byStatus, shutdownQueued };
+  // Chronic pass: one client-level direct approval per chronic non-payer. Anchored
+  // to the client's most-overdue invoice (for the FK + pay link), but the message
+  // is about the whole outstanding balance.
+  for (const clientId of chronicClientIds) {
+    if (chronicHandled.has(clientId)) continue;
+    const agg = aggByClient.get(clientId);
+    if (!agg) continue;
+    const monthly = monthlyByClient.get(clientId) ?? 0;
+    const firstName = (agg.clientName ?? '').trim().split(/\s+/)[0] || 'there';
+    const body = renderChronicDirectBody({
+      firstName,
+      amount: formatUsd(agg.outstanding),
+      cyclesBehind: cyclesBehind(agg.outstanding, monthly),
+      payUrl: invoicePayUrl(agg.anchor),
+    });
+    const { error: queueErr } = await supabase.from('pending_sms_approvals').upsert(
+      {
+        invoice_id: agg.anchor.id,
+        client_id: clientId,
+        org_id: agg.orgId,
+        tier: 'chronic_direct',
+        body,
+        days_overdue: agg.maxDaysOverdue,
+        amount_cents: agg.outstanding,
+        client_name: agg.clientName,
+        invoice_number: agg.anchor.invoice_number || `INV-${agg.anchor.id.slice(-6).toUpperCase()}`,
+      },
+      { onConflict: 'invoice_id,tier', ignoreDuplicates: true },
+    );
+    if (queueErr) {
+      console.error(`[dunningSms] failed to queue chronic approval for client ${clientId}:`, queueErr.message);
+    } else {
+      chronicQueued += 1;
+    }
+  }
+
+  return { candidates: rows.length, byStatus, shutdownQueued, chronicQueued };
 }

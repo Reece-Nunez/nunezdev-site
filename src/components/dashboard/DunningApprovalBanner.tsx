@@ -4,8 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/Button";
 
+type ApprovalTier = "shutdown" | "chronic_direct";
+
 interface Approval {
   id: string;
+  tier: ApprovalTier;
   invoice_id: string;
   client_name: string | null;
   invoice_number: string | null;
@@ -14,6 +17,11 @@ interface Approval {
   body: string;
   created_at: string;
 }
+
+const TIER_LABEL: Record<ApprovalTier, string> = {
+  shutdown: "shutdown notice",
+  chronic_direct: "past-due notice",
+};
 
 const fmt = (cents: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -115,11 +123,11 @@ export default function DunningApprovalBanner() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <h2 className="font-semibold text-red-800">
-          {approvals.length} shutdown {approvals.length === 1 ? "notice" : "notices"} awaiting your approval
+          {approvals.length} SMS {approvals.length === 1 ? "notice" : "notices"} awaiting your approval
         </h2>
       </div>
       <p className="text-sm text-red-700/90 mb-4">
-        These invoices are 35+ days overdue. Nothing sends until you approve it.
+        These are the harshest dunning texts. Nothing sends until you approve it.
       </p>
 
       <ul className="space-y-3">
@@ -127,7 +135,17 @@ export default function DunningApprovalBanner() {
           <li key={a.id} className="rounded-lg border border-red-200 bg-white p-3">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-medium text-sm text-gray-900">
+                <div className="font-medium text-sm text-gray-900 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span
+                    className={
+                      "inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+                      (a.tier === "chronic_direct"
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-red-100 text-red-700")
+                    }
+                  >
+                    {TIER_LABEL[a.tier] ?? a.tier}
+                  </span>
                   {a.client_name ?? "Unknown client"}{" "}
                   <span className="text-gray-500 font-normal">
                     · {a.invoice_number ?? a.invoice_id.slice(0, 8)} · {fmt(a.amount_cents)} ·{" "}
