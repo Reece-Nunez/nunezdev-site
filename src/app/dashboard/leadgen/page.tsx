@@ -12,7 +12,7 @@ import { LEADGEN_DB_PATH, PIPELINE_ROOT } from "@/lib/leadgen-paths";
 import { countUnansweredReplyLeads } from "@/lib/leadgenInbox";
 import ProspectCard from "./ProspectCard";
 import ProspectsExplorer from "./ProspectsExplorer";
-import { BUSINESS_STATUS_LABEL } from "./utils";
+import { BUSINESS_STATUS_LABEL, tallyByStatus } from "./utils";
 import { MagnifyingGlassIcon, Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, ChartBarIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
@@ -115,20 +115,35 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
   // City filtering is no longer a URL param — the page now groups
   // businesses into a per-city accordion, so the operator drills in
   // by expanding sections rather than navigating between filters.
-  const [stats, businesses, followUpsDue, repliedBusinesses] = await Promise.all([
+  // One fetch drives BOTH the filter chips and the table below, so a chip's
+  // count can never disagree with the rows you see when you click it. (The
+  // pipeline's /stats counts archived leads that the /businesses list omits —
+  // reading counts from the list itself keeps the two in sync.) The limit is
+  // generous headroom over the active set, which runs a few hundred leads.
+  const [stats, allBusinesses, followUpsDue] = await Promise.all([
     getStats(),
-    listBusinesses({ status: activeStatus, limit: 500 }),
+    listBusinesses({ limit: 1000 }),
     listFollowUps("due", 200),
-    listBusinesses({ status: "replied", limit: 500 }),
   ]);
 
+  // Archived = low-opportunity leads auto-hidden from the default view. Exclude
+  // them everywhere (chips, cards, table) so nothing counts leads you can't see.
+  const visible = allBusinesses.filter((b) => !b.archived);
+  const archivedCount = allBusinesses.length - visible.length;
+  const tally = tallyByStatus(visible);
+  const businesses =
+    activeStatus === "all"
+      ? visible
+      : visible.filter((b) => b.status === activeStatus);
+  const repliedBusinesses = visible.filter((b) => b.status === "replied");
+
   // The banner counts only replied leads we haven't answered yet in the inbox,
-  // so it clears once you reply (see leadgenInbox). Falls back to the raw
+  // so it clears once you reply (see leadgenInbox). Falls back to the tallied
   // replied count if the inbox lookup errors — never silently hide a reply.
   const unanswered = await countUnansweredReplyLeads(
     repliedBusinesses.map((b) => ({ id: b.id, phone: b.phone, email: b.email })),
   );
-  const attentionCount = unanswered ?? stats.by_status.replied;
+  const attentionCount = unanswered ?? tally.byStatus.replied;
 
   return (
     <div className="px-3 py-4 sm:p-6 space-y-6 max-w-full min-w-0">
@@ -169,16 +184,20 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
 
       {/* ── Stat cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Prospected" value={stats.total.toString()} />
+        <StatCard
+          label="Prospected"
+          value={tally.total.toString()}
+          sub={archivedCount > 0 ? `${archivedCount} archived` : undefined}
+        />
         <StatCard
           label="Researched"
-          value={stats.by_status.researched.toString()}
-          sub={`${stats.by_status.new} pending`}
+          value={tally.byStatus.researched.toString()}
+          sub={`${tally.byStatus.new} pending`}
         />
         <StatCard
           label="Proposal built"
-          value={stats.by_status.proposal_built.toString()}
-          sub={`${stats.by_status.contacted} contacted`}
+          value={tally.byStatus.proposal_built.toString()}
+          sub={`${tally.byStatus.contacted} contacted`}
         />
         <StatCard
           label="Pipeline value"
@@ -191,10 +210,7 @@ export default async function LeadgenIndex({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center gap-2">
         {ALL_STATUSES.map((s) => {
           const isActive = activeStatus === s;
-          const count =
-            s === "all"
-              ? stats.total
-              : stats.by_status[s];
+          const count = s === "all" ? tally.total : tally.byStatus[s];
           const href =
             s === "all"
               ? "/dashboard/leadgen"

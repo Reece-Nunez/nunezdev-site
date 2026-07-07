@@ -44,6 +44,35 @@ export const BUSINESS_STATUS_LABEL: Record<BusinessStatus, string> = {
   not_interested: "Not interested",
 };
 
+export interface StatusTally {
+  total: number;
+  byStatus: Record<BusinessStatus, number>;
+}
+
+/**
+ * Tally a list of businesses by status. The dashboard derives its filter-chip
+ * counts from this over the SAME (non-archived) list the table renders, so a
+ * chip's number always equals the rows you get when you click it — the
+ * pipeline's /stats counts archived leads the /businesses list omits, which is
+ * what made the chips read high. Every status key is present (zero-filled) so
+ * chips render a count even for empty stages.
+ */
+export function tallyByStatus(
+  businesses: { status: BusinessStatus }[],
+): StatusTally {
+  const byStatus: Record<BusinessStatus, number> = {
+    new: 0,
+    researched: 0,
+    proposal_built: 0,
+    contacted: 0,
+    replied: 0,
+    converted: 0,
+    not_interested: 0,
+  };
+  for (const b of businesses) byStatus[b.status] += 1;
+  return { total: businesses.length, byStatus };
+}
+
 /**
  * Color-coded Tailwind classes for an AI opportunity score (0-10).
  *

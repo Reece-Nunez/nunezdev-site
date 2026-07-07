@@ -13,6 +13,7 @@ import {
   reasonLabel,
   NOT_INTERESTED_REASONS,
   filterSortProspects,
+  tallyByStatus,
 } from "./utils";
 import type { BusinessSummary } from "@/lib/leadgen-db";
 
@@ -27,6 +28,45 @@ function biz(p: Partial<BusinessSummary>): BusinessSummary {
     ai_score: null, website_score: null, ...p,
   };
 }
+
+describe("tallyByStatus", () => {
+  it("zero-fills every status so empty stages still render a count", () => {
+    const t = tallyByStatus([]);
+    assert.equal(t.total, 0);
+    assert.deepEqual(t.byStatus, {
+      new: 0, researched: 0, proposal_built: 0, contacted: 0,
+      replied: 0, converted: 0, not_interested: 0,
+    });
+  });
+
+  it("counts each status and totals the list", () => {
+    const t = tallyByStatus([
+      biz({ status: "contacted" }),
+      biz({ status: "contacted" }),
+      biz({ status: "replied" }),
+      biz({ status: "new" }),
+    ]);
+    assert.equal(t.total, 4);
+    assert.equal(t.byStatus.contacted, 2);
+    assert.equal(t.byStatus.replied, 1);
+    assert.equal(t.byStatus.new, 1);
+    assert.equal(t.byStatus.researched, 0);
+  });
+
+  it("matches the visible list when archived leads are excluded first", () => {
+    // The page filters archived out before tallying; this mirrors that so the
+    // chip count equals the rows behind the filter.
+    const all = [
+      biz({ status: "researched", archived: true }),
+      biz({ status: "researched", archived: true }),
+      biz({ status: "contacted", archived: false }),
+    ];
+    const t = tallyByStatus(all.filter((b) => !b.archived));
+    assert.equal(t.total, 1);
+    assert.equal(t.byStatus.researched, 0);
+    assert.equal(t.byStatus.contacted, 1);
+  });
+});
 
 describe("filterSortProspects", () => {
   const rows = [
