@@ -127,25 +127,69 @@ export async function triggerStage(
  * Distinct from triggerStage because prospect doesn't bind to a
  * business — it creates them.
  */
-export async function triggerProspect(
-  zip: string,
-  max: number,
-): Promise<TriggerResult> {
+/** Shared bounds check for the optional numeric filters. Returns an error
+ *  string on the first invalid field, or null when everything's in range. */
+function validateProspectFilters(f: {
+  minRating?: number;
+  maxRating?: number;
+  minReviews?: number;
+  maxReviews?: number;
+}): string | null {
+  for (const [label, v] of [["Min rating", f.minRating], ["Max rating", f.maxRating]] as const) {
+    if (v != null && (Number.isNaN(v) || v < 0 || v > 5)) return `${label} must be 0-5`;
+  }
+  for (const [label, v] of [["Min reviews", f.minReviews], ["Max reviews", f.maxReviews]] as const) {
+    if (v != null && (!Number.isInteger(v) || v < 0)) return `${label} must be a whole number ≥ 0`;
+  }
+  if (f.minRating != null && f.maxRating != null && f.minRating > f.maxRating) {
+    return "Min rating can't exceed max rating";
+  }
+  if (f.minReviews != null && f.maxReviews != null && f.minReviews > f.maxReviews) {
+    return "Min reviews can't exceed max reviews";
+  }
+  return null;
+}
+
+export async function triggerProspect(opts: {
+  zip: string;
+  max: number;
+  categories?: string[];
+  extraZips?: string[];
+  minRating?: number;
+  maxRating?: number;
+  onlyNoWebsite?: boolean;
+  minReviews?: number;
+  maxReviews?: number;
+}): Promise<TriggerResult> {
   const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Unauthorized" };
-  if (!/^\d{5}$/.test(zip)) {
+  if (!/^\d{5}$/.test(opts.zip)) {
     return { ok: false, message: "Zip must be 5 digits" };
   }
-  if (!Number.isInteger(max) || max < 1 || max > 50) {
+  if (!Number.isInteger(opts.max) || opts.max < 1 || opts.max > 50) {
     return { ok: false, message: "Max must be 1-50" };
   }
+  const badZip = (opts.extraZips ?? []).find((z) => !/^\d{5}$/.test(z));
+  if (badZip) return { ok: false, message: `Extra zip "${badZip}" must be 5 digits` };
+  const filterErr = validateProspectFilters(opts);
+  if (filterErr) return { ok: false, message: filterErr };
   try {
-    const job = await triggerProspectOnApi({ zip, max });
+    const job = await triggerProspectOnApi({
+      zip: opts.zip,
+      max: opts.max,
+      categories: opts.categories,
+      extraZips: opts.extraZips,
+      minRating: opts.minRating,
+      maxRating: opts.maxRating,
+      onlyNoWebsite: opts.onlyNoWebsite,
+      minReviews: opts.minReviews,
+      maxReviews: opts.maxReviews,
+    });
     return {
       ok: true,
       jobId: job.id,
       status: job.status,
-      message: `prospecting ${zip} enqueued`,
+      message: `prospecting ${opts.zip} enqueued`,
     };
   } catch (err) {
     const message =
@@ -167,7 +211,10 @@ export async function triggerProspectSearch(opts: {
   max?: number;
   radiusMiles?: number;
   minRating?: number;
+  maxRating?: number;
   onlyNoWebsite?: boolean;
+  minReviews?: number;
+  maxReviews?: number;
 }): Promise<TriggerResult> {
   const guard = await requireProspecting();
   if (!guard.ok) return { ok: false, message: "Unauthorized" };
@@ -181,6 +228,11 @@ export async function triggerProspectSearch(opts: {
   if (opts.max != null && (!Number.isInteger(opts.max) || opts.max < 1 || opts.max > 50)) {
     return { ok: false, message: "Max must be 1-50" };
   }
+  if (opts.radiusMiles != null && (Number.isNaN(opts.radiusMiles) || opts.radiusMiles <= 0 || opts.radiusMiles > 60)) {
+    return { ok: false, message: "Radius must be 1-60 miles" };
+  }
+  const filterErr = validateProspectFilters(opts);
+  if (filterErr) return { ok: false, message: filterErr };
   try {
     const job = await triggerProspectOnApi({
       zip: opts.zip,
@@ -188,7 +240,10 @@ export async function triggerProspectSearch(opts: {
       max: opts.max,
       radiusMiles: opts.radiusMiles,
       minRating: opts.minRating,
+      maxRating: opts.maxRating,
       onlyNoWebsite: opts.onlyNoWebsite,
+      minReviews: opts.minReviews,
+      maxReviews: opts.maxReviews,
     });
     return {
       ok: true,

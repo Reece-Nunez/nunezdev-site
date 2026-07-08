@@ -259,9 +259,15 @@ export interface ProspectOptions {
   max?: number;
   query?: string;
   radiusMiles?: number;
+  // Result filters — apply to BOTH the category sweep and free-text search.
   minRating?: number;
   maxRating?: number;
   onlyNoWebsite?: boolean;
+  minReviews?: number;
+  maxReviews?: number;
+  // Discover-mode targeting knobs (ignored in search mode).
+  categories?: string[];   // subset of the 20 and/or custom verticals
+  extraZips?: string[];    // additional zips swept alongside `zip`
 }
 
 /**
@@ -276,6 +282,11 @@ export async function triggerProspectOnApi(opts: ProspectOptions): Promise<JobRe
   if (opts.minRating != null) qs.set("min_rating", String(opts.minRating));
   if (opts.maxRating != null) qs.set("max_rating", String(opts.maxRating));
   if (opts.onlyNoWebsite) qs.set("only_no_website", "true");
+  if (opts.minReviews != null) qs.set("min_reviews", String(opts.minReviews));
+  if (opts.maxReviews != null) qs.set("max_reviews", String(opts.maxReviews));
+  // The API takes comma-separated lists and does its own trim/dedupe.
+  if (opts.categories?.length) qs.set("categories", opts.categories.join(","));
+  if (opts.extraZips?.length) qs.set("zips", opts.extraZips.join(","));
   return apiFetch<JobRecord>(`/stages/prospect?${qs}`, { method: "POST" });
 }
 

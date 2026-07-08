@@ -27,6 +27,32 @@ const POLL_TIMEOUT_MS = 10 * 60 * 1000;
 type LiveStatus = "queued" | "running";
 type Mode = "discover" | "search";
 
+// Discover-mode category presets — mirror prospect.py's CATEGORIES so the
+// operator can pick a subset. An empty selection means "sweep all 20" (the
+// backend default), so we don't have to ship the full list as the default
+// state. Custom verticals typed in the box get appended to the selection and
+// routed through Places text-search by the backend automatically.
+const CATEGORY_PRESETS: string[] = [
+  "restaurant", "hair_care", "beauty_salon", "nail_salon", "spa",
+  "car_repair", "plumber", "electrician", "painter", "florist",
+  "bakery", "gym", "chiropractor", "dentist", "veterinary_care",
+  "laundry", "dry_cleaning", "carpet_cleaning", "landscaping", "lawn_care",
+];
+
+/** Turn a slug ("hair_care") into a readable chip label ("Hair care"). */
+function prettyCat(slug: string): string {
+  const s = slug.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Parse an optional numeric text input to number | undefined (blank = unset). */
+function numOrUndef(v: string): number | undefined {
+  const t = v.trim();
+  if (t === "") return undefined;
+  const n = Number(t);
+  return Number.isNaN(n) ? undefined : n;
+}
+
 interface ActiveJob {
   status: LiveStatus;
   startedAt: string | null;
@@ -67,13 +93,43 @@ export default function ProspectCard() {
   // Search-mode inputs
   const [query, setQuery] = useState("");
   const [radius, setRadius] = useState(""); // miles, optional
+
+  // Discover-mode targeting
+  const [selectedCats, setSelectedCats] = useState<string[]>([]); // empty = all 20
+  const [customCat, setCustomCat] = useState("");
+  const [extraZips, setExtraZips] = useState(""); // comma-separated, optional
+
+  // Shared result filters — apply to BOTH Discover and Search now.
+  const [showFilters, setShowFilters] = useState(false);
   const [minRating, setMinRating] = useState(""); // 0-5, optional
+  const [maxRating, setMaxRating] = useState(""); // 0-5, optional
+  const [minReviews, setMinReviews] = useState(""); // int, optional
+  const [maxReviews, setMaxReviews] = useState(""); // int, optional
   const [onlyNoWebsite, setOnlyNoWebsite] = useState(false);
+
+  function toggleCat(slug: string) {
+    setSelectedCats((prev) =>
+      prev.includes(slug) ? prev.filter((c) => c !== slug) : [...prev, slug],
+    );
+  }
+  function addCustomCat() {
+    const slug = customCat.trim().toLowerCase().replace(/\s+/g, "_");
+    if (slug && !selectedCats.includes(slug) && !CATEGORY_PRESETS.includes(slug)) {
+      setSelectedCats((prev) => [...prev, slug]);
+    }
+    setCustomCat("");
+  }
 
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
   const pollIdRef = useRef<number>(0);
 
   const showForm = open || activeJob !== null;
+
+  // Count of set result filters — surfaced on the collapsed "Targeting filters"
+  // header so the operator knows filters are active even when the panel's shut.
+  const activeFilterCount =
+    [minRating, maxRating, minReviews, maxReviews].filter((v) => v.trim() !== "").length +
+    (onlyNoWebsite ? 1 : 0);
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -166,6 +222,16 @@ export default function ProspectCard() {
       return;
     }
 
+    // Shared result filters (both modes). Deeper bounds-checking lives in the
+    // server action (validateProspectFilters) — we just parse here.
+    const sharedFilters = {
+      minRating: numOrUndef(minRating),
+      maxRating: numOrUndef(maxRating),
+      minReviews: numOrUndef(minReviews),
+      maxReviews: numOrUndef(maxReviews),
+      onlyNoWebsite,
+    };
+
     if (mode === "search") {
       const q = query.trim();
       if (q.length < 2) {
@@ -177,11 +243,6 @@ export default function ProspectCard() {
         toast.error("Radius must be between 1 and 60 miles");
         return;
       }
-      const minRatingNum = minRating ? Number(minRating) : undefined;
-      if (minRatingNum != null && (Number.isNaN(minRatingNum) || minRatingNum < 0 || minRatingNum > 5)) {
-        toast.error("Min rating must be between 0 and 5");
-        return;
-      }
       setActiveJob({ status: "queued", startedAt: null, label: q, isSearch: true });
       void (async () => {
         const result = await triggerProspectSearch({
@@ -189,8 +250,7 @@ export default function ProspectCard() {
           query: q,
           max,
           radiusMiles,
-          minRating: minRatingNum,
-          onlyNoWebsite,
+          ...sharedFilters,
         });
         if (!result.ok) {
           toast.error(result.message);
@@ -203,10 +263,28 @@ export default function ProspectCard() {
       return;
     }
 
+    // Discover mode — build category + multi-zip targeting.
+    const categories = selectedCats.length ? selectedCats : undefined;
+    const extra = extraZips
+      .split(",")
+      .map((z) => z.trim())
+      .filter(Boolean);
+    const badZip = extra.find((z) => !/^\d{5}$/.test(z));
+    if (badZip) {
+      toast.error(`Extra zip "${badZip}" must be 5 digits`);
+      return;
+    }
+
     const submittedZip = zip;
     setActiveJob({ status: "queued", startedAt: null, label: submittedZip, isSearch: false });
     void (async () => {
-      const result = await triggerProspect(submittedZip, max);
+      const result = await triggerProspect({
+        zip: submittedZip,
+        max,
+        categories,
+        extraZips: extra.length ? extra : undefined,
+        ...sharedFilters,
+      });
       if (!result.ok) {
         toast.error(result.message);
         setActiveJob(null);
@@ -280,60 +358,61 @@ export default function ProspectCard() {
           : "Type a business type the categories miss (e.g. \"tattoo parlor\", \"food truck\") or a specific business name you saw around town. Zip sets the search center."}
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-        {mode === "search" && (
-          <div className="flex flex-col grow min-w-[16rem]">
-            <label htmlFor="prospect-query" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-              Keyword or business name
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ── Primary inputs ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-end gap-3">
+          {mode === "search" && (
+            <div className="flex flex-col grow min-w-[16rem]">
+              <label htmlFor="prospect-query" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                Keyword or business name
+              </label>
+              <input
+                id="prospect-query"
+                type="text"
+                placeholder={`e.g. "tattoo parlor"  or  "Joe's Auto Stillwater"`}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={isRunning}
+                className={`${inputBase} w-full`}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <label htmlFor="prospect-zip" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+              {mode === "search" ? "Near zip" : "Zip code"}
             </label>
             <input
-              id="prospect-query"
+              id="prospect-zip"
               type="text"
-              placeholder={`e.g. "tattoo parlor"  or  "Joe's Auto Stillwater"`}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              inputMode="numeric"
+              pattern="\d{5}"
+              maxLength={5}
+              placeholder="e.g. 84601"
+              value={zip}
+              onChange={(e) => setZip(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
               disabled={isRunning}
-              className={`${inputBase} w-full`}
+              className={`${inputBase} w-32 font-mono tabular-nums`}
             />
           </div>
-        )}
 
-        <div className="flex flex-col">
-          <label htmlFor="prospect-zip" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-            {mode === "search" ? "Near zip" : "Zip code"}
-          </label>
-          <input
-            id="prospect-zip"
-            type="text"
-            inputMode="numeric"
-            pattern="\d{5}"
-            maxLength={5}
-            placeholder="e.g. 84601"
-            value={zip}
-            onChange={(e) => setZip(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
-            disabled={isRunning}
-            className={`${inputBase} w-32 font-mono tabular-nums`}
-          />
-        </div>
+          <div className="flex flex-col">
+            <label htmlFor="prospect-max" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+              {mode === "search" ? "Max results" : "Max per category"}
+            </label>
+            <input
+              id="prospect-max"
+              type="number"
+              min={1}
+              max={50}
+              value={max}
+              onChange={(e) => setMax(Number(e.target.value) || 0)}
+              disabled={isRunning}
+              className={`${inputBase} w-24 tabular-nums`}
+            />
+          </div>
 
-        <div className="flex flex-col">
-          <label htmlFor="prospect-max" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-            {mode === "search" ? "Max results" : "Max per category"}
-          </label>
-          <input
-            id="prospect-max"
-            type="number"
-            min={1}
-            max={50}
-            value={max}
-            onChange={(e) => setMax(Number(e.target.value) || 0)}
-            disabled={isRunning}
-            className={`${inputBase} w-24 tabular-nums`}
-          />
-        </div>
-
-        {mode === "search" && (
-          <>
+          {mode === "search" && (
             <div className="flex flex-col">
               <label htmlFor="prospect-radius" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                 Radius (mi)
@@ -350,35 +429,158 @@ export default function ProspectCard() {
                 className={`${inputBase} w-24 tabular-nums`}
               />
             </div>
+          )}
+        </div>
+
+        {/* ── Discover-only targeting: categories + multi-zip ─────────── */}
+        {mode === "discover" && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-3 space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Categories
+                </span>
+                <span className="text-xs text-gray-400">
+                  {selectedCats.length === 0
+                    ? "None picked → sweeping all 20"
+                    : `${selectedCats.length} selected`}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {CATEGORY_PRESETS.map((slug) => {
+                  const on = selectedCats.includes(slug);
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      disabled={isRunning}
+                      onClick={() => toggleCat(slug)}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium border transition disabled:opacity-50
+                        ${on
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"}`}
+                    >
+                      {prettyCat(slug)}
+                    </button>
+                  );
+                })}
+                {/* Custom verticals the operator added that aren't presets. */}
+                {selectedCats
+                  .filter((s) => !CATEGORY_PRESETS.includes(s))
+                  .map((slug) => (
+                    <button
+                      key={slug}
+                      type="button"
+                      disabled={isRunning}
+                      onClick={() => toggleCat(slug)}
+                      className="px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-900 text-white border-gray-900 inline-flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {prettyCat(slug)}
+                      <XMarkIcon className="w-3 h-3" />
+                    </button>
+                  ))}
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Add a vertical (e.g. roofing, med spa)"
+                  value={customCat}
+                  onChange={(e) => setCustomCat(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomCat();
+                    }
+                  }}
+                  disabled={isRunning}
+                  className={`${inputBase} grow min-w-[12rem]`}
+                />
+                <button
+                  type="button"
+                  onClick={addCustomCat}
+                  disabled={isRunning || !customCat.trim()}
+                  className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  Add
+                </button>
+                {selectedCats.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCats([])}
+                    disabled={isRunning}
+                    className="text-xs text-gray-500 hover:text-gray-800 underline-offset-2 hover:underline"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col">
-              <label htmlFor="prospect-minrating" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                Min rating
+              <label htmlFor="prospect-extrazips" className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                Also sweep zips (optional)
               </label>
               <input
-                id="prospect-minrating"
-                type="number"
-                min={0}
-                max={5}
-                step={0.1}
-                placeholder="any"
-                value={minRating}
-                onChange={(e) => setMinRating(e.target.value)}
+                id="prospect-extrazips"
+                type="text"
+                inputMode="numeric"
+                placeholder="e.g. 84604, 84606 — fill a whole metro in one run"
+                value={extraZips}
+                onChange={(e) => setExtraZips(e.target.value)}
                 disabled={isRunning}
-                className={`${inputBase} w-24 tabular-nums`}
+                className={`${inputBase} w-full font-mono tabular-nums`}
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700 pb-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={onlyNoWebsite}
-                onChange={(e) => setOnlyNoWebsite(e.target.checked)}
-                disabled={isRunning}
-                className="rounded border-gray-300"
-              />
-              No website only
-            </label>
-          </>
+          </div>
         )}
+
+        {/* ── Shared result filters (both modes) ─────────────────────── */}
+        <div className="rounded-lg border border-gray-200 p-3">
+          <button
+            type="button"
+            onClick={() => setShowFilters((s) => !s)}
+            className="flex w-full items-center justify-between text-xs font-medium text-gray-600 uppercase tracking-wide"
+          >
+            <span>Targeting filters</span>
+            <span className="text-gray-400 normal-case tracking-normal">
+              {activeFilterCount > 0 ? `${activeFilterCount} active` : "none"} · {showFilters ? "hide" : "show"}
+            </span>
+          </button>
+          {showFilters && (
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="flex flex-col">
+                <label htmlFor="f-minrating" className="text-xs text-gray-500 mb-1">Min rating</label>
+                <input id="f-minrating" type="number" min={0} max={5} step={0.1} placeholder="any"
+                  value={minRating} onChange={(e) => setMinRating(e.target.value)} disabled={isRunning}
+                  className={`${inputBase} w-24 tabular-nums`} />
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="f-maxrating" className="text-xs text-gray-500 mb-1">Max rating</label>
+                <input id="f-maxrating" type="number" min={0} max={5} step={0.1} placeholder="any"
+                  value={maxRating} onChange={(e) => setMaxRating(e.target.value)} disabled={isRunning}
+                  className={`${inputBase} w-24 tabular-nums`} />
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="f-minreviews" className="text-xs text-gray-500 mb-1">Min reviews</label>
+                <input id="f-minreviews" type="number" min={0} step={1} placeholder="any"
+                  value={minReviews} onChange={(e) => setMinReviews(e.target.value)} disabled={isRunning}
+                  className={`${inputBase} w-24 tabular-nums`} />
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="f-maxreviews" className="text-xs text-gray-500 mb-1">Max reviews</label>
+                <input id="f-maxreviews" type="number" min={0} step={1} placeholder="any"
+                  value={maxReviews} onChange={(e) => setMaxReviews(e.target.value)} disabled={isRunning}
+                  className={`${inputBase} w-24 tabular-nums`} />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700 pb-2 cursor-pointer select-none">
+                <input type="checkbox" checked={onlyNoWebsite}
+                  onChange={(e) => setOnlyNoWebsite(e.target.checked)} disabled={isRunning}
+                  className="rounded border-gray-300" />
+                No website only
+              </label>
+            </div>
+          )}
+        </div>
 
         <button
           type="submit"
