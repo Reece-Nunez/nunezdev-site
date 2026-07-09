@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { bulkJobProgress, cancelBulkRun, getActiveBulkRun } from "./leadgen/actions";
 import type { Stage } from "./leadgen/utils";
+import { evalBulkProgress } from "./bulkRunProgress";
 
 // Live progress of an in-flight bulk run (research/build/outreach over many
 // leads). Jobs drain one at a time on the pipeline's single worker, so a big
@@ -121,9 +122,9 @@ export function BulkRunProvider({ children }: { children: React.ReactNode }) {
       const p = await bulkJobProgress(bulkRun.jobIds);
       if (pollRef.current !== myPoll) return;
       if (p.ok) {
-        const done = p.completed + p.failed;
-        setBulkRun((cur) => (cur ? { ...cur, done, failed: p.failed } : cur));
-        if (done >= bulkRun.total) {
+        const { done, failed, finished } = evalBulkProgress(p, bulkRun.total);
+        setBulkRun((cur) => (cur ? { ...cur, done, failed } : cur));
+        if (finished) {
           toast.success(
             `${bulkRun.stage} finished — ${p.completed} done` +
               (p.failed ? `, ${p.failed} failed` : ""),
