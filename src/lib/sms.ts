@@ -11,6 +11,12 @@
  *   TWILIO_API_KEY_SID    "SK..."
  *   TWILIO_API_KEY_SECRET Secret shown once at API Key creation
  *
+ * Optional Messaging Service (recommended — routes sends through the
+ * Messaging Service so Twilio's Advanced Opt-Out engine sends the STOP/HELP
+ * confirmation replies we can't send ourselves, since a post-STOP API send is
+ * blocked with error 21610):
+ *   TWILIO_MESSAGING_SERVICE_SID   "MG..."
+ *
  * Detection order: API Key → Auth Token. The legacy aliases
  * TWILIO_SID / TWILIO_CLIENT_SECRET were removed because they were
  * semantically wrong (TWILIO_SID was an API Key SID being used in place
@@ -49,6 +55,11 @@ function resolveFromNumber(): string | undefined {
   );
 }
 
+/** Resolve the Messaging Service SID (MG...) if one is configured. */
+function resolveMessagingServiceSid(): string | undefined {
+  return process.env.TWILIO_MESSAGING_SERVICE_SID || undefined;
+}
+
 /**
  * Public accessor for the configured "from" number (E.164). The inbox
  * records it as the from_address on outbound SMS messages. Returns null
@@ -56,6 +67,26 @@ function resolveFromNumber(): string | undefined {
  */
 export function getSmsFromNumber(): string | null {
   return resolveFromNumber() ?? null;
+}
+
+/**
+ * Decide the sender identity for a Twilio send. When a Messaging Service SID
+ * is configured we route through it (`messagingServiceSid`) and MUST NOT also
+ * pass `from` — Twilio picks the number from the service's pool, and only a
+ * service-routed send lets Twilio's Advanced Opt-Out engine fire the STOP/HELP
+ * confirmations. With no service SID we fall back to the bare `from` number.
+ *
+ * Pure + exported so the routing choice is unit-tested without hitting Twilio.
+ */
+export function buildMessageCreateParams(args: {
+  to: string;
+  body: string;
+  from?: string;
+  messagingServiceSid?: string;
+}): { to: string; body: string; from: string } | { to: string; body: string; messagingServiceSid: string } {
+  const { to, body, from, messagingServiceSid } = args;
+  if (messagingServiceSid) return { to, body, messagingServiceSid };
+  return { to, body, from: from ?? '' };
 }
 
 /**
@@ -201,11 +232,14 @@ export async function sendSms(params: {
   }
 
   try {
-    const message = await client.messages.create({
-      to,
-      from,
-      body: params.body,
-    });
+    const message = await client.messages.create(
+      buildMessageCreateParams({
+        to,
+        body: params.body,
+        from,
+        messagingServiceSid: resolveMessagingServiceSid(),
+      }),
+    );
     return { ok: true, sid: message.sid };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

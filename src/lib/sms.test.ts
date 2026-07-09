@@ -11,7 +11,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { normalizePhoneE164 } from "./sms";
+import { normalizePhoneE164, buildMessageCreateParams } from "./sms";
 
 const CANON = "+14055551234";
 
@@ -36,5 +36,31 @@ describe("normalizePhoneE164", () => {
     assert.equal(normalizePhoneE164("123"), null);
     assert.equal(normalizePhoneE164("+447911123456"), null); // UK
     assert.equal(normalizePhoneE164("notaphone"), null);
+  });
+});
+
+describe("buildMessageCreateParams (sender routing)", () => {
+  it("routes through the Messaging Service when a SID is set (and omits from)", () => {
+    const p = buildMessageCreateParams({
+      to: CANON,
+      body: "hi",
+      from: "+15802977036",
+      messagingServiceSid: "MGabc123",
+    });
+    assert.deepEqual(p, { to: CANON, body: "hi", messagingServiceSid: "MGabc123" });
+    // Must NOT also pass `from` — Twilio rejects both together, and only a
+    // service-routed send fires the Advanced Opt-Out STOP confirmation.
+    assert.equal("from" in p, false);
+  });
+
+  it("falls back to the bare from number when no service SID is configured", () => {
+    const p = buildMessageCreateParams({
+      to: CANON,
+      body: "hi",
+      from: "+15802977036",
+      messagingServiceSid: undefined,
+    });
+    assert.deepEqual(p, { to: CANON, body: "hi", from: "+15802977036" });
+    assert.equal("messagingServiceSid" in p, false);
   });
 });
