@@ -73,6 +73,71 @@ export function aggregateTraffic(rows: GA4Row[]): TrafficTotals {
   return { totalUsers, totalSessions, avgBounceRate, topPage, topPageSessions };
 }
 
+export interface AnalyticsInsights {
+  /** Plain-English interpretation of the month's traffic, shown as the notes. */
+  narrative: string;
+  /** Actionable recommendations derived from what the numbers actually show. */
+  recommendations: string[];
+}
+
+/**
+ * Turn the raw traffic totals into a human summary and concrete
+ * recommendations. This is the interpretation layer the report was missing:
+ * previously the analytics section returned empty recommendations and dumped
+ * raw metric fragments as notes. Pure and side-effect free so it can be
+ * unit-tested without GA4.
+ */
+export function buildAnalyticsInsights(
+  current: TrafficTotals,
+  previous: TrafficTotals,
+  formSubmissions: number,
+): AnalyticsInsights {
+  const recommendations: string[] = [];
+  const parts: string[] = [];
+
+  const changePct = previous.totalUsers > 0
+    ? Math.round(((current.totalUsers - previous.totalUsers) / previous.totalUsers) * 100)
+    : null;
+
+  if (current.totalUsers === 0) {
+    parts.push('No visitor activity was recorded for the month.');
+  } else {
+    const visitors = current.totalUsers.toLocaleString();
+    const sessions = current.totalSessions.toLocaleString();
+    let sentence = `The site drew ${visitors} visitor${current.totalUsers === 1 ? '' : 's'} across ${sessions} session${current.totalSessions === 1 ? '' : 's'}`;
+    if (changePct !== null) {
+      const dir = changePct > 0 ? `up ${changePct}%` : changePct < 0 ? `down ${Math.abs(changePct)}%` : 'flat';
+      sentence += `, ${dir} versus the prior month`;
+    }
+    parts.push(`${sentence}.`);
+  }
+
+  if (current.topPageSessions > 0) {
+    parts.push(`The strongest page was ${current.topPage} with ${current.topPageSessions.toLocaleString()} session${current.topPageSessions === 1 ? '' : 's'}.`);
+  }
+
+  if (current.totalUsers > 0) {
+    const convRate = (formSubmissions / current.totalUsers) * 100;
+    parts.push(`${formSubmissions} form submission${formSubmissions === 1 ? '' : 's'} came in — a ${convRate.toFixed(1)}% visitor-to-lead rate.`);
+    if (formSubmissions === 0) {
+      recommendations.push('No form submissions were recorded despite site traffic — confirm the form works end-to-end and consider a clearer call to action.');
+    } else if (convRate < 1) {
+      recommendations.push(`Visitor-to-lead conversion is ${convRate.toFixed(1)}% — test a stronger call-to-action or a shorter form to lift lead capture.`);
+    }
+  }
+
+  parts.push(`Bounce rate was ${current.avgBounceRate.toFixed(1)}%.`);
+  if (current.avgBounceRate >= 70 && current.totalSessions > 0) {
+    recommendations.push(`Bounce rate is ${current.avgBounceRate.toFixed(0)}% — review page load speed and above-the-fold clarity on the top landing pages.`);
+  }
+
+  if (changePct !== null && changePct <= -15) {
+    recommendations.push(`Traffic fell ${Math.abs(changePct)}% month-over-month — investigate whether a specific channel or a seasonal factor drove the drop.`);
+  }
+
+  return { narrative: parts.join(' '), recommendations };
+}
+
 export async function checkAnalytics(
   ga4PropertyId: string,
   reportMonth: string,
@@ -94,6 +159,7 @@ export async function checkAnalytics(
     const analyticsData = await googleServiceFactory.getAnalyticsDataClient();
     if (!analyticsData) {
       notes.push('Google Analytics not configured — enter metrics manually');
+      recommendations.push('Connect Google Analytics for this site so traffic, top pages, and conversion trends populate automatically each month.');
       return { items, status: 'unknown', notes: notes.join('. '), recommendations, analyticsMetrics: fallbackMetrics };
     }
 
@@ -130,19 +196,20 @@ export async function checkAnalytics(
     markItem(items, 'traffic', 'pass', `${current.totalUsers.toLocaleString()} visitors`);
     markItem(items, 'topPages', 'pass', current.topPage);
 
-    notes.push(`${current.totalUsers.toLocaleString()} visitors, ${current.totalSessions.toLocaleString()} sessions`);
-    notes.push(`Top page: ${current.topPage} (${current.topPageSessions} sessions)`);
-    notes.push(`Bounce rate: ${current.avgBounceRate.toFixed(1)}%`);
-
     if (previous.totalUsers > 0) {
       const changePct = Math.round(((current.totalUsers - previous.totalUsers) / previous.totalUsers) * 100);
       const direction = changePct >= 0 ? 'up' : 'down';
       markItem(items, 'trend', 'pass', `${direction} ${Math.abs(changePct)}% MoM`);
-      notes.push(`Traffic ${direction} ${Math.abs(changePct)}% vs previous month`);
     } else {
       // No prior-month baseline to compare against — honestly leave pending.
       markItem(items, 'trend', 'pending', 'no prior-month baseline');
     }
+
+    // Interpret the numbers into a plain-English summary + recommendations
+    // (replaces the old raw metric fragments and the always-empty recs).
+    const insights = buildAnalyticsInsights(current, previous, formSubmissionCount);
+    notes.push(insights.narrative);
+    recommendations.push(...insights.recommendations);
 
     return {
       items,
@@ -158,6 +225,9 @@ export async function checkAnalytics(
     };
   } catch (e: any) {
     notes.push(`GA4 error: ${e.message}. Enter metrics manually.`);
+    // A permission/property error is the common case — point at the fix so the
+    // section doesn't just show a raw error with no next step.
+    recommendations.push('Grant the reporting service account Viewer access to this GA4 property, or verify the numeric property ID, so analytics populate automatically next month.');
     return { items, status: 'unknown', notes: notes.join('. '), recommendations, analyticsMetrics: fallbackMetrics };
   }
 }
