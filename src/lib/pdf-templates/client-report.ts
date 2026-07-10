@@ -67,7 +67,10 @@ export interface ClientReportData {
   };
   reportMonth: string; // ISO date string for the first of the month
   site?: { label?: string | null; websiteUrl?: string | null } | null;
-  sections: {
+  // Sections are optional: lower tiers omit the ones their plan doesn't
+  // include (e.g. Essential has no SEO/Analytics section). Every render path
+  // guards for absence.
+  sections: Partial<{
     siteHealth: ReportSection;
     performance: ReportSection & { metrics: PerformanceMetrics };
     security: ReportSection;
@@ -76,7 +79,7 @@ export interface ClientReportData {
     analytics: ReportSection & { metrics: AnalyticsMetrics };
     content: ReportSection;
     hosting: ReportSection;
-  };
+  }>;
   recommendations: string[];
   overallStatus: string; // "Excellent" | "Good" | "Needs Attention"
   hoursSpent: string;
@@ -196,7 +199,7 @@ export function generateClientReportHTML(data: ClientReportData): string {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 
-  const performanceTable = `
+  const performanceTable = !sections.performance ? '' : `
     <div style="margin-top: 12px; overflow: hidden; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
       <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
         <thead>
@@ -232,7 +235,7 @@ export function generateClientReportHTML(data: ClientReportData): string {
     </div>
   `;
 
-  const analyticsTable = `
+  const analyticsTable = !sections.analytics ? '' : `
     <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div style="background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center;">
         <div style="font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Total Visitors</div>
@@ -253,15 +256,20 @@ export function generateClientReportHTML(data: ClientReportData): string {
     </div>
   `;
 
-  const summaryRows = [
-    { label: 'Site Health & Uptime', status: sections.siteHealth.status },
-    { label: 'Performance', status: sections.performance.status },
-    { label: 'Security', status: sections.security.status },
-    { label: 'SEO', status: sections.seo.status },
-    { label: 'Forms & Lead Gen', status: sections.forms.status },
-    { label: 'Content', status: sections.content.status },
-    { label: 'Hosting', status: sections.hosting.status },
-  ];
+  // Only summarize sections that are present for this tier.
+  const summaryRows = ([
+    ['siteHealth', 'Site Health & Uptime'],
+    ['performance', 'Performance'],
+    ['security', 'Security'],
+    ['seo', 'SEO'],
+    ['forms', 'Forms & Lead Gen'],
+    ['analytics', 'Analytics'],
+    ['content', 'Content'],
+    ['hosting', 'Hosting'],
+  ] as const).flatMap(([key, label]) => {
+    const section = sections[key];
+    return section ? [{ label: label as string, status: section.status }] : [];
+  });
 
   return `
 <!DOCTYPE html>
@@ -333,18 +341,18 @@ export function generateClientReportHTML(data: ClientReportData): string {
       ` : ''}
     </div>
 
-    <!-- Sections -->
-    ${renderSection('Site Health & Uptime', sections.siteHealth)}
-    ${renderSection('Performance', sections.performance, performanceTable)}
-    ${renderSection('Security & Dependencies', sections.security)}
-    ${renderSection('SEO & Discoverability', sections.seo)}
+    <!-- Sections (each rendered only when present for this tier) -->
+    ${sections.siteHealth ? renderSection('Site Health & Uptime', sections.siteHealth) : ''}
+    ${sections.performance ? renderSection('Performance', sections.performance, performanceTable) : ''}
+    ${sections.security ? renderSection('Security & Dependencies', sections.security) : ''}
+    ${sections.seo ? renderSection('SEO & Discoverability', sections.seo) : ''}
 
     <div class="page-break"></div>
 
-    ${renderSection('Forms & Lead Generation', sections.forms)}
-    ${renderSection('Analytics Overview', sections.analytics, analyticsTable)}
-    ${renderSection('Content & Gallery', sections.content)}
-    ${renderSection('Hosting & Infrastructure', sections.hosting)}
+    ${sections.forms ? renderSection('Forms & Lead Generation', sections.forms) : ''}
+    ${sections.analytics ? renderSection('Analytics Overview', sections.analytics, analyticsTable) : ''}
+    ${sections.content ? renderSection('Content & Gallery', sections.content) : ''}
+    ${sections.hosting ? renderSection('Hosting & Infrastructure', sections.hosting) : ''}
 
     <!-- Recommendations -->
     ${recommendations.filter(r => r.trim()).length > 0 ? `

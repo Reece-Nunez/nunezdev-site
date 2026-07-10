@@ -13,7 +13,9 @@ import {
   stripeMonthlyCents,
   invoiceMonthlyCents,
   pickTier,
+  sectionsForTier,
 } from "./tier";
+import { SECTION_KEYS } from "./sections";
 
 describe("stripeMonthlyCents", () => {
   it("passes a plain monthly charge through unchanged", () => {
@@ -72,5 +74,37 @@ describe("pickTier", () => {
     assert.equal(pickTier(7500), null); // $75 Starter
     assert.equal(pickTier(14999), null);
     assert.equal(pickTier(0), null);
+  });
+});
+
+describe("sectionsForTier", () => {
+  it("shows every section when no tier is resolved yet", () => {
+    assert.deepEqual(sectionsForTier(null), [...SECTION_KEYS]);
+    assert.deepEqual(sectionsForTier(undefined), [...SECTION_KEYS]);
+  });
+
+  it("escalates as a superset: essential ⊂ growth ⊂ premium", () => {
+    const essential = sectionsForTier("essential");
+    const growth = sectionsForTier("growth");
+    const premium = sectionsForTier("premium");
+    assert.ok(essential.every(s => growth.includes(s)));
+    assert.ok(growth.every(s => premium.includes(s)));
+  });
+
+  it("gates SEO to Growth+ and Analytics to Premium only", () => {
+    assert.ok(!sectionsForTier("essential").includes("seo"));
+    assert.ok(sectionsForTier("growth").includes("seo"));
+
+    assert.ok(!sectionsForTier("essential").includes("analytics"));
+    assert.ok(!sectionsForTier("growth").includes("analytics"));
+    assert.ok(sectionsForTier("premium").includes("analytics"));
+  });
+
+  it("always includes the core technical sections at every tier", () => {
+    for (const tier of ["essential", "growth", "premium"] as const) {
+      for (const core of ["siteHealth", "performance", "security", "forms", "content", "hosting"] as const) {
+        assert.ok(sectionsForTier(tier).includes(core), `${tier} missing ${core}`);
+      }
+    }
   });
 });

@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import type { ChecklistItem, ReportSection, PerformanceMetrics, AnalyticsMetrics } from '@/lib/pdf-templates/client-report';
 import type { AutomationResult } from '@/lib/report-automation/types';
 import { SECTION_DEFS, blankItems, type CheckItem, type SectionKey, type SectionStatus } from '@/lib/report-automation/sections';
+import { sectionsForTier, type ReportTier } from '@/lib/report-automation/tier';
 import type { ClientSite } from '@/types/clients';
 import { useConfirm } from '@/components/ui/Toast';
 
@@ -223,7 +224,8 @@ export default function ReportBuilder({ onReportSaved }: Props) {
 
   const buildReportData = () => {
     const sections: Record<string, ReportSection & { metrics?: PerformanceMetrics | AnalyticsMetrics }> = {};
-    SECTION_DEFS.forEach(config => {
+    const visible = sectionsForTier(reportTier as ReportTier | null);
+    SECTION_DEFS.filter(config => visible.includes(config.key)).forEach(config => {
       const state = sectionStates[config.key];
       const base: ReportSection = {
         items: state.items.map((item): ChecklistItem => ({
@@ -528,8 +530,9 @@ export default function ReportBuilder({ onReportSaved }: Props) {
         </div>
       )}
 
-      {/* Checklist Sections */}
-      {SECTION_DEFS.map(config => {
+      {/* Checklist Sections — filtered to the resolved tier (all shown until
+          Auto-Fill resolves a tier). */}
+      {SECTION_DEFS.filter(c => sectionsForTier(reportTier as ReportTier | null).includes(c.key)).map(config => {
         const state = sectionStates[config.key];
         const checkedCount = state.items.filter(i => i.outcome === 'pass').length;
 

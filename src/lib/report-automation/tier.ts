@@ -18,8 +18,31 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { SECTION_KEYS, type SectionKey } from './sections';
 
 export type ReportTier = 'essential' | 'growth' | 'premium';
+
+/**
+ * Which report sections each tier includes, mirroring the Care Plan promises on
+ * the pricing page: Essential = technical health + Core Web Vitals; Growth adds
+ * "SEO health monitoring"; Premium adds "conversion tracking" (the Analytics
+ * section). Higher tiers are supersets. Single source of truth for both the
+ * builder (what the operator edits) and the PDF (what the client receives).
+ */
+export const TIER_SECTIONS: Record<ReportTier, SectionKey[]> = {
+  essential: ['siteHealth', 'performance', 'security', 'forms', 'content', 'hosting'],
+  growth: ['siteHealth', 'performance', 'security', 'seo', 'forms', 'content', 'hosting'],
+  premium: ['siteHealth', 'performance', 'security', 'seo', 'forms', 'analytics', 'content', 'hosting'],
+};
+
+/**
+ * The sections a report should show for a tier. A null tier (before Auto-Fill
+ * has resolved one) shows everything so nothing is hidden by default.
+ */
+export function sectionsForTier(tier: ReportTier | null | undefined): SectionKey[] {
+  if (!tier) return [...SECTION_KEYS];
+  return TIER_SECTIONS[tier];
+}
 
 /**
  * Monthly-cent floors for each tier, highest first. A client's tier is the
