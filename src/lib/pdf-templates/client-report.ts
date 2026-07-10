@@ -80,6 +80,7 @@ export interface ClientReportData {
   recommendations: string[];
   overallStatus: string; // "Excellent" | "Good" | "Needs Attention"
   hoursSpent: string;
+  executiveSummary?: string; // tier-aware "big picture" paragraph
 }
 
 function getLogoBase64(): string {
@@ -188,7 +189,7 @@ function renderSection(title: string, section: ReportSection, extraContent?: str
 }
 
 export function generateClientReportHTML(data: ClientReportData): string {
-  const { client, reportMonth, sections, recommendations, overallStatus, hoursSpent } = data;
+  const { client, reportMonth, sections, recommendations, overallStatus, hoursSpent, executiveSummary } = data;
   const logoBase64 = getLogoBase64();
   const monthLabel = formatMonth(reportMonth);
   const generatedDate = new Date().toLocaleDateString('en-US', {
@@ -325,6 +326,11 @@ export function generateClientReportHTML(data: ClientReportData): string {
           <div style="font-size: 24px; font-weight: 700; color: ${BRAND_YELLOW};">${hoursSpent || '-'}</div>
         </div>
       </div>
+      ${executiveSummary && executiveSummary.trim() ? `
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 13px; line-height: 1.6; opacity: 0.95;">
+        ${esc(executiveSummary)}
+      </div>
+      ` : ''}
     </div>
 
     <!-- Sections -->

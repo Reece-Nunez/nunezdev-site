@@ -7,7 +7,8 @@ import { checkAnalytics } from './analytics';
 import { checkContent } from './content';
 import { checkHosting } from './hosting';
 import { checkSearchConsole } from './searchConsole';
-import { blankItems, markItem, type SectionKey, type SectionStatus } from './sections';
+import { blankItems, markItem, SECTION_DEFS, type SectionKey, type SectionStatus } from './sections';
+import { buildExecutiveSummary } from './summary';
 import type {
   AutomationResult,
   AutomationSectionResult,
@@ -181,11 +182,19 @@ export async function runAllAutomation(input: AutomationInput): Promise<Automati
     ...analytics.recommendations ?? [],
   ].slice(0, 5);
 
+  const executiveSummary = buildExecutiveSummary(
+    tier,
+    overallStatus,
+    SECTION_DEFS.map(d => ({ title: d.title, status: sections[d.key].status })),
+    recommendations,
+  );
+
   return {
     ...sections,
     overallStatus,
     recommendations,
     tier,
     monthlyAmountCents,
+    executiveSummary,
   };
 }

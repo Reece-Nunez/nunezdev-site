@@ -52,4 +52,6 @@ export interface AutomationResult {
   tier: ReportTier;
   /** Normalized monthly recurring amount (cents) that set the tier. */
   monthlyAmountCents: number;
+  /** Tier-aware "big picture" paragraph for the top of the report. */
+  executiveSummary: string;
 }

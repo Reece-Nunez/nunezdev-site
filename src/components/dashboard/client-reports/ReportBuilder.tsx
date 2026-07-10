@@ -101,6 +101,8 @@ export default function ReportBuilder({ onReportSaved }: Props) {
   // Resolved report tier (from the client's recurring plan). Set by Auto-Fill.
   const [reportTier, setReportTier] = useState<string | null>(null);
   const [monthlyAmountCents, setMonthlyAmountCents] = useState<number | null>(null);
+  // Tier-aware executive summary. Editable before sending.
+  const [executiveSummary, setExecutiveSummary] = useState('');
   const [hoursSpent, setHoursSpent] = useState('');
 
   // Loading states
@@ -182,6 +184,10 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       setReportTier(result.tier);
       setMonthlyAmountCents(result.monthlyAmountCents ?? null);
     }
+
+    if (result.executiveSummary) {
+      setExecutiveSummary(result.executiveSummary);
+    }
   }, []);
 
   const handleAutoFill = async () => {
@@ -246,6 +252,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       recommendations,
       overallStatus,
       hoursSpent,
+      executiveSummary,
       tier: reportTier,
       monthlyAmountCents,
       site: selectedSite ? { label: selectedSite.label, websiteUrl: selectedSite.website_url } : null,
@@ -378,7 +385,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
             <label className="block text-sm text-gray-600 mb-1">Client</label>
             <select
               value={clientId}
-              onChange={e => { setClientId(e.target.value); setSiteId(''); setSavedReportId(null); setReportTier(null); setMonthlyAmountCents(null); }}
+              onChange={e => { setClientId(e.target.value); setSiteId(''); setSavedReportId(null); setReportTier(null); setMonthlyAmountCents(null); setExecutiveSummary(''); }}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="">Select a client...</option>
@@ -504,6 +511,22 @@ export default function ReportBuilder({ onReportSaved }: Props) {
           )}
         </div>
       </div>
+
+      {/* Executive Summary (tier-aware; appears after Auto-Fill) */}
+      {executiveSummary && (
+        <div className="rounded-2xl border bg-white p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-lg font-semibold text-gray-900">Executive Summary</h2>
+            <span className="text-xs text-gray-400">shown at the top of the report</span>
+          </div>
+          <textarea
+            value={executiveSummary}
+            onChange={e => setExecutiveSummary(e.target.value)}
+            rows={4}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm leading-relaxed focus:border-emerald-500 focus:outline-none"
+          />
+        </div>
+      )}
 
       {/* Checklist Sections */}
       {SECTION_DEFS.map(config => {
