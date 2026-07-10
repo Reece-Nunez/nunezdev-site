@@ -35,6 +35,7 @@ export type ClientSite = {
   ga4_property_id: string | null;
   vercel_project_id: string | null;
   gsc_site_url: string | null;
+  github_repo: string | null;
   created_at: string;
   updated_at: string;
 };

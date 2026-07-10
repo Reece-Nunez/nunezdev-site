@@ -23,6 +23,7 @@ interface AutomationInput {
   ga4PropertyId: string | null;
   vercelProjectId: string | null;
   gscSiteUrl?: string | null;
+  githubRepo?: string | null;
   reportMonth: string;
   orgId: string;
   supabase: SupabaseClient;
@@ -77,7 +78,7 @@ export function computeOverallStatus(statuses: SectionStatus[]): string {
 }
 
 export async function runAllAutomation(input: AutomationInput): Promise<AutomationResult> {
-  const { ga4PropertyId, vercelProjectId, gscSiteUrl, reportMonth, orgId, supabase, tier, monthlyAmountCents } = input;
+  const { ga4PropertyId, vercelProjectId, gscSiteUrl, githubRepo, reportMonth, orgId, supabase, tier, monthlyAmountCents } = input;
   const websiteUrl = normalizeWebsiteUrl(input.websiteUrl);
 
   const [
@@ -91,7 +92,7 @@ export async function runAllAutomation(input: AutomationInput): Promise<Automati
   ] = await Promise.allSettled([
     checkSiteHealth(websiteUrl),
     checkPerformance(websiteUrl),
-    checkSecurity(websiteUrl),
+    checkSecurity(websiteUrl, githubRepo),
     checkSEO(websiteUrl),
     checkForms(reportMonth, orgId, supabase),
     checkContent(websiteUrl),

@@ -1,7 +1,11 @@
 import { blankItems, markItem, type SectionStatus } from './sections';
 import type { AutomationSectionResult } from './types';
+import { fetchDependabotAlerts, summarizeAlerts, dependencyVerdict } from './dependencies';
 
-export async function checkSecurity(websiteUrl: string): Promise<AutomationSectionResult> {
+export async function checkSecurity(
+  websiteUrl: string,
+  githubRepo?: string | null,
+): Promise<AutomationSectionResult> {
   const items = blankItems('security');
   const notes: string[] = [];
   const recommendations: string[] = [];
@@ -65,6 +69,28 @@ export async function checkSecurity(websiteUrl: string): Promise<AutomationSecti
     }
   } catch {
     markItem(items, 'envExposed', 'pass', 'not exposed');
+  }
+
+  // Dependency vulnerabilities via GitHub Dependabot. Only runs when the site
+  // has a github_repo configured and a GITHUB_TOKEN is present; otherwise the
+  // (now auto) npmAudit item is left pending rather than claiming a pass.
+  if (githubRepo) {
+    const result = await fetchDependabotAlerts(githubRepo);
+    if (result.ok && result.alerts) {
+      const summary = summarizeAlerts(result.alerts);
+      const verdict = dependencyVerdict(summary);
+      markItem(items, 'npmAudit', verdict.outcome, verdict.detail);
+      if (verdict.outcome === 'fail') {
+        notes.push(`Dependabot: ${verdict.detail} vulnerabilities open`);
+        if (verdict.recommendation) recommendations.push(verdict.recommendation);
+        if (status === 'healthy') status = 'attention';
+      } else {
+        notes.push(`Dependencies: ${verdict.detail}`);
+      }
+    } else {
+      // Could not read alerts — leave npmAudit pending, note why.
+      notes.push(`Dependabot check unavailable: ${result.error}`);
+    }
   }
 
   return { items, status, notes: notes.join('. '), recommendations };

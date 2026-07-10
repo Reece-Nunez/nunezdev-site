@@ -57,6 +57,7 @@ export async function POST(req: Request, ctx: Ctx) {
     ga4_property_id: cleanStr(body.ga4_property_id),
     vercel_project_id: cleanStr(body.vercel_project_id),
     gsc_site_url: cleanStr(body.gsc_site_url),
+    github_repo: cleanStr(body.github_repo),
   };
 
   const { data, error } = await g.supabase

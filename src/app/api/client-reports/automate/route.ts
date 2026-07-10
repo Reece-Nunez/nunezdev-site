@@ -42,9 +42,9 @@ export async function POST(req: Request) {
   // Resolve the integration source: a specific site (preferred) or, for legacy
   // callers without a site, the client row itself. Discovered IDs are persisted
   // back to whichever row they came from.
-  const fields = "website_url, ga4_property_id, vercel_project_id, gsc_site_url";
+  const fields = "website_url, ga4_property_id, vercel_project_id, gsc_site_url, github_repo";
   let source:
-    | { website_url: string | null; ga4_property_id: string | null; vercel_project_id: string | null; gsc_site_url: string | null }
+    | { website_url: string | null; ga4_property_id: string | null; vercel_project_id: string | null; gsc_site_url: string | null; github_repo: string | null }
     | null = null;
   let persistTable: "client_sites" | "clients" = "clients";
   let persistId = client_id;
@@ -132,6 +132,7 @@ export async function POST(req: Request) {
       ga4PropertyId,
       vercelProjectId,
       gscSiteUrl,
+      githubRepo: source.github_repo,
       reportMonth: report_month,
       orgId,
       supabase,

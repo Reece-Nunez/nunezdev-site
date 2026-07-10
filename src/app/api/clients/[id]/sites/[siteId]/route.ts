@@ -27,7 +27,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!g.ok) return NextResponse.json(g.json, { status: g.status });
 
   const body = await req.json().catch(() => ({}));
-  const allowed = ["label", "website_url", "ga4_property_id", "vercel_project_id", "gsc_site_url"];
+  const allowed = ["label", "website_url", "ga4_property_id", "vercel_project_id", "gsc_site_url", "github_repo"];
   const patch: Record<string, string | null> = { updated_at: new Date().toISOString() };
   for (const k of allowed) {
     if (k in body) patch[k] = k === "label" ? (cleanStr(body[k]) || "Site") : cleanStr(body[k]);

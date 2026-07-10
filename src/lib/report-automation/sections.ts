@@ -77,7 +77,7 @@ export const SECTION_DEFS: SectionDef[] = [
     items: [
       { key: 'headers', label: 'HTTP security headers checked', kind: 'auto' },
       { key: 'envExposed', label: 'No publicly exposed .env file', kind: 'auto' },
-      { key: 'npmAudit', label: 'Dependency vulnerabilities reviewed (npm audit)', kind: 'manual' },
+      { key: 'npmAudit', label: 'Dependency vulnerabilities reviewed (Dependabot)', kind: 'auto' },
       { key: 'advisories', label: 'Framework security advisories reviewed', kind: 'manual' },
       { key: 'spam', label: 'Form spam protection verified', kind: 'manual' },
     ],

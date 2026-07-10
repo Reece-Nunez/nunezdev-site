@@ -14,6 +14,7 @@ type Draft = {
   ga4_property_id: string;
   vercel_project_id: string;
   gsc_site_url: string;
+  github_repo: string;
 };
 
 function fromSite(s: ClientSite): Draft {
@@ -23,6 +24,7 @@ function fromSite(s: ClientSite): Draft {
     ga4_property_id: s.ga4_property_id ?? '',
     vercel_project_id: s.vercel_project_id ?? '',
     gsc_site_url: s.gsc_site_url ?? '',
+    github_repo: s.github_repo ?? '',
   };
 }
 
@@ -31,6 +33,7 @@ const FIELDS: { key: keyof Omit<Draft, 'label'>; label: string }[] = [
   { key: 'ga4_property_id', label: 'GA4 Property ID' },
   { key: 'vercel_project_id', label: 'Vercel Project ID' },
   { key: 'gsc_site_url', label: 'GSC Site URL' },
+  { key: 'github_repo', label: 'GitHub Repo (owner/name)' },
 ];
 
 export default function ClientSites({ clientId }: { clientId: string }) {
