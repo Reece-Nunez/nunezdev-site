@@ -97,6 +97,10 @@ export default function ReportBuilder({ onReportSaved }: Props) {
 
   // Overall
   const [overallStatus, setOverallStatus] = useState('Excellent');
+
+  // Resolved report tier (from the client's recurring plan). Set by Auto-Fill.
+  const [reportTier, setReportTier] = useState<string | null>(null);
+  const [monthlyAmountCents, setMonthlyAmountCents] = useState<number | null>(null);
   const [hoursSpent, setHoursSpent] = useState('');
 
   // Loading states
@@ -173,6 +177,11 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       while (recs.length < 3) recs.push('');
       setRecommendations(recs.slice(0, 3));
     }
+
+    if (result.tier) {
+      setReportTier(result.tier);
+      setMonthlyAmountCents(result.monthlyAmountCents ?? null);
+    }
   }, []);
 
   const handleAutoFill = async () => {
@@ -237,6 +246,8 @@ export default function ReportBuilder({ onReportSaved }: Props) {
       recommendations,
       overallStatus,
       hoursSpent,
+      tier: reportTier,
+      monthlyAmountCents,
       site: selectedSite ? { label: selectedSite.label, websiteUrl: selectedSite.website_url } : null,
     };
   };
@@ -367,7 +378,7 @@ export default function ReportBuilder({ onReportSaved }: Props) {
             <label className="block text-sm text-gray-600 mb-1">Client</label>
             <select
               value={clientId}
-              onChange={e => { setClientId(e.target.value); setSiteId(''); setSavedReportId(null); }}
+              onChange={e => { setClientId(e.target.value); setSiteId(''); setSavedReportId(null); setReportTier(null); setMonthlyAmountCents(null); }}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
             >
               <option value="">Select a client...</option>
@@ -471,6 +482,26 @@ export default function ReportBuilder({ onReportSaved }: Props) {
           <p className="text-xs text-gray-500 mt-1 text-center">
             Runs site health, performance, SEO, analytics, and hosting checks automatically
           </p>
+          {reportTier && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                  reportTier === 'premium'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : reportTier === 'growth'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}
+              >
+                {reportTier.charAt(0).toUpperCase() + reportTier.slice(1)} plan report
+              </span>
+              {monthlyAmountCents != null && (
+                <span className="text-xs text-gray-500">
+                  from ${(monthlyAmountCents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo recurring
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

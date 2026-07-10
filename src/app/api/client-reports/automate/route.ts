@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { runAllAutomation } from "@/lib/report-automation";
+import { resolveReportTier } from "@/lib/report-automation/tier";
 import { discoverIntegrations } from "@/lib/integrations/discover";
 
 export const runtime = "nodejs";
@@ -108,6 +109,23 @@ export async function POST(req: Request) {
     }
   }
 
+  // Resolve which report tier this client qualifies for from their recurring
+  // revenue. Reports start at the Essential plan ($150/mo); anything below that
+  // has no monthly report, so we stop here with a clear message instead of
+  // producing an empty report.
+  const { tier, monthlyCents, source: tierSource } = await resolveReportTier(supabase, orgId, client_id);
+  if (!tier) {
+    return NextResponse.json(
+      {
+        error:
+          "This client has no active recurring plan of $150/mo or more, so there's no monthly report tier. Set up a Care Plan subscription or recurring invoice first.",
+        monthlyAmountCents: monthlyCents,
+        tierSource,
+      },
+      { status: 400 },
+    );
+  }
+
   try {
     const result = await runAllAutomation({
       websiteUrl: source.website_url,
@@ -117,6 +135,8 @@ export async function POST(req: Request) {
       reportMonth: report_month,
       orgId,
       supabase,
+      tier,
+      monthlyAmountCents: monthlyCents,
     });
 
     return NextResponse.json(result);

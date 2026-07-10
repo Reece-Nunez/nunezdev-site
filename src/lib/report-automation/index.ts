@@ -14,6 +14,7 @@ import type {
   PerformanceAutomationResult,
   AnalyticsAutomationResult,
   FormsAutomationResult,
+  ReportTier,
 } from './types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -25,6 +26,10 @@ interface AutomationInput {
   reportMonth: string;
   orgId: string;
   supabase: SupabaseClient;
+  /** Resolved report tier (Essential/Growth/Premium) for this client. */
+  tier: ReportTier;
+  /** Normalized monthly recurring amount (cents) that set the tier. */
+  monthlyAmountCents: number;
 }
 
 /**
@@ -72,7 +77,7 @@ export function computeOverallStatus(statuses: SectionStatus[]): string {
 }
 
 export async function runAllAutomation(input: AutomationInput): Promise<AutomationResult> {
-  const { ga4PropertyId, vercelProjectId, gscSiteUrl, reportMonth, orgId, supabase } = input;
+  const { ga4PropertyId, vercelProjectId, gscSiteUrl, reportMonth, orgId, supabase, tier, monthlyAmountCents } = input;
   const websiteUrl = normalizeWebsiteUrl(input.websiteUrl);
 
   const [
@@ -179,5 +184,7 @@ export async function runAllAutomation(input: AutomationInput): Promise<Automati
     ...sections,
     overallStatus,
     recommendations,
+    tier,
+    monthlyAmountCents,
   };
 }

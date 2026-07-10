@@ -1,6 +1,8 @@
 import type { CheckItem, SectionStatus } from './sections';
+import type { ReportTier } from './tier';
 
 export type { CheckItem, SectionStatus, ItemKind, ItemOutcome } from './sections';
+export type { ReportTier } from './tier';
 
 export interface AutomationSectionResult {
   items: CheckItem[];
@@ -46,4 +48,8 @@ export interface AutomationResult {
   hosting: AutomationSectionResult;
   overallStatus: string;
   recommendations: string[];
+  /** Resolved report tier for this client (drives tier-specific content). */
+  tier: ReportTier;
+  /** Normalized monthly recurring amount (cents) that set the tier. */
+  monthlyAmountCents: number;
 }
