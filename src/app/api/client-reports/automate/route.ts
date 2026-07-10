@@ -133,6 +133,7 @@ export async function POST(req: Request) {
       vercelProjectId,
       gscSiteUrl,
       githubRepo: source.github_repo,
+      siteId: site_id ?? null,
       reportMonth: report_month,
       orgId,
       supabase,

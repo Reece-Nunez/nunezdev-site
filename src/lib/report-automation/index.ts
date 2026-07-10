@@ -6,7 +6,14 @@ import { checkForms } from './forms';
 import { checkAnalytics } from './analytics';
 import { checkContent } from './content';
 import { checkHosting } from './hosting';
-import { checkSearchConsole } from './searchConsole';
+import { checkSearchConsole, type SearchConsoleResult } from './searchConsole';
+import {
+  fetchSitemapUrls,
+  loadPreviousSnapshot,
+  saveSnapshot,
+  computeGscTrend,
+  computeSitemapDiff,
+} from './snapshots';
 import { blankItems, markItem, SECTION_DEFS, type SectionKey, type SectionStatus } from './sections';
 import { buildExecutiveSummary } from './summary';
 import type {
@@ -27,6 +34,8 @@ interface AutomationInput {
   githubRepo?: string | null;
   reportMonth: string;
   orgId: string;
+  /** Site being reported on; enables month-over-month snapshots. Null for legacy client-level reports. */
+  siteId?: string | null;
   supabase: SupabaseClient;
   /** Resolved report tier (Essential/Growth/Premium) for this client. */
   tier: ReportTier;
@@ -151,15 +160,62 @@ export async function runAllAutomation(input: AutomationInput): Promise<Automati
   // Enrich the SEO section with real Search Console performance when the client
   // has a GSC site configured. Flips the otherwise-manual "Search Console
   // reviewed" item to a verified pass with the month's clicks/impressions.
+  let sc: SearchConsoleResult | null = null;
   if (gscSiteUrl) {
     try {
-      const sc = await checkSearchConsole(gscSiteUrl, reportMonth);
+      sc = await checkSearchConsole(gscSiteUrl, reportMonth);
       if (sc.configured && sc.detail) {
         markItem(seo.items, 'searchConsole', 'pass', sc.detail);
         seo.notes = seo.notes ? `${seo.notes}. ${sc.note}` : (sc.note ?? '');
       }
     } catch {
       // Non-fatal — leave the manual Search Console item as-is.
+    }
+  }
+
+  // Month-over-month insights: store this month's GSC totals + sitemap, and
+  // compare against last month's snapshot to surface an SEO trend and any new
+  // pages. Only runs for site-scoped reports; enriches notes without changing
+  // any item's auto/manual kind. Entirely best-effort — never fails the run.
+  if (input.siteId) {
+    try {
+      const sitemapUrls = await fetchSitemapUrls(websiteUrl);
+      const previous = await loadPreviousSnapshot(supabase, input.siteId, reportMonth);
+
+      if (previous) {
+        if (sc?.configured && sc.clicks != null && previous.gscClicks != null) {
+          const trend = computeGscTrend(
+            { clicks: sc.clicks, impressions: sc.impressions ?? 0 },
+            { clicks: previous.gscClicks, impressions: previous.gscImpressions ?? 0 },
+          );
+          if (trend.note) seo.notes = seo.notes ? `${seo.notes}. ${trend.note}` : trend.note;
+          if (trend.recommendation) (seo.recommendations ??= []).push(trend.recommendation);
+        }
+
+        if (previous.sitemapUrls.length > 0 && sitemapUrls.length > 0) {
+          const diff = computeSitemapDiff(sitemapUrls, previous.sitemapUrls);
+          if (diff.added.length > 0) {
+            const sample = diff.added.slice(0, 3).map(u => { try { return new URL(u).pathname; } catch { return u; } });
+            const suffix = diff.added.length > sample.length ? '…' : '';
+            content.notes = content.notes
+              ? `${content.notes}. ${diff.note}: ${sample.join(', ')}${suffix}`
+              : `${diff.note}: ${sample.join(', ')}${suffix}`;
+          }
+        }
+      }
+
+      await saveSnapshot(supabase, {
+        orgId,
+        siteId: input.siteId,
+        reportMonth,
+        snapshot: {
+          gscClicks: sc?.clicks ?? null,
+          gscImpressions: sc?.impressions ?? null,
+          sitemapUrls,
+        },
+      });
+    } catch {
+      // Snapshots are a nice-to-have — never let them break the report.
     }
   }
 
