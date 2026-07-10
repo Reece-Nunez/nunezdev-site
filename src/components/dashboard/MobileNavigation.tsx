@@ -31,6 +31,7 @@ import {
   MagnifyingGlassIcon,
   ChatBubbleLeftRightIcon,
   MegaphoneIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline';
 
 const items = [
@@ -51,6 +52,7 @@ const items = [
   { href: '/dashboard/client-reports', label: 'Client Reports', icon: DocumentChartBarIcon },
   { href: '/dashboard/client-portal', label: 'Client Portal', icon: CloudArrowUpIcon },
   { href: '/dashboard/settings', label: 'Business Profile', icon: Cog6ToothIcon },
+  { href: '/dashboard/ai', label: 'AI Usage', icon: CpuChipIcon },
 ];
 
 const adminTools = [

@@ -12,6 +12,7 @@ import {
   buildReplyUserPrompt,
   sanitizeReply,
 } from "@/lib/ai/thumbtackReply";
+import { recordedCreate } from "@/lib/ai/llmMetrics";
 
 export const runtime = "nodejs";
 
@@ -58,21 +59,26 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   try {
     const client = getAnthropicClient();
-    const message = await client.messages.create({
-      model: AI_MODEL,
-      max_tokens: 600,
-      system: THUMBTACK_REPLY_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: buildReplyUserPrompt({
-            leadName: lead.name,
-            projectType: lead.project_type,
-            theirMessage,
-          }),
-        },
-      ],
-    });
+    const message = await recordedCreate(
+      client,
+      "leads.draft_reply",
+      {
+        model: AI_MODEL,
+        max_tokens: 600,
+        system: THUMBTACK_REPLY_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: buildReplyUserPrompt({
+              leadName: lead.name,
+              projectType: lead.project_type,
+              theirMessage,
+            }),
+          },
+        ],
+      },
+      { entityId: id },
+    );
 
     const textBlock = message.content.find((b) => b.type === "text");
     if (!textBlock || textBlock.type !== "text") throw new Error("No text response from AI");

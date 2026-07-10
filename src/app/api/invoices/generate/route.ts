@@ -7,6 +7,7 @@ import {
   extractJsonObject,
   MissingAnthropicKeyError,
 } from "@/lib/ai/anthropic";
+import { recordedCreate } from "@/lib/ai/llmMetrics";
 
 export const runtime = "nodejs";
 
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     const client = getAnthropicClient();
 
-    const message = await client.messages.create({
+    const message = await recordedCreate(client, "invoices.generate", {
       model: AI_MODEL,
       max_tokens: 2048,
       messages: [

@@ -31,6 +31,7 @@ import {
   ChatBubbleLeftRightIcon,
   BoltIcon,
   MegaphoneIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline';
 
 type NavItem = { href: string; label: string; icon: typeof HomeIcon };
@@ -81,6 +82,7 @@ const navSections: { label: string | null; items: NavItem[] }[] = [
     label: 'Settings',
     items: [
       { href: '/dashboard/settings', label: 'Business Profile', icon: Cog6ToothIcon },
+      { href: '/dashboard/ai', label: 'AI Usage', icon: CpuChipIcon },
     ],
   },
 ];

@@ -22,6 +22,17 @@ export interface ProposalLineItem {
   amount_cents: number;
 }
 
+/** Raw shape returned by /api/proposals/generate. Stored verbatim as the AI
+ *  baseline so the human-edited final can be diffed against it. */
+export interface ProposalAiDraft {
+  title: string;
+  description: string;
+  project_overview: string;
+  line_items: ProposalLineItem[];
+  terms_conditions: string;
+  technology_stack: string[];
+}
+
 export interface ProposalFormData {
   client_id: string;
   title: string;
@@ -37,6 +48,10 @@ export interface ProposalFormData {
   require_signature: boolean;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
+  /** Raw AI draft captured at generate time (undefined unless AI-generated), so
+   *  the AI-vs-final delta is recoverable for evals. Threaded through submit into
+   *  the proposals.ai_draft column; not rendered. */
+  ai_draft?: ProposalAiDraft;
 }
 
 interface Client {
@@ -162,6 +177,8 @@ export default function ProposalForm({
           ? draft.technology_stack.join(', ')
           : prev.technology_stack,
         line_items: draft.line_items.length ? draft.line_items : prev.line_items,
+        // Keep the untouched AI draft so the eventual edited-vs-AI diff survives.
+        ai_draft: draft,
       }));
       if (draft.line_items.length) seedRateInputs(draft.line_items);
     } catch (err) {

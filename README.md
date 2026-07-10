@@ -96,6 +96,39 @@ database/migrations/create_keyword_search_volume.sql    # keyword-volume cache
 Creates `google_ads_campaign_metrics`, `google_ads_keyword_metrics`, and
 `keyword_search_volume` (RLS fail-closed, service-role only).
 
+## AI observability (Claude call telemetry)
+
+The three AI routes (`/api/proposals/generate`, `/api/invoices/generate`,
+`/api/leads/[id]/draft-reply`) are instrumented. `recordedCreate()` in
+[`src/lib/ai/llmMetrics.ts`](src/lib/ai/llmMetrics.ts) wraps each
+`client.messages.create` and records one row per call to `llm_calls`: model,
+input/output/cache token counts, a computed USD cost, latency, `stop_reason`,
+and success/failure (the `message.usage` these routes used to discard). The
+write is best-effort — `recordLlmCall` swallows every error so telemetry can
+never break the AI response.
+
+Run the migration once against Supabase:
+
+```
+database/migrations/create_llm_calls.sql   # llm_calls, RLS on / service-role only
+```
+
+Then read cost, latency, and failure rate grouped by call site + model:
+
+```
+node scripts/llm-report.mjs         # last 7 days
+node scripts/llm-report.mjs 30      # last 30 days
+```
+
+**AI draft capture.** New AI-generated proposals also store the raw generator
+output so the AI-vs-final delta is recoverable (for evals / few-shot mining).
+The form keeps the untouched draft and the create route writes it to
+`proposals.ai_draft`. Run the migration once:
+
+```
+database/migrations/add_proposal_ai_draft.sql   # adds proposals.ai_draft jsonb
+```
+
 ### Credentials (one-time, from scratch)
 
 The Ads API authenticates as a *user* with a developer token — not the

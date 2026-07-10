@@ -12,6 +12,7 @@ import {
   buildProposalUserPrompt,
   sanitizeProposalDraft,
 } from "@/lib/ai/proposalDraft";
+import { recordedCreate } from "@/lib/ai/llmMetrics";
 
 export const runtime = "nodejs";
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
   try {
     const client = getAnthropicClient();
 
-    const message = await client.messages.create({
+    const message = await recordedCreate(client, "proposals.generate", {
       model: AI_MODEL,
       max_tokens: 3000,
       system: PROPOSAL_SYSTEM_PROMPT,

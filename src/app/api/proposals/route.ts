@@ -69,7 +69,11 @@ export async function POST(request: NextRequest) {
       payment_terms,
       payment_schedule,
       require_signature = true,
-      internal_notes
+      internal_notes,
+      // Raw AI draft captured by the form at generate time; null when the
+      // proposal wasn't AI-drafted. Stored so the AI-vs-final delta is
+      // recoverable for evals (see migration add_proposal_ai_draft.sql).
+      ai_draft = null,
     } = body;
 
     if (!client_id) {
@@ -127,6 +131,7 @@ export async function POST(request: NextRequest) {
         payment_schedule,
         require_signature,
         internal_notes,
+        ai_draft,
         status: 'draft'
       })
       .select()
