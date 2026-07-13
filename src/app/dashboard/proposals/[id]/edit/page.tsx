@@ -9,6 +9,7 @@ import ProposalForm, {
   type ProposalLineItem,
   emptyProposalForm,
 } from '@/components/proposals/ProposalForm';
+import CopyProposalLinkButton from '@/components/proposals/CopyProposalLinkButton';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -50,7 +51,7 @@ function toFormData(p: Record<string, unknown>): ProposalFormData {
 export default function EditProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { data, error, isLoading } = useSWR(`/api/proposals/${id}`, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(`/api/proposals/${id}`, fetcher);
 
   const handleSave = async (formData: ProposalFormData) => {
     const response = await fetch(`/api/proposals/${id}`, {
@@ -82,13 +83,30 @@ export default function EditProposalPage({ params }: { params: Promise<{ id: str
     );
   }
 
+  const proposal = data.proposal as Record<string, unknown>;
+
   return (
-    <ProposalForm
-      heading="Edit Proposal"
-      submitLabel="Save Changes"
-      submittingLabel="Saving..."
-      initialData={toFormData(data.proposal)}
-      onSubmit={handleSave}
-    />
+    <>
+      {typeof proposal.access_token === 'string' && (
+        <div className="px-3 pt-4 sm:px-6 max-w-4xl mx-auto flex justify-end">
+          <div className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-1.5">
+            <span className="text-xs text-gray-500">Share:</span>
+            <CopyProposalLinkButton
+              proposalId={id}
+              token={proposal.access_token}
+              status={String(proposal.status ?? '')}
+              onMarkedSent={() => mutate()}
+            />
+          </div>
+        </div>
+      )}
+      <ProposalForm
+        heading="Edit Proposal"
+        submitLabel="Save Changes"
+        submittingLabel="Saving..."
+        initialData={toFormData(data.proposal)}
+        onSubmit={handleSave}
+      />
+    </>
   );
 }

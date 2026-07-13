@@ -7,6 +7,7 @@ import { useToast, useConfirm } from '@/components/ui/Toast';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { currency } from '@/lib/ui';
 import { buildProposalShareMessage } from '@/lib/proposalShareMessage';
+import CopyProposalLinkButton from '@/components/proposals/CopyProposalLinkButton';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 
@@ -384,6 +385,14 @@ export default function ProposalsPage() {
                                 onChoose={(channel) => chooseChannel(p, channel)}
                               />
                             )}
+                            {p.access_token && !['rejected', 'expired'].includes(p.status) && (
+                              <CopyProposalLinkButton
+                                proposalId={p.id}
+                                token={p.access_token}
+                                status={p.status}
+                                onMarkedSent={() => mutate()}
+                              />
+                            )}
                             <button
                               onClick={() => handleDelete(p.id)}
                               className="text-xs text-red-600 hover:text-red-800"
@@ -445,6 +454,14 @@ export default function ProposalsPage() {
                         >
                           {converting === p.id ? 'Converting...' : 'Convert'}
                         </button>
+                      )}
+                      {p.access_token && !['rejected', 'expired'].includes(p.status) && (
+                        <CopyProposalLinkButton
+                          proposalId={p.id}
+                          token={p.access_token}
+                          status={p.status}
+                          onMarkedSent={() => mutate()}
+                        />
                       )}
                       <button
                         onClick={() => handleDelete(p.id)}

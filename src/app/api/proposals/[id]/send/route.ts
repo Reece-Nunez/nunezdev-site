@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { Resend } from "resend";
 import { sendProposalSmsWithGuards, proposalUrl } from "@/lib/proposalSms";
+import { resolveSendChannel, channelWants } from "@/lib/proposalSend";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-type Channel = "email" | "sms" | "both";
 
 async function requireAuthedOrgId() {
   const supabase = await supabaseServer();
@@ -111,13 +110,14 @@ export async function POST(
 
   // Body is optional — a bare POST (legacy "Send"/"Resend" button) defaults to email.
   const body = (await request.json().catch(() => ({}))) as {
-    channel?: Channel;
+    channel?: string;
     to?: string;
     bodyOverride?: string;
   };
-  const channel: Channel = body.channel === "sms" || body.channel === "both" ? body.channel : "email";
-  const wantEmail = channel === "email" || channel === "both";
-  const wantSms = channel === "sms" || channel === "both";
+  const channel = resolveSendChannel(body.channel);
+  // "link" delivers nothing (the operator copied the URL themselves); it only
+  // flips draft -> sent so the client's eventual view is tracked.
+  const { email: wantEmail, sms: wantSms, link: wantLink } = channelWants(channel);
 
   try {
     const { data: proposal, error: fetchError } = await supabase
@@ -163,7 +163,8 @@ export async function POST(
       sms = result.ok ? { ok: true, to: result.to } : { ok: false, error: result.error };
     }
 
-    const anySucceeded = Boolean(email?.ok) || Boolean(sms?.ok);
+    // A "link" copy has nothing to deliver but still counts as sent.
+    const anySucceeded = Boolean(email?.ok) || Boolean(sms?.ok) || wantLink;
 
     // Only flip to "sent" if something actually went out. A wholesale failure
     // leaves the proposal in draft so the operator can retry.
