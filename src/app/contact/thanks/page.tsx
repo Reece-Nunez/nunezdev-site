@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCalendarCheck } from "@fortawesome/free-solid-svg-icons";
 import { PHONE_DISPLAY, PHONE_TEL } from "@/lib/contact";
 import ThreeBackground from "@/components/ThreeBackground";
 
@@ -35,13 +35,29 @@ export default function ContactThanksPage() {
           I&apos;ll personally reply within 24 hours with honest thoughts, a
           rough scope, and a ballpark price.
         </p>
-        <p className="text-white/50 text-sm mb-8">
+        <p className="text-white/50 text-sm mb-6">
           Urgent? Call or text me at{" "}
           <a href={`tel:${PHONE_TEL}`} className="text-yellow hover:underline">
             {PHONE_DISPLAY}
           </a>
           .
         </p>
+
+        {/* Peak-intent booking CTA. The moment right after submit is when a
+            lead is most ready to talk — offer a calendar instead of making them
+            wait a day for a reply. Primary action; /book is the self-hosted
+            scheduler. */}
+        <Link
+          href="/book"
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-yellow text-gray-900 font-semibold text-base px-8 py-3.5 rounded-lg shadow hover:shadow-[0_0_30px_rgba(255,195,18,0.3)] transition-shadow duration-300"
+        >
+          <FontAwesomeIcon icon={faCalendarCheck} />
+          Book a call now
+        </Link>
+        <p className="text-white/40 text-xs mt-3 mb-8">
+          Rather not wait? Grab a free 30-minute slot that works for you.
+        </p>
+
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link
             href="/portfolio"

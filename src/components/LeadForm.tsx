@@ -4,7 +4,8 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faSpinner, faCalendarCheck } from "@fortawesome/free-solid-svg-icons";
+import Link from "next/link";
 import Turnstile from "@/components/Turnstile";
 import { trackEvent } from "@/lib/gtag";
 import { estimateLeadValue } from "@/lib/leadValue";
@@ -218,9 +219,22 @@ export default function LeadForm({
           <FontAwesomeIcon icon={faCheck} className="text-green-400 text-xl" />
         </div>
         <h3 className="text-yellow text-2xl font-bold mb-2">Got it — message sent.</h3>
-        <p className="text-white/70 max-w-md mx-auto">
+        <p className="text-white/70 max-w-md mx-auto mb-6">
           I'll personally reply within 24 hours with next steps. If it's urgent,
           call or text me directly.
+        </p>
+        {/* Peak-intent booking CTA — offer a calendar while they're still here.
+            Normally the form redirects to /contact/thanks, but this keeps the
+            option in view if that navigation is ever slow or blocked. */}
+        <Link
+          href="/book"
+          className="inline-flex items-center justify-center gap-2 bg-yellow text-gray-900 font-semibold text-base px-8 py-3.5 rounded-lg shadow hover:shadow-[0_0_30px_rgba(255,195,18,0.3)] transition-shadow duration-300"
+        >
+          <FontAwesomeIcon icon={faCalendarCheck} />
+          Book a call now
+        </Link>
+        <p className="text-white/40 text-xs mt-3">
+          Rather not wait? Grab a free 30-minute slot.
         </p>
       </motion.div>
     );
