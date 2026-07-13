@@ -27,6 +27,7 @@ import { cancelSequencesForPhone } from '@/lib/leadSmsSequence';
 import { buildWelcomeSms } from '@/lib/smsWelcome';
 import { notifyInboundSms } from '@/lib/notifications';
 import { decideOptInKeywordAction, lookupSmsConsentByPhone } from '@/lib/smsConsent';
+import { ingestInboundMedia } from '@/lib/twilioMedia';
 
 export const runtime = 'nodejs';
 
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
   // get an email + bell notification whenever a client texts, keyword or not.
   // recordMessage is idempotent on the Twilio MessageSid, so a webhook retry
   // won't double-thread.
-  await recordInboundSms(from, toNumber, body, verdict.params.MessageSid);
+  await recordInboundSms(from, toNumber, body, verdict.params.MessageSid, verdict.params);
 
   // Any reply from a lead — STOP, YES, or a real "yeah let's talk" — means stop
   // the auto follow-up cadence; you're in a conversation now. Best-effort.
@@ -161,9 +162,20 @@ async function recordInboundSms(
   to: string,
   body: string,
   messageSid: string | undefined,
+  params: Record<string, string>,
 ): Promise<void> {
   try {
     const conv = await findOrCreateConversation({ channel: 'sms', contactPhone: from });
+    // Re-host any inbound MMS media into our S3 so it renders in the thread and
+    // outlives Twilio's copy. Best-effort — media trouble must not stop the text
+    // (and opt-out handling) from threading, so we swallow and record with
+    // whatever media succeeded (possibly none).
+    let attachments: Awaited<ReturnType<typeof ingestInboundMedia>> = [];
+    try {
+      attachments = await ingestInboundMedia(params, messageSid);
+    } catch (err) {
+      console.error('[sms-incoming] media ingest failed:', err);
+    }
     await recordMessage({
       conversationId: conv.id,
       direction: 'inbound',
@@ -174,6 +186,7 @@ async function recordInboundSms(
       provider: 'twilio',
       providerId: messageSid ?? null,
       status: 'received',
+      attachments,
     });
   } catch (err) {
     console.error('[sms-incoming] inbox record failed:', err);

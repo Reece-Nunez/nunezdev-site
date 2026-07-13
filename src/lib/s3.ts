@@ -55,6 +55,26 @@ export async function getS3Object(key: string) {
   return s3Client.send(command);
 }
 
+/**
+ * Server-side upload of raw bytes to S3. Used to re-host inbound MMS media
+ * (fetched from Twilio) into our own bucket, so a stored `key` drives the same
+ * presigned-view render path as every other attachment — and so the image
+ * survives Twilio deleting its short-lived copy.
+ */
+export async function putS3Object(
+  key: string,
+  body: Uint8Array | Buffer,
+  contentType: string,
+): Promise<void> {
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+  await s3Client.send(command);
+}
+
 export async function deleteS3Object(key: string): Promise<void> {
   const command = new DeleteObjectCommand({
     Bucket: BUCKET_NAME,
