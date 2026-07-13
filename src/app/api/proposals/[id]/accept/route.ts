@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Resend } from "resend";
 import { createNotification } from "@/lib/notifications";
+import { clientEnrichmentFromSigner } from "@/lib/clientEnrichment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +98,29 @@ export async function POST(
     if (!updated || updated.length === 0) {
       console.error("Accept proposal affected 0 rows:", id);
       return NextResponse.json({ error: "Failed to accept proposal" }, { status: 500 });
+    }
+
+    // Enrich the CRM client profile from what the signer typed. A client created
+    // from a lead (e.g. Thumbtack "Jamie C.") usually has no email; on signing
+    // they hand us a real email + full name. Backfill so that contact info is
+    // usable for billing instead of stranded on the signature record. Best-effort
+    // and only fills gaps (see clientEnrichmentFromSigner) — never fails the
+    // acceptance, never overwrites an existing email or a real full name.
+    if (proposal.client_id) {
+      const patch = clientEnrichmentFromSigner(
+        { name: proposal.clients?.name, email: proposal.clients?.email },
+        { name: signer_name, email: signer_email },
+      );
+      if (Object.keys(patch).length > 0) {
+        const { error: enrichError } = await supabase
+          .from("clients")
+          .update({ ...patch, updated_at: new Date().toISOString() })
+          .eq("id", proposal.client_id)
+          .eq("org_id", proposal.org_id);
+        if (enrichError) {
+          console.error("[proposal-accept] client enrichment error:", enrichError);
+        }
+      }
     }
 
     // Create in-app notification
