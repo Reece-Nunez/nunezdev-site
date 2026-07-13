@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef, use } from 'react';
+import Image from 'next/image';
 import useSWR from 'swr';
 import SignatureCanvas from 'react-signature-canvas';
 
@@ -56,13 +57,11 @@ const formatDate = (dateStr?: string) => {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 };
 
-/** NunezDev letterhead mark — a navy tile with a gold N, plus the wordmark. */
+/** NunezDev letterhead mark — the real N logo plus the wordmark. */
 function Wordmark() {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="grid h-8 w-8 place-items-center rounded-md bg-brand-navy font-[family-name:var(--font-space-grotesk)] text-lg font-bold leading-none text-brand-yellow">
-        N
-      </span>
+      <Image src="/n-logo.svg" alt="NunezDev" width={38} height={38} className="h-9 w-9" priority />
       <span className="flex flex-col leading-none">
         <span className="font-[family-name:var(--font-space-grotesk)] text-sm font-semibold tracking-tight text-brand-navy">
           NunezDev
@@ -118,9 +117,12 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
   }
 
   const proposal = data.proposal;
-  const techStack = proposal.technology_stack
-    ? proposal.technology_stack.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+  const techRaw = proposal.technology_stack?.trim() ?? '';
+  const techSegments = techRaw ? techRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  // Chip only a genuine short comma list ("Next.js, Tailwind, Stripe"). A prose
+  // stack (e.g. "Clickable prototype; plan covering platform, data model, …")
+  // would shatter into garbage chips, so fall back to a plain paragraph.
+  const techIsList = techSegments.length >= 2 && techSegments.every(s => s.length <= 28);
 
   const handleAccept = async () => {
     // Reveal the signature pad on first click when a signature is required.
@@ -326,7 +328,7 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
         </section>
 
         {/* Project Details */}
-        {(proposal.project_overview || proposal.project_start_date || techStack.length > 0) && (
+        {(proposal.project_overview || proposal.project_start_date || techRaw) && (
           <section className={cardClass}>
             <SectionHeading>Project Details</SectionHeading>
 
@@ -354,19 +356,23 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
               </div>
             )}
 
-            {techStack.length > 0 && (
+            {techRaw && (
               <div className="mt-6">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Technology stack</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {techStack.map((tech, i) => (
-                    <span
-                      key={i}
-                      className="rounded-full border border-brand-navy/10 bg-brand-navy/[0.04] px-3 py-1 text-sm font-medium text-brand-navy"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
+                {techIsList ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {techSegments.map((tech, i) => (
+                      <span
+                        key={i}
+                        className="rounded-full border border-brand-navy/10 bg-brand-navy/[0.04] px-3 py-1 text-sm font-medium text-brand-navy"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-[15px] leading-relaxed text-gray-700">{techRaw}</p>
+                )}
               </div>
             )}
           </section>
@@ -462,7 +468,7 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
         {/* Footer */}
         <footer className="pt-4 text-center">
           <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-            <span className="grid h-5 w-5 place-items-center rounded bg-brand-navy text-[10px] font-bold leading-none text-brand-yellow">N</span>
+            <Image src="/n-logo.svg" alt="NunezDev" width={20} height={20} className="h-5 w-5" />
             <span>Prepared by <span className="font-medium text-gray-500">NunezDev</span></span>
           </div>
         </footer>
