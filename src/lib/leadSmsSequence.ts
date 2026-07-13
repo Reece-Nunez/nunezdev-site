@@ -14,9 +14,9 @@ import { sendTrackedSms } from './smsOutbox';
 import { isQuietHoursOk } from './smsReminders';
 import { normalizePhoneE164 } from './sms';
 
-// Configurable links. Swap BOOKING_URL for a real scheduling link (Calendly,
-// etc.) when there is one — a pick-a-time link converts better than a form.
-const BOOKING_URL = 'https://www.nunezdev.com/contact';
+// Configurable links. /book is the self-hosted scheduler (pick a time on the
+// calendar) — it converts better than dropping the lead back on a form.
+const BOOKING_URL = 'https://www.nunezdev.com/book';
 const PORTFOLIO_URL = 'https://www.nunezdev.com/portfolio';
 
 export interface SmsSequenceStep {

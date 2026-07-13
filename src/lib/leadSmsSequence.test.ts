@@ -19,7 +19,7 @@ describe("renderSmsTemplate", () => {
       { name: "Chu Okonkwo", project_type: "Web Design" },
     );
     assert.match(out, /^Hey Chu, your web design/);
-    assert.match(out, /nunezdev\.com\/contact/);
+    assert.match(out, /nunezdev\.com\/book/);
     assert.match(out, /nunezdev\.com\/portfolio/);
     assert.doesNotMatch(out, /\{(name|service|booking|portfolio)\}/); // no leftover tokens
   });
