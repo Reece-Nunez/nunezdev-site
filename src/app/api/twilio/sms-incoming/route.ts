@@ -24,7 +24,7 @@ import { verifyTwilioWebhook } from '@/lib/twilioWebhook';
 import { findOrCreateConversation, recordMessage, resolveContact } from '@/lib/inbox';
 import { sendTrackedSms } from '@/lib/smsOutbox';
 import { cancelSequencesForPhone } from '@/lib/leadSmsSequence';
-import { buildWelcomeSms } from '@/lib/smsWelcome';
+import { buildWelcomeSms, WELCOME_SMS_PREFIX } from '@/lib/smsWelcome';
 import { notifyInboundSms } from '@/lib/notifications';
 import { decideOptInKeywordAction, lookupSmsConsentByPhone } from '@/lib/smsConsent';
 import { ingestInboundMedia } from '@/lib/twilioMedia';
@@ -117,7 +117,17 @@ export async function POST(request: NextRequest) {
     // opted in is just conversation and must NOT re-fire the welcome text every
     // time. See decideOptInKeywordAction.
     const consent = await lookupSmsConsentByPhone(from);
-    if (decideOptInKeywordAction(consent) === 'grant_and_welcome') {
+    // Dedup the welcome across ANY contact — including bare numbers that aren't
+    // clients/leads and so have no consent row to remember them by. Without this,
+    // every "yes" from such a number re-fires the welcome (the reported bug).
+    const alreadyWelcomed = await hasPriorWelcome(from);
+    if (
+      decideOptInKeywordAction({
+        consented: consent.consented,
+        optedOut: consent.optedOut,
+        alreadyWelcomed,
+      }) === 'grant_and_welcome'
+    ) {
       // Grant fresh consent (also reverses any prior STOP) so the double-opt-in
       // loop completes, then deliver the friendly "you're in" confirmation.
       //
@@ -222,6 +232,36 @@ async function forwardToLeadgen(params: Record<string, string>): Promise<void> {
     });
   } catch (err) {
     console.error('[sms-incoming] leadgen forward failed:', err);
+  }
+}
+
+/**
+ * Have we ever sent this number the welcome/confirmation text? This is the
+ * consent memory for contacts who aren't clients or leads (a bare phone has no
+ * row to store sms_consent on). We match the recorded outbound welcomes by the
+ * last 10 digits so a stored "+1..." vs bare form still matches.
+ *
+ * Fails OPEN (returns false) on any error: at worst we re-welcome once, which is
+ * far better than silently swallowing a genuine first opt-in confirmation.
+ */
+async function hasPriorWelcome(fromE164: string): Promise<boolean> {
+  try {
+    const last10 = fromE164.replace(/\D/g, '').slice(-10);
+    if (last10.length < 10) return false;
+    const supabase = supabaseAdmin();
+    const { data } = await supabase
+      .from('messages')
+      .select('to_address')
+      .eq('direction', 'outbound')
+      .eq('channel', 'sms')
+      .ilike('body_text', `${WELCOME_SMS_PREFIX}%`)
+      .limit(200);
+    return ((data ?? []) as Array<{ to_address?: string | null }>).some(
+      (m) => (m.to_address ?? '').replace(/\D/g, '').slice(-10) === last10,
+    );
+  } catch (err) {
+    console.error('[sms-incoming] hasPriorWelcome check failed:', err);
+    return false;
   }
 }
 

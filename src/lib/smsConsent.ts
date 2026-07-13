@@ -124,6 +124,12 @@ export function decideComposerSmsAction(state: {
  * (the bug this guards against). In that case we treat it as a normal inbound
  * message and stay quiet.
  *
+ * `consented` only reflects clients/leads (the only rows that store consent), so
+ * a contact who is NEITHER — a bare phone number — can never read back as
+ * consented and would be welcomed on every YES. `alreadyWelcomed` closes that
+ * gap: it's the durable "we've sent this number the welcome before" signal
+ * (derived from the inbox), independent of whether they're in the CRM.
+ *
  * Pure + exported so the rule is unit-tested independently of the route.
  */
 export type OptInKeywordAction = 'grant_and_welcome' | 'treat_as_normal';
@@ -131,8 +137,14 @@ export type OptInKeywordAction = 'grant_and_welcome' | 'treat_as_normal';
 export function decideOptInKeywordAction(state: {
   consented: boolean;
   optedOut: boolean;
+  alreadyWelcomed: boolean;
 }): OptInKeywordAction {
-  if (state.consented && !state.optedOut) return 'treat_as_normal';
+  // A YES right after a STOP is a genuine re-opt-in — re-grant and re-welcome
+  // even if we welcomed them before. Checked first so it overrides the dedup.
+  if (state.optedOut) return 'grant_and_welcome';
+  // Already opted in, or already welcomed once and not since opted out → this
+  // YES is ordinary conversation. Stay quiet.
+  if (state.consented || state.alreadyWelcomed) return 'treat_as_normal';
   return 'grant_and_welcome';
 }
 

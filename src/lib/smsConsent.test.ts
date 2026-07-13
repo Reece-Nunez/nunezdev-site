@@ -49,23 +49,39 @@ describe("decideOptInKeywordAction", () => {
     // The reported bug: an opted-in client texting "Yes, Tuesday works" was
     // re-sent the welcome/opt-in confirmation every time.
     assert.equal(
-      decideOptInKeywordAction({ consented: true, optedOut: false }),
+      decideOptInKeywordAction({ consented: true, optedOut: false, alreadyWelcomed: false }),
       "treat_as_normal",
     );
   });
 
-  it("grants + welcomes a YES from a not-yet-consented number", () => {
+  it("grants + welcomes a YES from a not-yet-consented, never-welcomed number", () => {
     // Completes the double opt-in for a fresh contact.
     assert.equal(
-      decideOptInKeywordAction({ consented: false, optedOut: false }),
+      decideOptInKeywordAction({ consented: false, optedOut: false, alreadyWelcomed: false }),
       "grant_and_welcome",
+    );
+  });
+
+  it("stays quiet when a non-client/lead number was already welcomed", () => {
+    // The reported bug: a bare phone (no consent row) got the welcome on EVERY
+    // yes because consent could never be read back. alreadyWelcomed remembers.
+    assert.equal(
+      decideOptInKeywordAction({ consented: false, optedOut: false, alreadyWelcomed: true }),
+      "treat_as_normal",
     );
   });
 
   it("grants + welcomes a YES/START from someone who previously opted out", () => {
     // Re-subscribe path: opted_out overrides a stale consented flag.
     assert.equal(
-      decideOptInKeywordAction({ consented: true, optedOut: true }),
+      decideOptInKeywordAction({ consented: true, optedOut: true, alreadyWelcomed: false }),
+      "grant_and_welcome",
+    );
+  });
+
+  it("re-welcomes on re-opt-in even if welcomed before (opt-out wins over dedup)", () => {
+    assert.equal(
+      decideOptInKeywordAction({ consented: false, optedOut: true, alreadyWelcomed: true }),
       "grant_and_welcome",
     );
   });

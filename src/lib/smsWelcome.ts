@@ -40,9 +40,17 @@ export function buildOptInRequestSms(opts: { name?: string | null }): string {
  * "You're in" confirmation. Fires the moment consent is granted on any
  * surface (form checkbox, portal toggle, or a YES reply).
  */
+/**
+ * Stable opening of every welcome/confirmation text. The inbound webhook keys
+ * its "have we already welcomed this number?" dedup off this exact prefix, so
+ * keep buildWelcomeSms's lead line and this constant in sync — if the greeting
+ * ever changes, update both together or the dedup silently stops matching.
+ */
+export const WELCOME_SMS_PREFIX = "You're in";
+
 export function buildWelcomeSms(opts: { name?: string | null }): string {
   const first = firstName(opts.name);
-  const lead = first ? `You're in, ${first}!` : `You're in!`;
+  const lead = first ? `${WELCOME_SMS_PREFIX}, ${first}!` : `${WELCOME_SMS_PREFIX}!`;
   return (
     `${lead} 🎉 NunezDev will text you project updates, quotes & invoice ` +
     `reminders here. Msg frequency varies, msg & data rates may apply. ` +
