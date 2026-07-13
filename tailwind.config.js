@@ -18,6 +18,7 @@ module.exports = {
         black: "#111111",
         blue: "#5b7c99",
         offwhite: "#fff8f1",
+        navy: "#0b2a4a",
       },
       // Semantic design tokens (values in src/app/globals.css :root). Use as
       // bg-ds-surface, text-ds-muted, border-ds-border, etc. The `<alpha-value>`

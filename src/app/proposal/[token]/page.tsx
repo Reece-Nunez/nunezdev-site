@@ -1,5 +1,10 @@
 'use client';
 
+/* Hallmark · redesign · macrostructure: Long Document · genre: editorial
+ * theme: brand (paper #fff8f1 · ink navy #0b2a4a · accent gold #ffc312 · display Lora)
+ * scope: visual layer only — accept/decline/signature logic preserved
+ */
+
 import { useState, useRef, use } from 'react';
 import useSWR from 'swr';
 import SignatureCanvas from 'react-signature-canvas';
@@ -51,6 +56,35 @@ const formatDate = (dateStr?: string) => {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 };
 
+/** NunezDev letterhead mark — a navy tile with a gold N, plus the wordmark. */
+function Wordmark() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="grid h-8 w-8 place-items-center rounded-md bg-brand-navy font-[family-name:var(--font-space-grotesk)] text-lg font-bold leading-none text-brand-yellow">
+        N
+      </span>
+      <span className="flex flex-col leading-none">
+        <span className="font-[family-name:var(--font-space-grotesk)] text-sm font-semibold tracking-tight text-brand-navy">
+          NunezDev
+        </span>
+        <span className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-gray-400">
+          Software Solutions
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/** Serif section heading with a short gold tick, used for each document block. */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-3 font-[family-name:var(--font-lora)] text-xl font-semibold text-brand-navy">
+      <span aria-hidden className="h-4 w-1 rounded-full bg-brand-yellow" />
+      {children}
+    </h2>
+  );
+}
+
 export default function PublicProposalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const { data, error, mutate } = useSWR<{ proposal: Proposal }>(`/api/public/proposal/${token}`, fetcher);
@@ -66,10 +100,10 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-brand-offwhite px-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Proposal Not Found</h1>
-          <p className="text-gray-600">This proposal link may be invalid or expired.</p>
+          <h1 className="font-[family-name:var(--font-lora)] text-2xl font-semibold text-brand-navy mb-2">Proposal not found</h1>
+          <p className="text-gray-500">This proposal link may be invalid or expired.</p>
         </div>
       </div>
     );
@@ -77,13 +111,16 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-600">Loading proposal...</div>
+      <div className="min-h-screen flex items-center justify-center bg-brand-offwhite">
+        <div className="text-gray-500">Loading proposal…</div>
       </div>
     );
   }
 
   const proposal = data.proposal;
+  const techStack = proposal.technology_stack
+    ? proposal.technology_stack.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
 
   const handleAccept = async () => {
     // Reveal the signature pad on first click when a signature is required.
@@ -167,25 +204,49 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
   const isRejected = proposal.status === 'rejected';
   const canAct = !isExpired && !isAccepted && !isRejected;
 
+  const cardClass = 'rounded-2xl border border-black/5 bg-white p-6 sm:p-8 shadow-[0_1px_2px_rgba(11,42,74,0.04),0_12px_32px_-16px_rgba(11,42,74,0.12)]';
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Proposal {proposal.proposal_number}</div>
-              <h1 className="text-2xl font-bold text-gray-900">{proposal.title}</h1>
+    <div className="min-h-screen bg-brand-offwhite">
+      {/* Letterhead band */}
+      <div className="h-1.5 w-full bg-brand-yellow" />
+
+      <main className="mx-auto max-w-3xl px-5 sm:px-8 py-10 sm:py-16 space-y-6">
+        {/* Header / letterhead */}
+        <header className={cardClass}>
+          <div className="flex items-center justify-between gap-4">
+            <Wordmark />
+            <span className="font-[family-name:var(--font-geist-mono)] text-[11px] uppercase tracking-[0.22em] text-gray-400">
+              Proposal
+            </span>
+          </div>
+
+          <hr className="my-7 border-black/5" />
+
+          <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="font-[family-name:var(--font-geist-mono)] text-xs tracking-widest text-gray-400">
+                {proposal.proposal_number}
+              </div>
+              <h1 className="mt-2 font-[family-name:var(--font-lora)] text-3xl sm:text-4xl font-semibold leading-[1.1] text-brand-navy [overflow-wrap:anywhere]">
+                {proposal.title}
+              </h1>
               {proposal.clients && (
-                <div className="text-gray-600 mt-1">
-                  Prepared for: <span className="font-medium">{proposal.clients.name}</span>
-                  {proposal.clients.company && ` (${proposal.clients.company})`}
-                </div>
+                <p className="mt-3 text-sm text-gray-500">
+                  Prepared for{' '}
+                  <span className="font-medium text-gray-700">{proposal.clients.name}</span>
+                  {proposal.clients.company && ` · ${proposal.clients.company}`}
+                </p>
               )}
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold text-emerald-600">{formatCurrency(proposal.amount_cents)}</div>
+
+            <div className="shrink-0 sm:text-right">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Total investment</div>
+              <div className="mt-1 inline-block border-b-2 border-brand-yellow pb-1 font-[family-name:var(--font-space-grotesk)] text-3xl sm:text-4xl font-bold tabular-nums text-brand-navy">
+                {formatCurrency(proposal.amount_cents)}
+              </div>
               {proposal.valid_until && !isAccepted && !isRejected && (
-                <div className={`text-sm mt-1 ${isExpired ? 'text-red-600' : 'text-gray-500'}`}>
+                <div className={`mt-2 text-xs ${isExpired ? 'text-red-600' : 'text-gray-400'}`}>
                   {isExpired ? 'Expired' : `Valid until ${formatDate(proposal.valid_until)}`}
                 </div>
               )}
@@ -193,136 +254,153 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
           </div>
 
           {isAccepted && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-2 text-emerald-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="font-medium">Proposal Accepted</span>
-                {proposal.signer_name && <span className="text-sm">by {proposal.signer_name}</span>}
-              </div>
+            <div className="mt-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
+              <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-medium">Proposal accepted</span>
+              {proposal.signer_name && <span className="text-sm text-emerald-700">by {proposal.signer_name}</span>}
             </div>
           )}
 
           {isRejected && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <div className="text-red-700 font-medium">Proposal Declined</div>
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              Proposal declined
             </div>
           )}
 
           {isExpired && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <div className="text-amber-700 font-medium">This proposal has expired</div>
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+              This proposal has expired
             </div>
           )}
 
           {proposal.description && (
-            <p className="text-gray-600 mt-4">{proposal.description}</p>
+            <p className="mt-6 border-l-2 border-black/10 pl-4 text-[15px] leading-relaxed text-gray-600">
+              {proposal.description}
+            </p>
           )}
-        </div>
+        </header>
 
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <h2 className="font-semibold text-lg mb-4">Scope of Work</h2>
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-sm text-gray-500 border-b">
-                <th className="pb-2">Description</th>
-                <th className="pb-2 text-right">Qty</th>
-                <th className="pb-2 text-right">Rate</th>
-                <th className="pb-2 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {proposal.line_items.map((item, idx) => (
-                <tr key={idx} className="border-b last:border-b-0">
-                  <td className="py-3">{item.description}</td>
-                  <td className="py-3 text-right">{item.quantity}</td>
-                  <td className="py-3 text-right">{formatCurrency(item.rate_cents)}</td>
-                  <td className="py-3 text-right font-medium">{formatCurrency(item.amount_cents)}</td>
+        {/* Scope of Work */}
+        <section className={cardClass}>
+          <SectionHeading>Scope of Work</SectionHeading>
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full min-w-[420px]">
+              <thead>
+                <tr className="border-b border-black/10 text-left font-[family-name:var(--font-geist-mono)] text-[11px] uppercase tracking-wider text-gray-400">
+                  <th className="pb-3 font-medium">Description</th>
+                  <th className="pb-3 pl-4 text-right font-medium">Qty</th>
+                  <th className="pb-3 pl-4 text-right font-medium">Rate</th>
+                  <th className="pb-3 pl-4 text-right font-medium">Amount</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="border-t">
-                <td colSpan={3} className="py-2 text-right text-gray-600">Subtotal</td>
-                <td className="py-2 text-right">{formatCurrency(proposal.subtotal_cents)}</td>
-              </tr>
-              {proposal.discount_cents > 0 && (
+              </thead>
+              <tbody className="divide-y divide-black/5">
+                {proposal.line_items.map((item, idx) => (
+                  <tr key={idx} className="align-top">
+                    <td className="py-4 pr-4 text-[15px] leading-relaxed text-gray-700">{item.description}</td>
+                    <td className="py-4 pl-4 text-right text-sm tabular-nums text-gray-500">{item.quantity}</td>
+                    <td className="py-4 pl-4 text-right font-[family-name:var(--font-geist-mono)] text-sm tabular-nums text-gray-500">{formatCurrency(item.rate_cents)}</td>
+                    <td className="py-4 pl-4 text-right font-[family-name:var(--font-geist-mono)] text-sm font-medium tabular-nums text-brand-navy">{formatCurrency(item.amount_cents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-black/10">
+                  <td colSpan={3} className="py-3 text-right text-sm text-gray-500">Subtotal</td>
+                  <td className="py-3 pl-4 text-right font-[family-name:var(--font-geist-mono)] text-sm tabular-nums text-gray-600">{formatCurrency(proposal.subtotal_cents)}</td>
+                </tr>
+                {proposal.discount_cents > 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-1 text-right text-sm text-gray-500">Discount</td>
+                    <td className="py-1 pl-4 text-right font-[family-name:var(--font-geist-mono)] text-sm tabular-nums text-red-600">-{formatCurrency(proposal.discount_cents)}</td>
+                  </tr>
+                )}
                 <tr>
-                  <td colSpan={3} className="py-2 text-right text-gray-600">Discount</td>
-                  <td className="py-2 text-right text-red-600">-{formatCurrency(proposal.discount_cents)}</td>
+                  <td colSpan={3} className="pt-3 text-right font-[family-name:var(--font-lora)] text-lg font-semibold text-brand-navy">Total</td>
+                  <td className="pt-3 pl-4 text-right font-[family-name:var(--font-space-grotesk)] text-lg font-bold tabular-nums text-brand-navy">{formatCurrency(proposal.amount_cents)}</td>
                 </tr>
-              )}
-              <tr className="font-bold text-lg">
-                <td colSpan={3} className="py-2 text-right">Total</td>
-                <td className="py-2 text-right text-emerald-600">{formatCurrency(proposal.amount_cents)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </tfoot>
+            </table>
+          </div>
+        </section>
 
-        {(proposal.project_overview || proposal.project_start_date || proposal.technology_stack) && (
-          <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-            <h2 className="font-semibold text-lg mb-4">Project Details</h2>
+        {/* Project Details */}
+        {(proposal.project_overview || proposal.project_start_date || techStack.length > 0) && (
+          <section className={cardClass}>
+            <SectionHeading>Project Details</SectionHeading>
 
             {proposal.project_overview && (
-              <div className="mb-4">
-                <div className="text-sm text-gray-500 mb-1">Overview</div>
-                <p className="text-gray-700 whitespace-pre-wrap">{proposal.project_overview}</p>
+              <div className="mt-6">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Overview</div>
+                <p className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">{proposal.project_overview}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {proposal.project_start_date && (
-                <div>
-                  <div className="text-sm text-gray-500">Project Start</div>
-                  <div className="font-medium">{formatDate(proposal.project_start_date)}</div>
-                </div>
-              )}
-              {proposal.estimated_delivery_date && (
-                <div>
-                  <div className="text-sm text-gray-500">Estimated Delivery</div>
-                  <div className="font-medium">{formatDate(proposal.estimated_delivery_date)}</div>
-                </div>
-              )}
-            </div>
-
-            {proposal.technology_stack && (
-              <div className="mt-4">
-                <div className="text-sm text-gray-500 mb-1">Technology Stack</div>
-                <div className="font-medium">{proposal.technology_stack}</div>
+            {(proposal.project_start_date || proposal.estimated_delivery_date) && (
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {proposal.project_start_date && (
+                  <div className="rounded-xl border border-black/5 bg-brand-offwhite/60 px-4 py-3">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Project start</div>
+                    <div className="mt-1 font-medium text-brand-navy">{formatDate(proposal.project_start_date)}</div>
+                  </div>
+                )}
+                {proposal.estimated_delivery_date && (
+                  <div className="rounded-xl border border-black/5 bg-brand-offwhite/60 px-4 py-3">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Estimated delivery</div>
+                    <div className="mt-1 font-medium text-brand-navy">{formatDate(proposal.estimated_delivery_date)}</div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+
+            {techStack.length > 0 && (
+              <div className="mt-6">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Technology stack</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {techStack.map((tech, i) => (
+                    <span
+                      key={i}
+                      className="rounded-full border border-brand-navy/10 bg-brand-navy/[0.04] px-3 py-1 text-sm font-medium text-brand-navy"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
         )}
 
+        {/* Terms & Conditions */}
         {proposal.terms_conditions && (
-          <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-            <h2 className="font-semibold text-lg mb-4">Terms & Conditions</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{proposal.terms_conditions}</p>
-          </div>
+          <section className={cardClass}>
+            <SectionHeading>Terms &amp; Conditions</SectionHeading>
+            <p className="mt-6 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-600">{proposal.terms_conditions}</p>
+          </section>
         )}
 
+        {/* Sign to accept */}
         {showSignature && canAct && (
-          <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-            <h2 className="font-semibold text-lg mb-4">Sign to Accept</h2>
+          <section className={cardClass}>
+            <SectionHeading>Sign to accept</SectionHeading>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Your Name</label>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Your name</label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border px-3 py-2"
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors focus-visible:border-brand-navy focus-visible:ring-2 focus-visible:ring-brand-navy/20"
                   value={signerName}
                   onChange={(e) => setSignerName(e.target.value)}
-                  placeholder={proposal.clients?.name || 'Full Name'}
+                  placeholder={proposal.clients?.name || 'Full name'}
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Your Email</label>
+                <label className="mb-1.5 block text-xs font-medium text-gray-600">Your email</label>
                 <input
                   type="email"
-                  className="w-full rounded-lg border px-3 py-2"
+                  className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors focus-visible:border-brand-navy focus-visible:ring-2 focus-visible:ring-brand-navy/20"
                   value={signerEmail}
                   onChange={(e) => setSignerEmail(e.target.value)}
                   placeholder={proposal.clients?.email || 'Email'}
@@ -330,11 +408,11 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
               </div>
             </div>
 
-            <div className="border rounded-lg p-2 bg-gray-50">
+            <div className="mt-4 rounded-xl border border-dashed border-black/15 bg-brand-offwhite/50 p-2">
               <SignatureCanvas
                 ref={sigRef}
                 canvasProps={{
-                  className: 'w-full h-40 bg-white rounded',
+                  className: 'w-full h-40 rounded-lg bg-white',
                   style: { width: '100%', height: '160px' }
                 }}
               />
@@ -342,72 +420,81 @@ export default function PublicProposalPage({ params }: { params: Promise<{ token
             <button
               type="button"
               onClick={clearSignature}
-              className="text-sm text-gray-500 hover:text-gray-700 mt-2"
+              className="mt-2 text-xs text-gray-400 transition-colors hover:text-gray-600"
             >
               Clear signature
             </button>
-          </div>
+          </section>
         )}
 
+        {/* Decision panel — the one action this page drives */}
         {canAct && (
-          <div className="bg-white rounded-xl shadow-sm border p-6">
+          <section className="rounded-2xl border border-brand-navy/10 bg-brand-navy p-6 sm:p-8 shadow-[0_20px_40px_-24px_rgba(11,42,74,0.5)]">
             {actionError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+              <div className="mb-5 rounded-lg border border-red-300/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
                 {actionError}
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setShowRejectModal(true)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                Decline Proposal
-              </button>
-
-              <button
-                onClick={handleAccept}
-                disabled={accepting}
-                className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-medium"
-              >
-                {accepting ? 'Processing...' : showSignature ? 'Submit & Accept' : 'Accept Proposal'}
-              </button>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-white/70">
+                Ready to move forward? Accept below to get started.
+              </div>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="text-sm text-white/60 transition-colors hover:text-white"
+                >
+                  Decline
+                </button>
+                <button
+                  onClick={handleAccept}
+                  disabled={accepting}
+                  className="rounded-lg bg-brand-yellow px-8 py-3.5 text-sm font-bold text-brand-black transition-colors hover:bg-[#e6ad00] disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-yellow"
+                >
+                  {accepting ? 'Processing…' : showSignature ? 'Submit & Accept' : 'Accept Proposal'}
+                </button>
+              </div>
             </div>
-          </div>
+          </section>
         )}
 
-        <div className="text-center text-sm text-gray-500 mt-8">
-          Powered by <span className="font-medium">NunezDev</span>
-        </div>
-      </div>
+        {/* Footer */}
+        <footer className="pt-4 text-center">
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+            <span className="grid h-5 w-5 place-items-center rounded bg-brand-navy text-[10px] font-bold leading-none text-brand-yellow">N</span>
+            <span>Prepared by <span className="font-medium text-gray-500">NunezDev</span></span>
+          </div>
+        </footer>
+      </main>
 
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-4">Decline Proposal</h3>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to decline this proposal? You can optionally provide a reason.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-navy/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="font-[family-name:var(--font-lora)] text-lg font-semibold text-brand-navy">Decline proposal</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Are you sure you want to decline this proposal? You can optionally leave a reason.
             </p>
             <textarea
-              className="w-full rounded-lg border px-3 py-2 mb-4"
+              className="mt-4 w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none transition-colors focus-visible:border-brand-navy focus-visible:ring-2 focus-visible:ring-brand-navy/20"
               rows={3}
               placeholder="Reason (optional)"
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
             />
-            <div className="flex justify-end gap-3">
+            <div className="mt-4 flex justify-end gap-3">
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                className="px-4 py-2 text-sm text-gray-500 transition-colors hover:text-gray-800"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReject}
                 disabled={rejecting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
               >
-                {rejecting ? 'Declining...' : 'Decline Proposal'}
+                {rejecting ? 'Declining…' : 'Decline Proposal'}
               </button>
             </div>
           </div>
