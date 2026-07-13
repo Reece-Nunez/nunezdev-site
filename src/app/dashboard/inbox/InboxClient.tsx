@@ -280,8 +280,8 @@ function Thread({
 
   async function sendReply() {
     const text = reply.trim();
-    // Email may go out with only attachments; SMS needs text.
-    if (!text && !(isEmail && attachments.length > 0)) return;
+    // A message with attachments may have no text (email screenshot or MMS image).
+    if (!text && attachments.length === 0) return;
     if (!recipient) {
       toast.error("No recipient address on this conversation");
       return;
@@ -297,7 +297,7 @@ function Thread({
           subject: isEmail ? c.subject ?? undefined : undefined,
           body: text,
           conversationId: c.id,
-          attachments: isEmail ? attachments : undefined,
+          attachments,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -416,15 +416,14 @@ function Thread({
 
       {/* Reply box */}
       <div className="border-t p-3">
-        {isEmail && (
-          <div className="mb-2">
-            <AttachmentPicker
-              attachments={attachments}
-              setAttachments={setAttachments}
-              disabled={sending}
-            />
-          </div>
-        )}
+        <div className="mb-2">
+          <AttachmentPicker
+            attachments={attachments}
+            setAttachments={setAttachments}
+            disabled={sending}
+            accept={isEmail ? undefined : "image/png,image/jpeg,image/gif,image/webp"}
+          />
+        </div>
         <div className="flex items-end gap-2">
           <textarea
             value={reply}

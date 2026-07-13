@@ -16,18 +16,22 @@ const ACCEPT = "image/png,image/jpeg,image/gif,image/webp,application/pdf";
 const MAX_BYTES = 20 * 1024 * 1024;
 
 /**
- * File picker for email attachments. Uploads each file straight to S3 via a
+ * File picker for message attachments. Uploads each file straight to S3 via a
  * presigned PUT (browser → S3, bypassing the Vercel body limit) and hands the
- * resulting refs up to the parent. Email-only — callers gate on channel.
+ * resulting refs up to the parent. Used for email attachments and for SMS/MMS
+ * image sends — callers pass `accept` to narrow the picker (images only for SMS).
  */
 export default function AttachmentPicker({
   attachments,
   setAttachments,
   disabled,
+  accept = ACCEPT,
 }: {
   attachments: InboxAttachment[];
   setAttachments: (a: InboxAttachment[]) => void;
   disabled?: boolean;
+  /** Override the accepted MIME list (defaults to email's image+pdf allowlist). */
+  accept?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -115,7 +119,7 @@ export default function AttachmentPicker({
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT}
+        accept={accept}
         multiple
         hidden
         onChange={(e) => handleFiles(e.target.files)}

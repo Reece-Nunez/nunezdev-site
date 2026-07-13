@@ -63,4 +63,47 @@ describe("buildMessageCreateParams (sender routing)", () => {
     assert.deepEqual(p, { to: CANON, body: "hi", from: "+15802977036" });
     assert.equal("messagingServiceSid" in p, false);
   });
+
+  it("attaches mediaUrl for MMS through the Messaging Service", () => {
+    const p = buildMessageCreateParams({
+      to: CANON,
+      body: "pics",
+      messagingServiceSid: "MGabc123",
+      mediaUrl: ["https://s3/a.jpg", "https://s3/b.png"],
+    });
+    assert.deepEqual(p, {
+      to: CANON,
+      body: "pics",
+      messagingServiceSid: "MGabc123",
+      mediaUrl: ["https://s3/a.jpg", "https://s3/b.png"],
+    });
+  });
+
+  it("attaches mediaUrl for MMS on the bare from path", () => {
+    const p = buildMessageCreateParams({
+      to: CANON,
+      body: "",
+      from: "+15802977036",
+      mediaUrl: ["https://s3/a.jpg"],
+    });
+    assert.deepEqual(p, {
+      to: CANON,
+      body: "",
+      from: "+15802977036",
+      mediaUrl: ["https://s3/a.jpg"],
+    });
+  });
+
+  it("omits mediaUrl entirely for a text-only send (empty or absent array)", () => {
+    const absent = buildMessageCreateParams({ to: CANON, body: "hi", from: "+15802977036" });
+    assert.equal("mediaUrl" in absent, false);
+    // An empty array must NOT produce a malformed MMS — Twilio rejects mediaUrl:[]
+    const empty = buildMessageCreateParams({
+      to: CANON,
+      body: "hi",
+      from: "+15802977036",
+      mediaUrl: [],
+    });
+    assert.equal("mediaUrl" in empty, false);
+  });
 });

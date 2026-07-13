@@ -23,7 +23,7 @@ import {
   lookupSmsConsentByPhone,
   decideComposerSmsAction,
 } from '@/lib/smsConsent';
-import { getS3Object } from '@/lib/s3';
+import { getS3Object, generatePresignedViewUrl } from '@/lib/s3';
 import {
   findOrCreateConversation,
   recordMessage,
@@ -40,6 +40,18 @@ const MAX_ATTACHMENTS = 10;
 // Resend caps total message size at ~40MB; stay well under after base64 (~33%
 // overhead) by limiting raw attachment bytes to 20MB total.
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+
+// Twilio MMS (US/Canada): up to 10 media per message, ~5MB total across all
+// media. We also restrict to images — PDFs and other types are unreliable over
+// US MMS, so we reject them for SMS rather than silently drop the file.
+const MMS_IMAGE_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+]);
+const MAX_MMS_MEDIA = 10;
+const MAX_MMS_TOTAL_BYTES = 5 * 1024 * 1024;
 
 interface AttachmentRef {
   key: string;
@@ -112,9 +124,10 @@ export async function POST(req: Request) {
   if (channel !== 'email' && channel !== 'sms') {
     return NextResponse.json({ error: 'channel must be "email" or "sms"' }, { status: 400 });
   }
-  // Body is required, EXCEPT an email that's carrying attachments (sending just
-  // a screenshot with no text is legitimate). SMS always needs text.
-  const allowEmptyBody = channel === 'email' && attachmentRefs.length > 0;
+  // Body is required, EXCEPT when the message carries attachments — sending just
+  // a screenshot with no text is legitimate on both email (attachment) and SMS
+  // (image-only MMS).
+  const allowEmptyBody = attachmentRefs.length > 0;
   if (!text && !allowEmptyBody) {
     return NextResponse.json({ error: 'message body is required' }, { status: 400 });
   }
@@ -212,7 +225,44 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await sendSms({ to: phone, body: text });
+  // ── MMS media (optional) ──────────────────────────────────────────────
+  // Turn attached images into Twilio-fetchable URLs. Our bucket is private, so
+  // we mint short-lived presigned GET URLs that render inline; Twilio pulls each
+  // one at send time. Validate against Twilio's MMS limits first and fail loudly
+  // so the operator isn't left thinking an image went out when it didn't.
+  let mediaUrl: string[] | undefined;
+  let mediaMeta: AttachmentRef[] = [];
+  if (attachmentRefs.length > 0) {
+    if (attachmentRefs.length > MAX_MMS_MEDIA) {
+      return NextResponse.json(
+        { error: `Too many images (max ${MAX_MMS_MEDIA} per text).`, conversationId: conv.id },
+        { status: 400 },
+      );
+    }
+    const nonImage = attachmentRefs.find((r) => !MMS_IMAGE_TYPES.has(r.contentType));
+    if (nonImage) {
+      return NextResponse.json(
+        {
+          error: `Texts can only carry images — "${nonImage.filename}" isn't a supported image type.`,
+          conversationId: conv.id,
+        },
+        { status: 400 },
+      );
+    }
+    const totalBytes = attachmentRefs.reduce((sum, r) => sum + (r.size || 0), 0);
+    if (totalBytes > MAX_MMS_TOTAL_BYTES) {
+      return NextResponse.json(
+        { error: 'Images exceed the 5MB total limit for a text (MMS).', conversationId: conv.id },
+        { status: 400 },
+      );
+    }
+    mediaUrl = await Promise.all(
+      attachmentRefs.map((r) => generatePresignedViewUrl(r.key, 3600)),
+    );
+    mediaMeta = attachmentRefs;
+  }
+
+  const result = await sendSms({ to: phone, body: text, mediaUrl });
 
   const msg = await recordMessage({
     conversationId: conv.id,
@@ -226,6 +276,7 @@ export async function POST(req: Request) {
     status: result.ok ? 'sent' : 'failed',
     error: result.ok ? null : result.error,
     sentBy: guard.user!.id,
+    attachments: mediaMeta,
   });
 
   if (!result.ok) {

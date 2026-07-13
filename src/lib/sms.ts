@@ -83,10 +83,17 @@ export function buildMessageCreateParams(args: {
   body: string;
   from?: string;
   messagingServiceSid?: string;
-}): { to: string; body: string; from: string } | { to: string; body: string; messagingServiceSid: string } {
-  const { to, body, from, messagingServiceSid } = args;
-  if (messagingServiceSid) return { to, body, messagingServiceSid };
-  return { to, body, from: from ?? '' };
+  mediaUrl?: string[];
+}):
+  | { to: string; body: string; from: string; mediaUrl?: string[] }
+  | { to: string; body: string; messagingServiceSid: string; mediaUrl?: string[] } {
+  const { to, body, from, messagingServiceSid, mediaUrl } = args;
+  // Attach mediaUrl only when there's at least one URL — an empty array turns a
+  // plain SMS into a malformed MMS request that Twilio rejects. Omitting the key
+  // entirely also keeps existing text-only tests/callers byte-identical.
+  const media = mediaUrl && mediaUrl.length > 0 ? { mediaUrl } : {};
+  if (messagingServiceSid) return { to, body, messagingServiceSid, ...media };
+  return { to, body, from: from ?? '', ...media };
 }
 
 /**
@@ -206,6 +213,10 @@ export function normalizePhoneE164(input: string): string | null {
 export async function sendSms(params: {
   to: string;
   body: string;
+  /** Publicly-fetchable HTTPS URLs for MMS media. Twilio pulls each at send
+   *  time, so they must stay reachable briefly (we pass short-lived presigned
+   *  S3 URLs). Omit / empty for a plain text-only SMS. */
+  mediaUrl?: string[];
 }): Promise<SmsSendResult> {
   const client = getTwilioClient();
   const from = resolveFromNumber();
@@ -238,6 +249,7 @@ export async function sendSms(params: {
         body: params.body,
         from,
         messagingServiceSid: resolveMessagingServiceSid(),
+        mediaUrl: params.mediaUrl,
       }),
     );
     return { ok: true, sid: message.sid };

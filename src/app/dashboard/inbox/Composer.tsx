@@ -8,6 +8,8 @@ import AttachmentPicker, { type InboxAttachment } from "./AttachmentPicker";
 type Channel = "email" | "sms";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// SMS/MMS carries images only; email allows the full picker default (incl. PDF).
+const SMS_IMAGE_ACCEPT = "image/png,image/jpeg,image/gif,image/webp";
 
 /**
  * Composer: send a free-form email or text from the dashboard. Used both for
@@ -37,8 +39,9 @@ export default function Composer({
   function validate(): string | null {
     if (isEmail && !EMAIL_RE.test(to.trim())) return "Enter a valid email address";
     if (!isEmail && to.replace(/\D/g, "").length < 10) return "Enter a valid US phone number";
-    // An email carrying attachments may have an empty body (just a screenshot).
-    if (!body.trim() && !(isEmail && attachments.length > 0)) return "Message body is required";
+    // A message carrying attachments may have an empty body (just a screenshot
+    // over email, or an image-only MMS).
+    if (!body.trim() && attachments.length === 0) return "Message body is required";
     return null;
   }
 
@@ -58,7 +61,7 @@ export default function Composer({
           to: to.trim(),
           subject: isEmail ? subject.trim() : undefined,
           body: body.trim(),
-          attachments: isEmail ? attachments : undefined,
+          attachments,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -90,7 +93,12 @@ export default function Composer({
             <button
               key={c}
               type="button"
-              onClick={() => setChannel(c)}
+              onClick={() => {
+                setChannel(c);
+                // Drop staged files — an email PDF isn't valid for an SMS, and
+                // vice-versa the accept list differs, so start the picker clean.
+                setAttachments([]);
+              }}
               className={
                 "flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors " +
                 (active
@@ -149,13 +157,12 @@ export default function Composer({
           )}
         </div>
 
-        {isEmail && (
-          <AttachmentPicker
-            attachments={attachments}
-            setAttachments={setAttachments}
-            disabled={sending}
-          />
-        )}
+        <AttachmentPicker
+          attachments={attachments}
+          setAttachments={setAttachments}
+          disabled={sending}
+          accept={isEmail ? undefined : SMS_IMAGE_ACCEPT}
+        />
 
         <div className="flex justify-end">
           <button
