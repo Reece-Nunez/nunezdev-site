@@ -12,6 +12,7 @@ import {
   ArrowLeftIcon,
   XMarkIcon,
   PaperClipIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import Composer from "./Composer";
 import AttachmentPicker, { type InboxAttachment } from "./AttachmentPicker";
@@ -274,9 +275,66 @@ function Thread({
   const [reply, setReply] = useState("");
   const [attachments, setAttachments] = useState<InboxAttachment[]>([]);
   const [sending, setSending] = useState(false);
+  // Multi-select for bundling image attachments into one zip download.
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = useState(false);
 
   const isEmail = c.channel === "email";
   const recipient = isEmail ? c.contact_email : c.contact_phone;
+
+  // Every downloadable image in the thread (hosted in our S3 → has key + url).
+  const downloadableImageKeys = messages.flatMap((m) =>
+    (m.attachments ?? [])
+      .filter((a) => a.key && a.url && a.contentType.startsWith("image/"))
+      .map((a) => a.key),
+  );
+
+  // Clear the selection when switching to another conversation.
+  useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [c.id]);
+
+  function toggleKey(key: string) {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  async function downloadSelected() {
+    if (selectedKeys.size === 0) return;
+    const count = selectedKeys.size;
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/inbox/download-zip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: c.id, keys: [...selectedKeys] }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Download failed");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "inbox-images.zip";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${count} image${count > 1 ? "s" : ""}`);
+      setSelectedKeys(new Set());
+    } catch {
+      toast.error("Network error — download failed");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   async function sendReply() {
     const text = reply.trim();
@@ -336,6 +394,45 @@ function Thread({
         </div>
       </div>
 
+      {/* Image download toolbar — only when the thread has downloadable images */}
+      {downloadableImageKeys.length > 0 && (
+        <div className="flex items-center justify-between gap-2 border-b bg-gray-50 px-4 py-2">
+          <span className="text-xs text-gray-500">
+            {selectedKeys.size > 0
+              ? `${selectedKeys.size} selected`
+              : `${downloadableImageKeys.length} image${downloadableImageKeys.length > 1 ? "s" : ""} — tick to download`}
+          </span>
+          <div className="flex items-center gap-3">
+            {selectedKeys.size === downloadableImageKeys.length ? (
+              <button
+                type="button"
+                onClick={() => setSelectedKeys(new Set())}
+                className="text-xs font-medium text-gray-500 hover:text-gray-700"
+              >
+                Clear
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSelectedKeys(new Set(downloadableImageKeys))}
+                className="text-xs font-medium text-gray-500 hover:text-gray-700"
+              >
+                Select all
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={downloadSelected}
+              disabled={selectedKeys.size === 0 || downloading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-yellow bg-brand-yellow px-3 py-1.5 text-xs font-medium text-brand-black transition-colors hover:bg-brand-yellow/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ArrowDownTrayIcon className="h-3.5 w-3.5" />
+              {downloading ? "Preparing…" : `Download${selectedKeys.size > 0 ? ` (${selectedKeys.size})` : ""}`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-gray-50 px-4 py-4">
         {messages.map((m) => {
@@ -364,15 +461,35 @@ function Thread({
                     {m.attachments.map((a, i) => {
                       const chipKey = a.key ?? `${a.filename}-${i}`;
                       if (a.contentType.startsWith("image/") && a.url) {
+                        const selectable = !!a.key;
+                        const isSel = selectable && selectedKeys.has(a.key);
                         return (
-                          <a key={chipKey} href={a.url} target="_blank" rel="noreferrer">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={a.url}
-                              alt={a.filename}
-                              className="max-h-48 max-w-[12rem] rounded-lg border object-cover"
-                            />
-                          </a>
+                          <div key={chipKey} className="relative">
+                            {selectable && (
+                              <label
+                                className="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded bg-white/85 shadow-sm ring-1 ring-gray-300"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSel}
+                                  onChange={() => toggleKey(a.key)}
+                                  className="h-3.5 w-3.5 accent-brand-yellow"
+                                  aria-label={`Select ${a.filename}`}
+                                />
+                              </label>
+                            )}
+                            <a href={a.url} target="_blank" rel="noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={a.url}
+                                alt={a.filename}
+                                className={`max-h-48 max-w-[12rem] rounded-lg border object-cover ${
+                                  isSel ? "ring-2 ring-brand-yellow ring-offset-1" : ""
+                                }`}
+                              />
+                            </a>
+                          </div>
                         );
                       }
                       if (a.url) {
