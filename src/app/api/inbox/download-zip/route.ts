@@ -116,7 +116,7 @@ export async function POST(req: Request) {
   return new Response(webStream, {
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': 'attachment; filename="inbox-images.zip"',
+      'Content-Disposition': 'attachment; filename="inbox-attachments.zip"',
     },
   });
 }

@@ -282,10 +282,11 @@ function Thread({
   const isEmail = c.channel === "email";
   const recipient = isEmail ? c.contact_email : c.contact_phone;
 
-  // Every downloadable image in the thread (hosted in our S3 → has key + url).
-  const downloadableImageKeys = messages.flatMap((m) =>
+  // Every downloadable attachment in the thread (hosted in our S3 → key + url),
+  // images and files alike.
+  const downloadableKeys = messages.flatMap((m) =>
     (m.attachments ?? [])
-      .filter((a) => a.key && a.url && a.contentType.startsWith("image/"))
+      .filter((a) => a.key && a.url)
       .map((a) => a.key),
   );
 
@@ -322,12 +323,12 @@ function Thread({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "inbox-images.zip";
+      link.download = "inbox-attachments.zip";
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      toast.success(`Downloaded ${count} image${count > 1 ? "s" : ""}`);
+      toast.success(`Downloaded ${count} file${count > 1 ? "s" : ""}`);
       setSelectedKeys(new Set());
     } catch {
       toast.error("Network error — download failed");
@@ -394,16 +395,16 @@ function Thread({
         </div>
       </div>
 
-      {/* Image download toolbar — only when the thread has downloadable images */}
-      {downloadableImageKeys.length > 0 && (
+      {/* Attachment download toolbar — only when the thread has downloadable files */}
+      {downloadableKeys.length > 0 && (
         <div className="flex items-center justify-between gap-2 border-b bg-gray-50 px-4 py-2">
           <span className="text-xs text-gray-500">
             {selectedKeys.size > 0
               ? `${selectedKeys.size} selected`
-              : `${downloadableImageKeys.length} image${downloadableImageKeys.length > 1 ? "s" : ""} — tick to download`}
+              : `${downloadableKeys.length} attachment${downloadableKeys.length > 1 ? "s" : ""} — tick to download`}
           </span>
           <div className="flex items-center gap-3">
-            {selectedKeys.size === downloadableImageKeys.length ? (
+            {selectedKeys.size === downloadableKeys.length ? (
               <button
                 type="button"
                 onClick={() => setSelectedKeys(new Set())}
@@ -414,7 +415,7 @@ function Thread({
             ) : (
               <button
                 type="button"
-                onClick={() => setSelectedKeys(new Set(downloadableImageKeys))}
+                onClick={() => setSelectedKeys(new Set(downloadableKeys))}
                 className="text-xs font-medium text-gray-500 hover:text-gray-700"
               >
                 Select all
@@ -493,17 +494,34 @@ function Thread({
                         );
                       }
                       if (a.url) {
+                        const selectable = !!a.key;
+                        const isSel = selectable && selectedKeys.has(a.key);
                         return (
-                          <a
+                          <div
                             key={chipKey}
-                            href={a.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-md border bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                            className={`inline-flex items-center gap-1.5 rounded-md border bg-white px-2 py-1 text-xs text-gray-700 ${
+                              isSel ? "ring-2 ring-brand-yellow" : ""
+                            }`}
                           >
-                            <PaperClipIcon className="h-3 w-3 text-gray-400" />
-                            <span className="max-w-[160px] truncate">{a.filename}</span>
-                          </a>
+                            {selectable && (
+                              <input
+                                type="checkbox"
+                                checked={isSel}
+                                onChange={() => toggleKey(a.key)}
+                                className="h-3.5 w-3.5 accent-brand-yellow"
+                                aria-label={`Select ${a.filename}`}
+                              />
+                            )}
+                            <a
+                              href={a.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 hover:underline"
+                            >
+                              <PaperClipIcon className="h-3 w-3 text-gray-400" />
+                              <span className="max-w-[160px] truncate">{a.filename}</span>
+                            </a>
+                          </div>
                         );
                       }
                       // No URL (inbound attachment we don't host) — show it,
