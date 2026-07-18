@@ -98,6 +98,49 @@ describe('parseThumbtackEvent', () => {
     assert.equal(parseThumbtackEvent(payload).externalId, 'r1');
   });
 
+  // Regression: external_id carries a UNIQUE index, and negotiationID used to
+  // be preferred over messageID. Because negotiationID is per-*thread*, the
+  // 2nd..Nth message of a conversation collided with the 1st, was read as a
+  // Thumbtack redelivery, and was dropped before being stored. Live symptom:
+  // 11 MessageCreatedV4 events across 11 distinct threads — never two messages
+  // in one conversation.
+  it('gives two messages in the SAME thread distinct dedup keys', () => {
+    const message = (messageID: string) => ({
+      event: { eventType: 'MessageCreatedV4' },
+      data: {
+        messageID,
+        negotiationID: '585197916299886599', // same thread for both
+        business: { businessID: '553306875926847497' },
+      },
+    });
+
+    const first = parseThumbtackEvent(message('585197916982845463'));
+    const second = parseThumbtackEvent(message('585197916982845464'));
+
+    assert.equal(first.externalId, '585197916982845463');
+    assert.equal(second.externalId, '585197916982845464');
+    assert.notEqual(first.externalId, second.externalId);
+  });
+
+  // A new lead fires both MessageCreatedV4 and NegotiationCreatedV4 sharing one
+  // negotiationID. Whichever landed second used to be evicted, costing either
+  // the opening message or the request details (category/budget/location/phone).
+  it('does not collide a message event with its own negotiation event', () => {
+    const messageEvent = parseThumbtackEvent({
+      event: { eventType: 'MessageCreatedV4' },
+      data: { messageID: 'm1', negotiationID: 'n1' },
+    });
+    const negotiationEvent = parseThumbtackEvent({
+      event: { eventType: 'NegotiationCreatedV4' },
+      data: { negotiationID: 'n1' },
+    });
+
+    assert.equal(messageEvent.externalId, 'm1');
+    // NegotiationCreatedV4 has no messageID, so negotiationID stays its key.
+    assert.equal(negotiationEvent.externalId, 'n1');
+    assert.notEqual(messageEvent.externalId, negotiationEvent.externalId);
+  });
+
   it('degrades to all-null on empty / malformed payloads (never throws)', () => {
     assert.deepEqual(parseThumbtackEvent({}), {
       eventType: null,

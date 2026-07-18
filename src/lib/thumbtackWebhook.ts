@@ -74,10 +74,11 @@ function findDetailAnswer(details: unknown, ...labels: string[]): string | null 
  *
  * Shape (confirmed from a live NegotiationCreatedV4 delivery): the event kind
  * is at `event.eventType`, and the per-event identity + business live under
- * `data` (`data.negotiationID`, `data.business.businessID`). We fall back
- * through other plausible id fields so message/review events (shapes not yet
- * observed) still get a dedup key where one exists, and degrade to null rather
- * than throwing on anything unexpected.
+ * `data` (`data.negotiationID`, `data.business.businessID`). MessageCreatedV4
+ * and ReviewCreatedV4 shapes are now confirmed from live deliveries too
+ * (`data.messageID`, `data.reviewID`). We fall back through the remaining
+ * plausible id fields for event kinds not yet observed, and degrade to null
+ * rather than throwing on anything unexpected.
  */
 export function parseThumbtackEvent(payload: unknown): ParsedThumbtackEvent {
   const root = isRecord(payload) ? payload : {};
@@ -89,12 +90,23 @@ export function parseThumbtackEvent(payload: unknown): ParsedThumbtackEvent {
   const eventType =
     asStr(event.eventType) ?? asStr(root.event_type) ?? asStr(root.type);
 
-  // Durable per-event id for idempotency. negotiationID identifies a
-  // lead/negotiation; the others cover other event kinds we haven't seen yet.
+  // Durable per-event id for idempotency, stored in thumbtack_events.external_id
+  // which carries a UNIQUE index. Order matters: the key must identify the
+  // *event*, not the thread it belongs to.
+  //
+  // messageID/reviewID come first because they are per-event. negotiationID is
+  // per-*thread* and is shared by every message in a conversation — having it
+  // first meant the 2nd..Nth message of any thread collided with the 1st, was
+  // treated as a Thumbtack redelivery, and was dropped before it was ever
+  // stored. It also let whichever of MessageCreatedV4/NegotiationCreatedV4
+  // arrived first for a new lead evict the other, losing the lead's request
+  // details (category, budget, location, phone) or the opening message.
+  // negotiationID stays as the fallback for NegotiationCreatedV4, whose payload
+  // has no messageID.
   const externalId =
-    asStr(data.negotiationID) ??
-    asStr(data.reviewID) ??
     asStr(data.messageID) ??
+    asStr(data.reviewID) ??
+    asStr(data.negotiationID) ??
     asStr(request.requestID) ??
     asStr(root.id);
 

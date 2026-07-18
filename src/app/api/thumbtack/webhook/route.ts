@@ -53,7 +53,17 @@ export async function POST(req: NextRequest) {
     // 23505 = unique violation on external_id -> this is a redelivery of an
     // event we already stored (and already processed). Ack 200 so Thumbtack
     // stops retrying.
+    //
+    // Logged, not silent: this path used to swallow real messages when
+    // external_id was keyed on the per-thread negotiationID instead of the
+    // per-event messageID, and the silence meant a month of dropped
+    // conversations looked exactly like normal redelivery traffic. A burst of
+    // these now means the dedup key is wrong again, not that Thumbtack is
+    // retrying.
     if (error.code === '23505') {
+      console.warn(
+        `[thumbtack/webhook] duplicate external_id=${externalId} type=${eventType} — skipped`,
+      );
       return NextResponse.json({ ok: true, duplicate: true });
     }
     // Any other write failure: return 500 so Thumbtack retries the delivery
