@@ -51,6 +51,32 @@ interface InvoiceLog {
   invoice_id: string | null;
 }
 
+type ArrangementSource = 'stripe_subscription' | 'stripe_schedule' | 'legacy_invoice';
+
+interface Arrangement {
+  id: string;
+  source: ArrangementSource;
+  clientId: string;
+  clientName: string;
+  title: string;
+  amountCents: number | null;
+  monthlyEquivalentCents: number;
+  interval: string | null;
+  intervalCount: number | null;
+  status: string;
+  nextBillAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  isFutureRevenue: boolean;
+}
+
+interface MrrData {
+  totalMrrCents: number;
+  mrrCents: number;
+  legacyMrrCents: number;
+  pendingMrrCents: number;
+  arrangements: Arrangement[];
+}
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function RecurringInvoicesPage() {
@@ -72,6 +98,13 @@ export default function RecurringInvoicesPage() {
   const { data, error, isLoading } = useSWR<RecurringInvoicesData>(
     `/api/recurring-invoices?status=${statusFilter}`,
     fetcher
+  );
+
+  // Total MRR (Stripe subscriptions + legacy recurring invoices) so the
+  // headline number isn't misleading — this table alone omits auto-pay subs.
+  const { data: mrrData } = useSWR<MrrData>('/api/dashboard/mrr', fetcher);
+  const subscriptions = (mrrData?.arrangements ?? []).filter(
+    (a) => a.source !== 'legacy_invoice'
   );
 
   const { data: logsData, mutate: mutateLogs } = useSWR<{ logs: InvoiceLog[] }>(
@@ -228,15 +261,25 @@ export default function RecurringInvoicesPage() {
             </div>
           </div>
           <div className="bg-white rounded-xl border shadow-sm p-6">
-            <div className="text-sm text-gray-600">Invoice MRR</div>
+            <div className="text-sm text-gray-600">Total MRR</div>
             <div className="text-2xl font-bold text-blue-600">
-              {currency(data.recurring_invoices
-                .filter(ri => ri.status === 'active' && ri.frequency === 'monthly')
-                .reduce((sum, ri) => sum + ri.amount_cents, 0)
+              {currency(
+                mrrData
+                  ? mrrData.totalMrrCents
+                  : data.recurring_invoices
+                      .filter(ri => ri.status === 'active' && ri.frequency === 'monthly')
+                      .reduce((sum, ri) => sum + ri.amount_cents, 0)
               )}
             </div>
             <div className="text-xs text-gray-400 mt-1">
-              From this table only — see dashboard for total MRR (includes Stripe subscriptions)
+              {mrrData ? (
+                <>
+                  Invoices {currency(mrrData.legacyMrrCents)} · Subscriptions{' '}
+                  {currency(mrrData.mrrCents)}
+                </>
+              ) : (
+                'Recurring invoices + Stripe subscriptions'
+              )}
             </div>
           </div>
           <div className="bg-white rounded-xl border shadow-sm p-6">
@@ -401,6 +444,94 @@ export default function RecurringInvoicesPage() {
           </div>
         )}
       </div>
+
+      {subscriptions.length > 0 && (
+        <div className="bg-white rounded-xl border shadow-sm">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">Stripe Subscriptions</h2>
+              <p className="text-sm text-gray-500">
+                Auto-billed via Stripe — already included in Total MRR above. Managed from each client&apos;s page.
+              </p>
+            </div>
+            <span className="text-sm text-gray-500">{subscriptions.length} total</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client &amp; Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Monthly (MRR)
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Next Bill
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {subscriptions.map((sub) => (
+                  <tr key={`${sub.source}-${sub.id}`} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <Link
+                        href={`/dashboard/clients/${sub.clientId}`}
+                        className="font-medium text-blue-600 hover:underline"
+                      >
+                        {sub.clientName}
+                      </Link>
+                      <div className="text-sm text-gray-500">{sub.title}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-semibold">
+                        {sub.amountCents === null ? 'Variable' : currency(sub.amountCents)}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {sub.interval
+                          ? `every ${sub.intervalCount && sub.intervalCount > 1 ? `${sub.intervalCount} ` : ''}${sub.interval}${sub.intervalCount && sub.intervalCount > 1 ? 's' : ''}`
+                          : ''}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900">
+                      {currency(sub.monthlyEquivalentCents)}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {sub.nextBillAt ? prettyDate(sub.nextBillAt) : '—'}
+                      {sub.isFutureRevenue && (
+                        <div className="text-xs text-indigo-600">scheduled</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge
+                        tone={
+                          sub.cancelAtPeriodEnd
+                            ? 'warning'
+                            : sub.source === 'stripe_schedule'
+                              ? 'info'
+                              : sub.status === 'past_due'
+                                ? 'danger'
+                                : sub.status === 'trialing'
+                                  ? 'info'
+                                  : 'success'
+                        }
+                      >
+                        {sub.cancelAtPeriodEnd ? 'canceling' : sub.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border shadow-sm">
         <button

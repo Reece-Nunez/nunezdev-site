@@ -56,3 +56,4 @@ graphify-out/
 
 # Supabase CLI scratch
 supabase/.temp/
+.env*.local
