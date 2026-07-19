@@ -236,6 +236,40 @@ Reuses the same Twilio env vars as the inbox, plus `CRON_SECRET` for the crons.
 The pure logic (rung selection, templates, chronic math, offshore gate) is
 unit-tested in `leadSmsSequence.test.ts` and `invoiceDunningSms.test.ts`.
 
+## Thumbtack integration
+
+Thumbtack posts lead, message, and review events to
+[`/api/thumbtack/webhook`](src/app/api/thumbtack/webhook/route.ts). Every
+delivery lands verbatim in `thumbtack_events`, then
+[`thumbtackProcessor.ts`](src/lib/thumbtackProcessor.ts) fans it out: lead
+events become a `leads` row plus a lead-fee expense, message events thread into
+the inbox. Processing is best-effort — the raw event is already stored, so a
+processing failure leaves `processed = false` for `/api/thumbtack/process` to
+retry rather than failing the webhook.
+
+Thumbtack's webhook form has **no payload signing**; it sends a static secret on
+every request instead. The endpoint fails closed — a missing or mismatched
+secret is a 401, and so is a deploy with no secret configured.
+
+**New-lead SMS alert** — Thumbtack has no native instant-reply feature, so the
+only lever on response time is how fast a lead reaches your phone.
+[`thumbtackAlert.ts`](src/lib/thumbtackAlert.ts) texts the owner the moment a
+lead lands (name, category, budget, timeline, quoted description, phone,
+dashboard link — absent fields are dropped, the description truncates to stay
+inside ~2 segments). The alert fires only when a `leads` row was actually
+**inserted**, not per event: the backfill route re-runs unprocessed events, and
+keying off the insert is what stops a retry from re-texting an old lead. This is
+an owner self-notification, so the A2P 10DLC consent gate does not apply.
+
+| Var | Purpose |
+|-----|---------|
+| `THUMBTACK_WEBHOOK_SECRET` | Shared secret Thumbtack sends as `Authorization`; required or the endpoint 401s |
+| `THUMBTACK_ALERT_PHONE` | Owner's mobile for new-lead texts (any US format). **Unset disables alerts silently** so the webhook still works on a deploy where it isn't configured |
+| `THUMBTACK_ORG_ID` | Optional; pins the org lead-fee expenses belong to. Falls back to the org already owning Thumbtack expenses |
+
+Reuses the same Twilio env vars as the inbox. Pure parsing and the alert body
+are unit-tested in `thumbtackWebhook.test.ts` and `thumbtackAlert.test.ts`.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
