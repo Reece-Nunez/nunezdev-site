@@ -21,6 +21,7 @@ import {
   isThumbtackMessageEvent,
 } from '@/lib/thumbtackWebhook';
 import { threadThumbtackMessage } from '@/lib/thumbtackInbox';
+import { sendNewLeadAlert } from '@/lib/thumbtackAlert';
 import { normalizePhoneE164 } from '@/lib/sms';
 
 export type ProcessStatus =
@@ -120,7 +121,14 @@ export async function processThumbtackEvent(eventRow: {
     // a lead with no price still belongs in the pipeline (this is the fix for
     // Thumbtack leads only ever becoming an expense, never a tracked lead).
     try {
-      await upsertLeadFromThumbtack(supabase, eventRow.payload);
+      const created = await upsertLeadFromThumbtack(supabase, eventRow.payload);
+      // Alert only on first capture. The leads row — not the event row — is the
+      // dedup key here: a non-terminal status (e.g. skipped_no_org) leaves the
+      // event unprocessed for the backfill route to retry, and keying off the
+      // insert is what stops that retry from re-texting an old lead.
+      if (created) {
+        await sendNewLeadAlert(extractLeadDetails(eventRow.payload));
+      }
     } catch (e) {
       console.error('[thumbtack] lead capture failed:', e);
     }
@@ -143,10 +151,16 @@ export async function processThumbtackEvent(eventRow: {
  * so a redelivery updates rather than duplicates. We fill in contact details we
  * may have just learned but never downgrade an existing lead's status (it may
  * have advanced to contacted/qualified since first capture).
+ *
+ * Returns true only when a new leads row was inserted, so callers can tell a
+ * first capture from a redelivery/enrichment (used to gate the owner SMS alert).
  */
-async function upsertLeadFromThumbtack(supabase: SupabaseAdmin, payload: unknown): Promise<void> {
+async function upsertLeadFromThumbtack(
+  supabase: SupabaseAdmin,
+  payload: unknown,
+): Promise<boolean> {
   const details = extractLeadDetails(payload);
-  if (!details.negotiationID) return; // no idempotent key -> skip rather than risk dupes
+  if (!details.negotiationID) return false; // no idempotent key -> skip rather than risk dupes
 
   const fields = buildThumbtackLeadInsert(details);
   const phone = fields.phone ? normalizePhoneE164(fields.phone) ?? fields.phone : null;
@@ -168,10 +182,13 @@ async function upsertLeadFromThumbtack(supabase: SupabaseAdmin, payload: unknown
     if (!row.timeline && fields.timeline) patch.timeline = fields.timeline;
     if (!row.message && fields.message) patch.message = fields.message;
     await supabase.from('leads').update(patch).eq('id', row.id as string);
-    return;
+    return false;
   }
 
-  await supabase.from('leads').insert({ ...fields, phone, last_contact: now });
+  const { error } = await supabase.from('leads').insert({ ...fields, phone, last_contact: now });
+  // Don't alert on a failed insert — otherwise a text goes out for a lead that
+  // isn't actually in the pipeline yet.
+  return !error;
 }
 
 /**
