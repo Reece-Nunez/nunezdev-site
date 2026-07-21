@@ -14,6 +14,7 @@ import {
   UserPlusIcon,
   DocumentTextIcon,
   DocumentCheckIcon,
+  ClipboardDocumentCheckIcon,
   ClockIcon,
   BanknotesIcon,
   ArrowPathIcon,
@@ -56,6 +57,7 @@ const navSections: { label: string | null; items: NavItem[] }[] = [
       { href: '/dashboard/leadgen', label: 'Prospecting', icon: MagnifyingGlassIcon },
       { href: '/dashboard/leadgen/ads', label: 'Google Ads', icon: MegaphoneIcon },
       { href: '/dashboard/proposals', label: 'Proposals', icon: DocumentCheckIcon },
+      { href: '/dashboard/agreements', label: 'Agreements', icon: ClipboardDocumentCheckIcon },
     ],
   },
   {
