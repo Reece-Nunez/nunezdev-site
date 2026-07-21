@@ -284,7 +284,7 @@ const BODY = String.raw`<header class="mast">
         <h3>Custom-Coded Platform</h3>
         <p class="blurb">Coded by hand by a real software engineer. No page builder plugins, no bloat. It is the fastest, most secure, and most search friendly option, and the easiest one to grow as you add programs.</p>
         <div class="price"><span class="amt">$2,950</span><span class="per">one-time build</span></div>
-        <p class="price-note">+ Care &amp; Hosting from $25/mo · 50% to start</p>
+        <p class="price-note">+ Care &amp; Hosting from $35/mo · 50% to start</p>
         <ul class="feat">
           <li><span class="check">✓</span><span>100% unique design, coded by hand, <b>no templates</b></span></li>
           <li><span class="check">✓</span><span>Top-tier <b>page speed</b> for better Google ranking</span></li>
@@ -300,7 +300,7 @@ const BODY = String.raw`<header class="mast">
         <h3>WordPress Platform</h3>
         <p class="blurb">A polished, fully custom design built on WordPress, the most familiar content system out there. Quick to launch and easy for your team to edit day to day, with a big ecosystem behind it.</p>
         <div class="price"><span class="amt">$2,200</span><span class="per">one-time build</span></div>
-        <p class="price-note">+ Care &amp; Hosting from $25/mo · 50% to start</p>
+        <p class="price-note">+ Care &amp; Hosting from $35/mo · 50% to start</p>
         <ul class="feat">
           <li><span class="check">✓</span><span>Custom design, <b>not an off-the-shelf theme</b></span></li>
           <li><span class="check">✓</span><span>Familiar <b>WordPress dashboard</b> for easy editing</span></li>
@@ -355,7 +355,7 @@ const BODY = String.raw`<header class="mast">
     <div class="invoice">
       <div class="row"><div class="lbl"><b>Option A, Custom-Coded Platform</b><span>Recommended · one-time build, 50% to start then 50% at launch</span></div><div class="val">$2,950</div></div>
       <div class="row"><div class="lbl"><b>Option B, WordPress Platform</b><span>One-time build, 50% to start then 50% at launch</span></div><div class="val">$2,200</div></div>
-      <div class="row"><div class="lbl"><b>Care &amp; Hosting Plan</b><span>Three plans to choose from, see the breakdown below</span></div><div class="val">from $25/mo</div></div>
+      <div class="row"><div class="lbl"><b>Care &amp; Hosting Plan</b><span>Three plans to choose from, see the breakdown below</span></div><div class="val">from $35/mo</div></div>
       <div class="row total"><div class="lbl"><b>To begin, 50% deposit (Custom-Coded)</b><span>Balance of $1,475 due at launch</span></div><div class="val">$1,475</div></div>
     </div>
     <p class="addon-note">Optional add-ons whenever you want them: local and national SEO, Google and Meta ads management, ongoing social content, and extra pages. I will quote those separately, just ask.</p>
@@ -368,7 +368,7 @@ const BODY = String.raw`<header class="mast">
       <div class="plan">
         <p class="optk">Essentials</p>
         <p class="who">Online, secure, and backed up.</p>
-        <div class="pprice"><span class="amt">$25</span><span class="per">/month</span></div>
+        <div class="pprice"><span class="amt">$35</span><span class="per">/month</span></div>
         <ul class="pfeat">
           <li><span class="check">✓</span><span>Managed hosting and SSL certificate</span></li>
           <li><span class="check">✓</span><span>Daily backups</span></li>
@@ -381,7 +381,7 @@ const BODY = String.raw`<header class="mast">
         <span class="tag">Recommended</span>
         <p class="optk">Care</p>
         <p class="who">Hands-off upkeep, plus monthly changes.</p>
-        <div class="pprice"><span class="amt">$49</span><span class="per">/month</span></div>
+        <div class="pprice"><span class="amt">$69</span><span class="per">/month</span></div>
         <ul class="pfeat">
           <li class="inc">Everything in Essentials, plus:</li>
           <li><span class="check">✓</span><span>Up to 1 hour of edits each month</span></li>
@@ -393,7 +393,7 @@ const BODY = String.raw`<header class="mast">
       <div class="plan">
         <p class="optk">Growth</p>
         <p class="who">Ongoing improvements and reporting.</p>
-        <div class="pprice"><span class="amt">$99</span><span class="per">/month</span></div>
+        <div class="pprice"><span class="amt">$129</span><span class="per">/month</span></div>
         <ul class="pfeat">
           <li class="inc">Everything in Care, plus:</li>
           <li><span class="check">✓</span><span>Up to 3 hours of edits each month</span></li>
