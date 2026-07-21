@@ -1,53 +1,51 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
+import { resolveThumbtackConfig, buildAuthorizeUrl } from '@/lib/thumbtackApi';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Issued by Thumbtack once the Partner Platform API access request is approved.
-const THUMBTACK_CLIENT_ID = process.env.THUMBTACK_CLIENT_ID;
-
-// Must match the Redirect URI submitted on the Thumbtack Partner form EXACTLY.
-// Thumbtack rejects the handshake if this string differs by even a trailing slash.
+// Must match a Redirect URI registered with Thumbtack EXACTLY (prod:
+// https://www.nunezdev.com/api/thumbtack/callback). Thumbtack rejects the
+// handshake if this differs by even a trailing slash.
 const REDIRECT_URI = process.env.NEXT_PUBLIC_APP_URL
   ? `${process.env.NEXT_PUBLIC_APP_URL}/api/thumbtack/callback`
   : 'http://localhost:3000/api/thumbtack/callback';
 
-// TODO(post-approval): confirm these against Thumbtack's API docs. Placeholders
-// until we have access — the authorize URL and scope names below are guesses.
-const THUMBTACK_AUTHORIZE_URL = 'https://auth.thumbtack.com/oauth2/authorize';
-const THUMBTACK_SCOPES = 'leads messages'; // space-separated; replace with real scope names
+const base64url = (buf: Buffer) =>
+  buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-// GET /api/thumbtack — starts the OAuth handshake by redirecting the owner to
-// Thumbtack's consent screen. The callback lands at /api/thumbtack/callback.
+// GET /api/thumbtack — starts the OAuth2 authorization_code handshake by
+// redirecting the owner to Thumbtack's consent screen. The supply-side Partner
+// API requires this user-consent flow (client_credentials is rejected for our
+// client), so the owner grants access once and the callback stores the tokens.
 export async function GET() {
-  if (!THUMBTACK_CLIENT_ID) {
+  const cfg = resolveThumbtackConfig();
+  if (!cfg.clientId) {
     return NextResponse.json(
       { error: 'Thumbtack OAuth not configured (set THUMBTACK_CLIENT_ID)' },
       { status: 501 }
     );
   }
 
-  // CSRF state — verified against the cookie in the callback.
-  const state = crypto.randomBytes(32).toString('hex');
+  // CSRF state + PKCE verifier — both verified in the callback.
+  const state = base64url(crypto.randomBytes(32));
+  const codeVerifier = base64url(crypto.randomBytes(32));
+  const codeChallenge = base64url(crypto.createHash('sha256').update(codeVerifier).digest());
 
   const cookieStore = await cookies();
-  cookieStore.set('thumbtack_oauth_state', state, {
+  const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 10, // 10 minutes
+    sameSite: 'lax' as const,
+    maxAge: 60 * 10, // 10 minutes to complete consent
     path: '/',
-  });
+  };
+  cookieStore.set('thumbtack_oauth_state', state, cookieOpts);
+  cookieStore.set('thumbtack_oauth_verifier', codeVerifier, cookieOpts);
 
-  const params = new URLSearchParams({
-    client_id: THUMBTACK_CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: 'code',
-    scope: THUMBTACK_SCOPES,
-    state,
-  });
-
-  return NextResponse.redirect(`${THUMBTACK_AUTHORIZE_URL}?${params.toString()}`);
+  return NextResponse.redirect(
+    buildAuthorizeUrl(cfg, { redirectUri: REDIRECT_URI, state, codeChallenge })
+  );
 }

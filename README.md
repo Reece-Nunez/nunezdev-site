@@ -270,6 +270,34 @@ an owner self-notification, so the A2P 10DLC consent gate does not apply.
 Reuses the same Twilio env vars as the inbox. Pure parsing and the alert body
 are unit-tested in `thumbtackWebhook.test.ts` and `thumbtackAlert.test.ts`.
 
+#### Partner Platform API (associate phone numbers)
+
+`src/lib/thumbtackApi.ts` is a server-side client for Thumbtack's Partner
+Platform REST API. It authenticates with the OAuth2 **client-credentials**
+grant against Thumbtack's Hydra token server (distinct from the unfinished
+user-consent flow in `src/app/api/thumbtack/`), caches the 1-hour token
+in-process, and exposes CRUD for a business's "associate phone numbers" (the
+numbers Thumbtack uses for lead communications and caller ID).
+
+| Var | Purpose |
+|-----|---------|
+| `THUMBTACK_ENV` | `staging` (default) or `production`. Each env has separate hosts and credentials |
+| `THUMBTACK_API_SCOPES` | Space-delimited OAuth scope(s). Optional — defaults to `supply::businesses/associate-phone-numbers.read` + `.write` (from the OpenAPI spec). Set only to call other routes |
+| `THUMBTACK_CLIENT_ID` / `THUMBTACK_CLIENT_SECRET` | Production client credentials (also the fallback for staging) |
+| `THUMBTACK_STAGING_CLIENT_ID` / `THUMBTACK_STAGING_CLIENT_SECRET` | Staging client credentials (preferred when `THUMBTACK_ENV=staging`) |
+
+Manage numbers from the CLI (defaults to staging):
+
+```
+node --import tsx scripts/thumbtack-phone-numbers.mjs list   --business <businessID>
+node --import tsx scripts/thumbtack-phone-numbers.mjs create --business <businessID> --phone 405-555-1234 [--name "Main line"]
+node --import tsx scripts/thumbtack-phone-numbers.mjs update --business <businessID> --id <phoneNumberID> [--phone ...] [--name ...]
+node --import tsx scripts/thumbtack-phone-numbers.mjs delete --business <businessID> --id <phoneNumberID>
+```
+
+Config resolution, E.164 validation, and token caching are unit-tested in
+`thumbtackApi.test.ts`.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
