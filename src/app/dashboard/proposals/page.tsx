@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useToast, useConfirm } from '@/components/ui/Toast';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
@@ -72,19 +72,37 @@ function SendMenu({
   onToggle: () => void;
   onChoose: (channel: SendChannel) => void;
 }) {
+  // Anchor the menu with position:fixed computed from the button rect so it
+  // escapes the table's overflow container (which otherwise clips it and forces
+  // a stray scrollbar). Recomputed each open.
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+
+  const handleToggle = () => {
+    if (!isOpen && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, right: Math.max(8, window.innerWidth - r.right) });
+    }
+    onToggle();
+  };
+
   return (
-    <div className="relative inline-block">
+    <div className="inline-block">
       <button
-        onClick={onToggle}
+        ref={btnRef}
+        onClick={handleToggle}
         disabled={disabled}
         className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
       >
         {disabled ? 'Sending…' : `${label} ▾`}
       </button>
-      {isOpen && (
+      {isOpen && pos && (
         <>
-          <div className="fixed inset-0 z-10" onClick={onToggle} />
-          <div className="absolute right-0 z-20 mt-1 w-32 rounded-lg border bg-white py-1 shadow-lg">
+          <div className="fixed inset-0 z-40" onClick={onToggle} />
+          <div
+            className="fixed z-50 w-32 rounded-lg border bg-white py-1 shadow-lg"
+            style={{ top: pos.top, right: pos.right }}
+          >
             <button
               onClick={() => onChoose('email')}
               className="block w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
