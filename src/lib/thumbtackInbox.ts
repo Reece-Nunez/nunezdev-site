@@ -44,6 +44,44 @@ async function findOrCreateThumbtackConversation(params: {
   return data.id as string;
 }
 
+/**
+ * Record a message WE sent into a negotiation (the instant auto-reply) so it
+ * shows in the inbox thread. Idempotent on provider_id: if Thumbtack later
+ * echoes our API-sent message back as a MessageCreatedV4 webhook, the unique
+ * provider_id makes that a no-op instead of a duplicate.
+ */
+export async function recordOutboundThumbtackMessage(params: {
+  negotiationID: string;
+  text: string;
+  customerName?: string | null;
+  businessName?: string | null;
+  messageID?: string | null;
+}): Promise<void> {
+  const supabase = supabaseAdmin();
+  const conversationId = await findOrCreateThumbtackConversation({
+    negotiationID: params.negotiationID,
+    customerName: params.customerName ?? null,
+  });
+
+  const businessName = params.businessName ?? 'NunezDev';
+  const customerName = params.customerName ?? 'Thumbtack customer';
+
+  const { error } = await supabase.from('messages').insert({
+    conversation_id: conversationId,
+    direction: 'outbound',
+    channel: 'thumbtack',
+    from_address: businessName,
+    to_address: customerName,
+    body_text: params.text,
+    provider_id: params.messageID ?? null, // unique index dedups a webhook echo
+    status: 'sent',
+  });
+  // Duplicate (unique provider_id) means the webhook echo already threaded it.
+  if (error && error.code !== '23505') {
+    throw new Error(`failed to record outbound thumbtack message: ${error.message}`);
+  }
+}
+
 export async function threadThumbtackMessage(payload: unknown): Promise<ProcessResult> {
   const msg = extractThumbtackMessage(payload);
 

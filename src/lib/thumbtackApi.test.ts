@@ -28,7 +28,10 @@ import {
   isAccessTokenExpired,
   createAssociatePhoneNumber,
   bulkCreateAssociatePhoneNumbers,
+  sendThumbtackMessage,
   THUMBTACK_PHONE_SCOPES,
+  THUMBTACK_MESSAGE_SCOPES,
+  THUMBTACK_DEFAULT_SCOPES,
   TOKEN_AUDIENCE,
   type ThumbtackConfig,
 } from './thumbtackApi';
@@ -94,8 +97,13 @@ describe('resolveThumbtackConfig', () => {
     assert.equal(cfg.tokenUrl, 'https://auth.thumbtack.com/oauth2/token');
   });
 
-  it('defaults resource scopes to the phone-number scopes; honors an override', () => {
-    assert.equal(resolveThumbtackConfig({}).scopes, THUMBTACK_PHONE_SCOPES);
+  it('defaults resource scopes to phone + messages; honors an override', () => {
+    const scopes = resolveThumbtackConfig({}).scopes;
+    assert.equal(scopes, THUMBTACK_DEFAULT_SCOPES);
+    // Default must cover both the phone-number and messaging routes so one
+    // consent unlocks both features.
+    assert.ok(scopes.includes(THUMBTACK_PHONE_SCOPES));
+    assert.ok(scopes.includes(THUMBTACK_MESSAGE_SCOPES));
     assert.equal(resolveThumbtackConfig({ THUMBTACK_API_SCOPES: '  supply::x  ' }).scopes, 'supply::x');
   });
 });
@@ -247,6 +255,18 @@ describe('CRUD validation short-circuit (no network/DB)', () => {
             { cfg: TEST_CFG }
           ),
         /E\.164 US format/
+      );
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('sendThumbtackMessage rejects empty text before any call', async () => {
+    globalThis.fetch = boom;
+    try {
+      await assert.rejects(
+        () => sendThumbtackMessage('neg1', '   ', { cfg: TEST_CFG }),
+        /text is required/
       );
     } finally {
       globalThis.fetch = realFetch;

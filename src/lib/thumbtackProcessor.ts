@@ -22,6 +22,7 @@ import {
 } from '@/lib/thumbtackWebhook';
 import { threadThumbtackMessage } from '@/lib/thumbtackInbox';
 import { sendNewLeadAlert } from '@/lib/thumbtackAlert';
+import { sendInstantLeadReply } from '@/lib/thumbtackAutoReply';
 import { normalizePhoneE164 } from '@/lib/sms';
 
 export type ProcessStatus =
@@ -128,6 +129,17 @@ export async function processThumbtackEvent(eventRow: {
       // insert is what stops that retry from re-texting an old lead.
       if (created) {
         await sendNewLeadAlert(extractLeadDetails(eventRow.payload));
+        // Instant auto-reply to the customer (0 reply time). Best-effort and
+        // flag-gated (THUMBTACK_AUTO_REPLY); a reply failure must never fail the
+        // lead. Gated on `created` so a redelivery can't re-message the lead.
+        try {
+          const r = await sendInstantLeadReply(eventRow.payload);
+          if (r.status === 'error') {
+            console.error('[thumbtack] instant auto-reply failed:', r.detail);
+          }
+        } catch (e) {
+          console.error('[thumbtack] instant auto-reply threw:', e);
+        }
       }
     } catch (e) {
       console.error('[thumbtack] lead capture failed:', e);

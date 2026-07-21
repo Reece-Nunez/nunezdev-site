@@ -270,33 +270,49 @@ an owner self-notification, so the A2P 10DLC consent gate does not apply.
 Reuses the same Twilio env vars as the inbox. Pure parsing and the alert body
 are unit-tested in `thumbtackWebhook.test.ts` and `thumbtackAlert.test.ts`.
 
-#### Partner Platform API (associate phone numbers)
+#### Partner Platform API (phone numbers + messaging)
 
-`src/lib/thumbtackApi.ts` is a server-side client for Thumbtack's Partner
-Platform REST API. It authenticates with the OAuth2 **client-credentials**
-grant against Thumbtack's Hydra token server (distinct from the unfinished
-user-consent flow in `src/app/api/thumbtack/`), caches the 1-hour token
-in-process, and exposes CRUD for a business's "associate phone numbers" (the
-numbers Thumbtack uses for lead communications and caller ID).
+`src/lib/thumbtackApi.ts` is a server-side client for Thumbtack's supply-side
+Partner Platform REST API. It authenticates with the OAuth2 **authorization_code**
+grant against Thumbtack's Hydra server (the supply:: scopes are only offered
+under that flow — client_credentials is rejected for our client). The owner
+consents once at `GET /api/thumbtack` (PKCE); `GET /api/thumbtack/callback`
+stores an access + refresh token in `thumbtack_oauth_tokens`; the client reads
+that token and refreshes it as needed. Surfaces: **associate phone numbers**
+(caller ID) and **messaging** (send/list on a negotiation).
 
 | Var | Purpose |
 |-----|---------|
 | `THUMBTACK_ENV` | `staging` (default) or `production`. Each env has separate hosts and credentials |
-| `THUMBTACK_API_SCOPES` | Space-delimited OAuth scope(s). Optional — defaults to `supply::businesses/associate-phone-numbers.read` + `.write` (from the OpenAPI spec). Set only to call other routes |
 | `THUMBTACK_CLIENT_ID` / `THUMBTACK_CLIENT_SECRET` | Production client credentials (also the fallback for staging) |
 | `THUMBTACK_STAGING_CLIENT_ID` / `THUMBTACK_STAGING_CLIENT_SECRET` | Staging client credentials (preferred when `THUMBTACK_ENV=staging`) |
+| `THUMBTACK_API_SCOPES` | Optional. Consent scopes; defaults to the phone-number + messaging scopes (`supply::businesses/associate-phone-numbers.*` + `supply::messages.*`). Set only to narrow/extend |
+| `THUMBTACK_AUTO_REPLY` | `true` to enable the instant new-lead auto-reply (see below). Off otherwise |
 
-Manage numbers from the CLI (defaults to staging):
+Connect: with the env vars set, visit `/api/thumbtack` as the owner (signed into
+the NunezDev Thumbtack account) and approve. Then manage numbers from the CLI
+(run with the same `--env` you consented under):
 
 ```
-node --import tsx scripts/thumbtack-phone-numbers.mjs list   --business <businessID>
-node --import tsx scripts/thumbtack-phone-numbers.mjs create --business <businessID> --phone 405-555-1234 [--name "Main line"]
-node --import tsx scripts/thumbtack-phone-numbers.mjs update --business <businessID> --id <phoneNumberID> [--phone ...] [--name ...]
-node --import tsx scripts/thumbtack-phone-numbers.mjs delete --business <businessID> --id <phoneNumberID>
+node --import tsx scripts/thumbtack-phone-numbers.mjs list   --business <businessID> --env production
+node --import tsx scripts/thumbtack-phone-numbers.mjs create --business <businessID> --phone 405-555-1234 --env production
+node --import tsx scripts/thumbtack-phone-numbers.mjs update --business <businessID> --id <phoneNumberID> [--phone ...] [--name ...] --env production
+node --import tsx scripts/thumbtack-phone-numbers.mjs delete --business <businessID> --id <phoneNumberID> --env production
 ```
 
-Config resolution, E.164 validation, and token caching are unit-tested in
-`thumbtackApi.test.ts`.
+**Instant new-lead auto-reply.** When `THUMBTACK_AUTO_REPLY=true`, the moment a
+`NegotiationCreatedV4` webhook lands, `sendInstantLeadReply` (in
+`thumbtackAutoReply.ts`) drafts a first message in Reece's voice (the same AI
+prompt as `/leads/[id]/draft-reply`, with a templated fallback if the model is
+slow/unavailable) and sends it over the Thumbtack messaging API — so NunezDev is
+first to reply, with zero human latency. Every draft is passed through
+`stripContactInfo` first: Thumbtack prohibits off-platform contact info (phone /
+email / links) in messages. It runs best-effort on first lead capture (never
+fails the webhook) and the sent message is threaded into the inbox.
+
+Config/E.164 validation/token/OAuth builders are unit-tested in
+`thumbtackApi.test.ts`; the auto-reply sanitizer + fallback in
+`thumbtackAutoReply.test.ts`.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

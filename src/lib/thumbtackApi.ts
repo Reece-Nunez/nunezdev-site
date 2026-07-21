@@ -81,10 +81,18 @@ const HOSTS: Record<ThumbtackEnv, Pick<ThumbtackConfig, 'apiHost' | 'authorizeUr
 // Tokens are minted for the partner-API audience.
 export const TOKEN_AUDIENCE = 'urn:partner-api';
 
-// Exact scopes for the associate-phone-numbers routes, from the OpenAPI spec's
-// per-operation `security` (read -> list; write -> create/update/delete/bulk).
+// Exact scopes from the OpenAPI spec's per-operation `security`.
+// Phone numbers: read -> list; write -> create/update/delete/bulk.
 export const THUMBTACK_PHONE_SCOPES =
   'supply::businesses/associate-phone-numbers.read supply::businesses/associate-phone-numbers.write';
+// Messages: read -> list a negotiation's messages; write -> send (the instant
+// new-lead auto-reply). sendMessageV4 requires supply::messages.write.
+export const THUMBTACK_MESSAGE_SCOPES = 'supply::messages.read supply::messages.write';
+
+// The scope set requested at consent by default — everything this app calls, so
+// one owner consent covers phone-number management AND messaging. Override with
+// THUMBTACK_API_SCOPES only to narrow/extend.
+export const THUMBTACK_DEFAULT_SCOPES = `${THUMBTACK_PHONE_SCOPES} ${THUMBTACK_MESSAGE_SCOPES}`;
 
 // Thumbtack's PhoneNumber schema: E.164 restricted to US/North American
 // numbers, i.e. `+1` followed by up to 14 more digits.
@@ -129,7 +137,7 @@ export function resolveThumbtackConfig(
   // Resource scopes to request at consent; defaults to the phone-number scopes.
   // Override THUMBTACK_API_SCOPES to add other routes (offline_access is added
   // automatically by buildAuthorizeUrl).
-  const scopes = (env.THUMBTACK_API_SCOPES || THUMBTACK_PHONE_SCOPES).trim();
+  const scopes = (env.THUMBTACK_API_SCOPES || THUMBTACK_DEFAULT_SCOPES).trim();
 
   return { env: ttEnv, ...hosts, clientId, clientSecret, scopes };
 }
@@ -491,4 +499,54 @@ export async function deleteAssociatePhoneNumber(
     { method: 'DELETE' },
     opts
   );
+}
+
+// ---------------------------------------------------------------------------
+// Messages (negotiation threads)
+// ---------------------------------------------------------------------------
+
+// Thumbtack's message `text` field: required, 1..16384 chars (from the spec).
+const MESSAGE_MAX_LEN = 16384;
+
+export interface ThumbtackSentMessage {
+  messageID?: string;
+  negotiationID?: string;
+  text?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Send a message into a negotiation (lead thread) — the outbound leg of the
+ * instant new-lead auto-reply. Requires the supply::messages.write scope.
+ * Trims and length-checks up front so an empty/oversized body fails before any
+ * network call.
+ */
+export async function sendThumbtackMessage(
+  negotiationID: string,
+  text: string,
+  opts?: TokenOpts
+): Promise<ThumbtackSentMessage> {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed) throw new Error('sendThumbtackMessage: text is required');
+  if (trimmed.length > MESSAGE_MAX_LEN) {
+    throw new Error(`sendThumbtackMessage: text exceeds ${MESSAGE_MAX_LEN} chars`);
+  }
+  return thumbtackApiFetch<ThumbtackSentMessage>(
+    `/api/v4/negotiations/${negotiationID}/messages`,
+    { method: 'POST', body: JSON.stringify({ text: trimmed }) },
+    opts
+  );
+}
+
+/** List a negotiation's messages (supply::messages.read) — for verification. */
+export async function listThumbtackMessages(
+  negotiationID: string,
+  opts?: TokenOpts
+): Promise<ThumbtackSentMessage[]> {
+  const data = await thumbtackApiFetch<{ messages?: ThumbtackSentMessage[] }>(
+    `/api/v4/negotiations/${negotiationID}/messages`,
+    { method: 'GET' },
+    opts
+  );
+  return data?.messages ?? [];
 }

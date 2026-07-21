@@ -1,9 +1,10 @@
 /**
- * Drafting a first reply to a Thumbtack lead. Pure prompt + sanitizer; the
- * route in app/api/leads/[id]/draft-reply wires it to the Anthropic client.
+ * Drafting a first reply to a Thumbtack lead. Pure prompt + sanitizer; wired to
+ * the Anthropic client by the /leads/[id]/draft-reply route (manual send) and by
+ * thumbtackAutoReply.ts (instant auto-send over the Thumbtack messaging API).
  *
- * The reply goes out over SMS (Thumbtack's own messaging API isn't available),
- * so it must be short, sound like Reece, and never use em dashes.
+ * Keep it short, sounding like Reece, and free of em dashes: it may go out over
+ * SMS or as a Thumbtack message, and the short SMS-friendly shape suits both.
  */
 
 export const THUMBTACK_REPLY_SYSTEM_PROMPT = `You write Reece's first reply to a new lead who reached out through Thumbtack for web design or development work. Reece runs NunezDev, a small web studio.
