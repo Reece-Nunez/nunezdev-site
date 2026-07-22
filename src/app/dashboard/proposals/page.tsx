@@ -8,6 +8,7 @@ import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { currency } from '@/lib/ui';
 import { buildProposalShareMessage } from '@/lib/proposalShareMessage';
 import CopyProposalLinkButton from '@/components/proposals/CopyProposalLinkButton';
+import CustomProposalsPanel from '@/components/proposals/CustomProposalsPanel';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 
@@ -494,6 +495,8 @@ export default function ProposalsPage() {
             </>
           )}
         </div>
+
+        <CustomProposalsPanel showToast={showToast} />
       </div>
 
       {smsModal && (
