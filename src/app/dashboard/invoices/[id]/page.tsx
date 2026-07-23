@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { currency } from '@/lib/ui';
 import { buildInvoiceShareMessage } from '@/lib/invoiceShareMessage';
+import { formatInvoiceViewedSummary } from '@/lib/invoiceViews';
 import EditInvoice from '@/components/client-detail/EditInvoice';
 import { InvoiceStatusBadge } from '@/components/ui/StatusBadge';
 import { useToast, useConfirm } from '@/components/ui/Toast';
@@ -89,6 +90,10 @@ interface Invoice extends InvoiceLite {
   // Suspension
   is_suspended?: boolean;
   suspended_at?: string;
+  // View tracking (client opened the public link)
+  viewed_at?: string | null;
+  last_viewed_at?: string | null;
+  view_count?: number | null;
   clients?: {
     id: string;
     name: string;
@@ -499,6 +504,27 @@ export default function InvoiceDetailPage() {
               <div className="mt-1">
                 <InvoiceStatusBadge status={invoice.status} isSuspended={invoice.is_suspended} />
               </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-600">Client viewed</label>
+              <div className="mt-1 flex items-center gap-2">
+                {invoice.viewed_at ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-sm font-medium text-emerald-700">
+                    <span aria-hidden>👁</span> {formatInvoiceViewedSummary({
+                      viewed_at: invoice.viewed_at,
+                      last_viewed_at: invoice.last_viewed_at ?? null,
+                      view_count: invoice.view_count ?? 0,
+                    })}
+                  </span>
+                ) : (
+                  <span className="text-sm text-gray-500">Not yet viewed</span>
+                )}
+              </div>
+              {invoice.viewed_at && (
+                <div className="mt-1 text-xs text-gray-500">
+                  First opened {new Date(invoice.viewed_at).toLocaleString()}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-600">Total Amount</label>

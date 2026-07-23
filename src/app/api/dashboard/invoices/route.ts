@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   // Base query - include payment data for accurate calculations
   let query = supabase.from("invoices")
     .select(`
-      id, client_id, invoice_number, title, status, amount_cents, issued_at, due_at, stripe_invoice_id, signed_at, hosted_invoice_url, is_suspended, suspended_at,
+      id, client_id, invoice_number, title, status, amount_cents, issued_at, due_at, stripe_invoice_id, signed_at, hosted_invoice_url, is_suspended, suspended_at, viewed_at, last_viewed_at, view_count,
       clients(id,name,email,phone),
       invoice_payments(amount_cents, payment_method, paid_at)
     `)

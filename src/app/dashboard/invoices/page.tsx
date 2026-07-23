@@ -10,8 +10,34 @@ import { useToast, useConfirm } from '@/components/ui/Toast';
 import { useRealtimeEvents, RealtimeEvent } from '@/hooks/useRealtimeEvents';
 import CombineInvoicesModal from '@/components/invoices/CombineInvoicesModal';
 import { currency } from '@/lib/ui';
+import { formatInvoiceViewedSummary } from '@/lib/invoiceViews';
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
+
+// Small "has the client opened this invoice?" indicator. Green when viewed
+// (title shows count + last-opened date), muted when not yet opened.
+function ViewedBadge({ invoice }: { invoice: Invoice }) {
+  const viewed = !!invoice.viewed_at;
+  const summary = formatInvoiceViewedSummary({
+    viewed_at: invoice.viewed_at ?? null,
+    last_viewed_at: invoice.last_viewed_at ?? null,
+    view_count: invoice.view_count ?? 0,
+  });
+  return (
+    <span
+      title={summary}
+      className={
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ' +
+        (viewed ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500')
+      }
+    >
+      <span aria-hidden>{viewed ? '👁' : '—'}</span>
+      {viewed
+        ? `Viewed${(invoice.view_count ?? 1) > 1 ? ` ${invoice.view_count}×` : ''}`
+        : 'Not viewed'}
+    </span>
+  );
+}
 
 // Helper functions for payment calculations
 const getTotalPaid = (invoice: Invoice) => {
@@ -45,6 +71,9 @@ interface Invoice {
   hosted_invoice_url?: string | null;
   is_suspended?: boolean;
   suspended_at?: string | null;
+  viewed_at?: string | null;
+  last_viewed_at?: string | null;
+  view_count?: number | null;
   invoice_payments?: Array<{
     amount_cents: number;
     payment_method: string;
@@ -744,6 +773,10 @@ export default function DashboardInvoices() {
                 <span className="text-gray-600 flex-shrink-0">Signed:</span>
                 <span className="truncate ml-1 min-w-0">{r.signed_at ? new Date(r.signed_at).toLocaleDateString() : '—'}</span>
               </div>
+              <div className="flex justify-between items-center w-full min-w-0">
+                <span className="text-gray-600 flex-shrink-0">Viewed:</span>
+                <span className="ml-1 min-w-0"><ViewedBadge invoice={r} /></span>
+              </div>
             </div>
 
             <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
@@ -809,6 +842,7 @@ export default function DashboardInvoices() {
               <th className="px-3 py-2 text-right">Amount</th>
               <th className="px-3 py-2">Issued</th>
               <th className="px-3 py-2">Due</th>
+              <th className="px-3 py-2">Viewed</th>
               <th className="px-3 py-2">Signed</th>
               <th className="px-3 py-2">Stripe</th>
               <th className="px-3 py-2 text-center">Actions</th>
@@ -817,7 +851,7 @@ export default function DashboardInvoices() {
           <tbody>
             {isLoading && (
               <tr className="border-t">
-                <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
+                <td colSpan={10} className="px-3 py-8 text-center text-gray-500">
                   Loading…
                 </td>
               </tr>
@@ -825,7 +859,7 @@ export default function DashboardInvoices() {
 
             {!isLoading && rows.length === 0 && (
               <tr className="border-t">
-                <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
+                <td colSpan={10} className="px-3 py-8 text-center text-gray-500">
                   No invoices found.
                 </td>
               </tr>
@@ -871,6 +905,8 @@ export default function DashboardInvoices() {
                 </td>
                 <td className="px-3 py-2">{r.issued_at ? new Date(r.issued_at).toLocaleDateString() : '—'}</td>
                 <td className="px-3 py-2">{r.due_at ? new Date(r.due_at).toLocaleDateString() : '—'}</td>
+
+                <td className="px-3 py-2"><ViewedBadge invoice={r} /></td>
 
                 <td className="px-3 py-2">
                   {r.signed_at ? new Date(r.signed_at).toLocaleDateString() : '—'}

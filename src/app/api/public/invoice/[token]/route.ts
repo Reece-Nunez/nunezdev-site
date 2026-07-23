@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { computeInvoiceViewUpdate } from "@/lib/invoiceViews";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,9 @@ export async function GET(
         status,
         issued_at,
         due_at,
+        viewed_at,
+        last_viewed_at,
+        view_count,
         signed_at,
         signer_name,
         signer_email,
@@ -64,6 +68,29 @@ export async function GET(
 
     if (error || !invoice) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    // Record the client's view (this route is hit when they open the public
+    // link from either the email or the text). Best-effort + debounced so a
+    // single visit's duplicate fetches don't inflate the count; a failure here
+    // must never break rendering the invoice.
+    try {
+      const now = new Date().toISOString();
+      const update = computeInvoiceViewUpdate(
+        {
+          viewed_at: invoice.viewed_at ?? null,
+          last_viewed_at: invoice.last_viewed_at ?? null,
+          view_count: invoice.view_count ?? 0,
+        },
+        now
+      );
+      if (update) {
+        await supabase.from("invoices").update(update).eq("access_token", token);
+        // Reflect the update in the response so the page shows current values.
+        Object.assign(invoice, update);
+      }
+    } catch (viewErr) {
+      console.error("Failed to record invoice view:", viewErr);
     }
 
     return NextResponse.json(invoice);
