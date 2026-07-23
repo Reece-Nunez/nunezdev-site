@@ -22,7 +22,7 @@ import {
 } from '@/lib/thumbtackWebhook';
 import { threadThumbtackMessage } from '@/lib/thumbtackInbox';
 import { sendNewLeadAlert } from '@/lib/thumbtackAlert';
-import { sendInstantLeadReply } from '@/lib/thumbtackAutoReply';
+import { sendInstantLeadReply, type AutoReplyResult } from '@/lib/thumbtackAutoReply';
 import { normalizePhoneE164 } from '@/lib/sms';
 
 export type ProcessStatus =
@@ -98,18 +98,32 @@ async function matchClientId(
  * happened. Never throws for ordinary "can't map this" cases — those are
  * returned as a status so the caller can summarize.
  */
-export async function processThumbtackEvent(eventRow: {
-  id: string;
-  payload: unknown;
-}): Promise<ProcessResult> {
-  const supabase = supabaseAdmin();
+/**
+ * Injectable dependencies — the Supabase client and the three side-effect
+ * functions. Production callers pass nothing (the real ones are used); the
+ * regression test injects an in-memory Supabase + spies to exercise the
+ * event-ordering logic without a DB or network. See thumbtackProcessor.test.ts.
+ */
+export interface ProcessThumbtackDeps {
+  supabase?: SupabaseAdmin;
+  alert?: (details: ReturnType<typeof extractLeadDetails>) => Promise<unknown>;
+  autoReply?: (payload: unknown) => Promise<AutoReplyResult>;
+  thread?: (payload: unknown) => Promise<ProcessResult>;
+}
+
+export async function processThumbtackEvent(
+  eventRow: { id: string; payload: unknown },
+  deps: ProcessThumbtackDeps = {}
+): Promise<ProcessResult> {
+  const supabase = deps.supabase ?? supabaseAdmin();
+  const thread = deps.thread ?? threadThumbtackMessage;
   const { eventType } = parseThumbtackEvent(eventRow.payload);
 
   let result: ProcessResult;
 
   if (isThumbtackMessageEvent(eventType)) {
     // Phase C: thread the message into the inbox (keyed on negotiationID).
-    result = await threadThumbtackMessage(eventRow.payload);
+    result = await thread(eventRow.payload);
     // Phase D: keep the lead pipeline in sync. Best-effort — a lead-table
     // failure must not fail the event (the message is already threaded).
     try {
@@ -126,7 +140,7 @@ export async function processThumbtackEvent(eventRow: {
       // Owner alert + instant customer auto-reply. Gated on per-negotiation
       // markers (not the row insert) so a MessageCreatedV4 landing a beat before
       // the NegotiationCreatedV4 — which pre-creates the lead — can't skip them.
-      await fireNewLeadSideEffects(supabase, eventRow.payload);
+      await fireNewLeadSideEffects(supabase, eventRow.payload, deps);
     } catch (e) {
       console.error('[thumbtack] lead capture failed:', e);
     }
@@ -197,7 +211,14 @@ async function upsertLeadFromThumbtack(
  * redeliveries can't duplicate them, and a failed send retries on the next
  * delivery. Best-effort throughout: a side-effect failure never fails the event.
  */
-async function fireNewLeadSideEffects(supabase: SupabaseAdmin, payload: unknown): Promise<void> {
+async function fireNewLeadSideEffects(
+  supabase: SupabaseAdmin,
+  payload: unknown,
+  deps: ProcessThumbtackDeps = {}
+): Promise<void> {
+  const alert = deps.alert ?? sendNewLeadAlert;
+  const autoReply = deps.autoReply ?? sendInstantLeadReply;
+
   const details = extractLeadDetails(payload);
   if (!details.negotiationID) return;
 
@@ -214,7 +235,7 @@ async function fireNewLeadSideEffects(supabase: SupabaseAdmin, payload: unknown)
   // Owner new-lead text — once per negotiation.
   if (!lead.thumbtack_alerted_at) {
     try {
-      await sendNewLeadAlert(details);
+      await alert(details);
       await supabase
         .from('leads')
         .update({ thumbtack_alerted_at: new Date().toISOString() })
@@ -229,7 +250,7 @@ async function fireNewLeadSideEffects(supabase: SupabaseAdmin, payload: unknown)
   // and we only stamp the marker on a real send so 'disabled'/'error' can retry.
   if (!lead.thumbtack_auto_replied_at) {
     try {
-      const r = await sendInstantLeadReply(payload);
+      const r = await autoReply(payload);
       if (r.status === 'sent') {
         await supabase
           .from('leads')
