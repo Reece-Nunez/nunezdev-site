@@ -122,25 +122,11 @@ export async function processThumbtackEvent(eventRow: {
     // a lead with no price still belongs in the pipeline (this is the fix for
     // Thumbtack leads only ever becoming an expense, never a tracked lead).
     try {
-      const created = await upsertLeadFromThumbtack(supabase, eventRow.payload);
-      // Alert only on first capture. The leads row — not the event row — is the
-      // dedup key here: a non-terminal status (e.g. skipped_no_org) leaves the
-      // event unprocessed for the backfill route to retry, and keying off the
-      // insert is what stops that retry from re-texting an old lead.
-      if (created) {
-        await sendNewLeadAlert(extractLeadDetails(eventRow.payload));
-        // Instant auto-reply to the customer (0 reply time). Best-effort and
-        // flag-gated (THUMBTACK_AUTO_REPLY); a reply failure must never fail the
-        // lead. Gated on `created` so a redelivery can't re-message the lead.
-        try {
-          const r = await sendInstantLeadReply(eventRow.payload);
-          if (r.status === 'error') {
-            console.error('[thumbtack] instant auto-reply failed:', r.detail);
-          }
-        } catch (e) {
-          console.error('[thumbtack] instant auto-reply threw:', e);
-        }
-      }
+      await upsertLeadFromThumbtack(supabase, eventRow.payload);
+      // Owner alert + instant customer auto-reply. Gated on per-negotiation
+      // markers (not the row insert) so a MessageCreatedV4 landing a beat before
+      // the NegotiationCreatedV4 — which pre-creates the lead — can't skip them.
+      await fireNewLeadSideEffects(supabase, eventRow.payload);
     } catch (e) {
       console.error('[thumbtack] lead capture failed:', e);
     }
@@ -201,6 +187,61 @@ async function upsertLeadFromThumbtack(
   // Don't alert on a failed insert — otherwise a text goes out for a lead that
   // isn't actually in the pipeline yet.
   return !error;
+}
+
+/**
+ * Fire the once-per-negotiation new-lead side effects: the owner SMS alert and
+ * the instant customer auto-reply. Each is gated on its own marker column and
+ * stamped only on a SUCCESSFUL send — so event ordering (a MessageCreatedV4 can
+ * land before the NegotiationCreatedV4 and pre-create the lead) can't skip them,
+ * redeliveries can't duplicate them, and a failed send retries on the next
+ * delivery. Best-effort throughout: a side-effect failure never fails the event.
+ */
+async function fireNewLeadSideEffects(supabase: SupabaseAdmin, payload: unknown): Promise<void> {
+  const details = extractLeadDetails(payload);
+  if (!details.negotiationID) return;
+
+  const { data } = await supabase
+    .from('leads')
+    .select('id, thumbtack_alerted_at, thumbtack_auto_replied_at')
+    .eq('thumbtack_negotiation_id', details.negotiationID)
+    .limit(1);
+  const lead = data?.[0] as
+    | { id: string; thumbtack_alerted_at: string | null; thumbtack_auto_replied_at: string | null }
+    | undefined;
+  if (!lead) return; // upsert should have created it; nothing to mark
+
+  // Owner new-lead text — once per negotiation.
+  if (!lead.thumbtack_alerted_at) {
+    try {
+      await sendNewLeadAlert(details);
+      await supabase
+        .from('leads')
+        .update({ thumbtack_alerted_at: new Date().toISOString() })
+        .eq('id', lead.id);
+    } catch (e) {
+      console.error('[thumbtack] new-lead alert failed:', e);
+    }
+  }
+
+  // Instant customer auto-reply — once per negotiation. The flag check lives in
+  // sendInstantLeadReply (returns 'disabled' when THUMBTACK_AUTO_REPLY is off),
+  // and we only stamp the marker on a real send so 'disabled'/'error' can retry.
+  if (!lead.thumbtack_auto_replied_at) {
+    try {
+      const r = await sendInstantLeadReply(payload);
+      if (r.status === 'sent') {
+        await supabase
+          .from('leads')
+          .update({ thumbtack_auto_replied_at: new Date().toISOString() })
+          .eq('id', lead.id);
+      } else if (r.status === 'error') {
+        console.error('[thumbtack] instant auto-reply failed:', r.detail);
+      }
+    } catch (e) {
+      console.error('[thumbtack] instant auto-reply threw:', e);
+    }
+  }
 }
 
 /**
